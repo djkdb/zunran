@@ -1,6 +1,12 @@
 import type { UISnapshot } from '../game/types';
 import { formatTime } from '../game/config';
 
+// 좁은 HUD 에서 넘치지 않게 1만 이상은 축약
+function formatCoins(n: number): string {
+  if (n >= 10000) return `${(n / 10000).toFixed(n >= 100000 ? 0 : 1)}만`;
+  return n.toLocaleString();
+}
+
 export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) {
   const hpPct = Math.round((snap.hp / snap.maxHp) * 100);
   const hpClass = hpPct <= 25 ? 'danger' : hpPct <= 50 ? 'warn' : '';
@@ -29,7 +35,7 @@ export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) 
             <div className="bar-fill" style={{ width: `${hpPct}%` }} />
           </div>
         </div>
-        <div className="hud-coins">💰 {snap.coins.toLocaleString()}원</div>
+        <div className="hud-coins">💰 {formatCoins(snap.coins)}원</div>
       </div>
       {(snap.activeEvents.length > 0 || snap.bossAlive) && (
         <div className="hud-row hud-sub">

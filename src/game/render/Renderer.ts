@@ -40,13 +40,15 @@ export class Renderer {
     for (let i = 0; i < 60; i++) this.rainDrops.push({ x: Math.random() * FIELD_W, y: Math.random() * FIELD_H, s: 300 + Math.random() * 200 });
   }
 
+  // 실제 표시 크기(css px)에 맞춰 backing 크기를 잡는다. 모바일에서 과다 렌더, 큰 화면에서 블러 업스케일 방지.
   resize(cssSize: number): void {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    this.canvas.width = Math.round(FIELD_W * dpr);
-    this.canvas.height = Math.round(FIELD_H * dpr);
-    this.canvas.style.width = `${cssSize}px`;
-    this.canvas.style.height = `${cssSize}px`;
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const px = Math.max(1, Math.round(cssSize * dpr));
+    if (this.canvas.width !== px) {
+      this.canvas.width = px;
+      this.canvas.height = px;
+    }
+    this.ctx.setTransform(px / FIELD_W, 0, 0, px / FIELD_H, 0, 0);
   }
 
   handleFx(fx: FxEvent[], state: GameState): void {

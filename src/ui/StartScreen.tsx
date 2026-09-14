@@ -134,7 +134,9 @@ export function StartScreen({ save, onStart, onBuy, onToggleMute, onReset }: Pro
           <button className={tab === 'codex' ? 'active' : ''} onClick={() => setTab('codex')}>
             도감
           </button>
-          <button onClick={onToggleMute}>{save.muted ? '🔇' : '🔊'}</button>
+          <button onClick={onToggleMute} aria-label={save.muted ? '소리 켜기' : '소리 끄기'} aria-pressed={save.muted}>
+            {save.muted ? '🔇' : '🔊'}
+          </button>
         </nav>
         <button
           className="reset-link"

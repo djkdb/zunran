@@ -28,6 +28,7 @@ export function useGame(opts: UseGameOptions) {
   const toastTimer = useRef<number | null>(null);
   const onGameOverRef = useRef(opts.onGameOver);
   onGameOverRef.current = opts.onGameOver;
+  const timers = useRef(new Set<number>());
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -35,6 +36,7 @@ export function useGame(opts: UseGameOptions) {
     toastTimer.current = window.setTimeout(() => setToast(null), 1500);
   }, []);
 
+  const actRef = useRef<(a: GameAction) => void>(() => {});
   const act = useCallback(
     (action: GameAction) => {
       const engine = engineRef.current;
@@ -45,6 +47,7 @@ export function useGame(opts: UseGameOptions) {
     },
     [showToast],
   );
+  actRef.current = act;
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -57,7 +60,17 @@ export function useGame(opts: UseGameOptions) {
     audio.setMuted(opts.muted);
     if (audio.isUnlocked()) audio.startBgm();
     setSnap(engine.snapshot());
-    setBanners([{ id: bannerId.current++, text: 'WAVE 1', sub: '유닛을 뽑아 배치하세요', style: 'info', dur: 2.5 }]);
+    const pushBanners = (items: BannerItem[]) => {
+      setBanners((prev) => [...prev, ...items]);
+      for (const b of items) {
+        const t = window.setTimeout(() => {
+          timers.current.delete(t);
+          setBanners((prev) => prev.filter((x) => x.id !== b.id));
+        }, b.dur * 1000);
+        timers.current.add(t);
+      }
+    };
+    pushBanners([{ id: bannerId.current++, text: 'WAVE 1', sub: '유닛을 뽑아 배치하세요', style: 'info', dur: 2.5 }]);
 
     // 캔버스 크기: 부모 컨테이너의 정사각형에 맞춤
     const parent = canvas.parentElement!;
@@ -86,12 +99,7 @@ export function useGame(opts: UseGameOptions) {
           if (f.type === 'sfx') audio.play(f.id);
           else if (f.type === 'banner') newBanners.push({ id: bannerId.current++, text: f.text, sub: f.sub, style: f.style, dur: f.dur ?? 2 });
         }
-        if (newBanners.length) {
-          setBanners((prev) => [...prev, ...newBanners]);
-          for (const b of newBanners) {
-            window.setTimeout(() => setBanners((prev) => prev.filter((x) => x.id !== b.id)), b.dur * 1000);
-          }
-        }
+        if (newBanners.length) pushBanners(newBanners);
       }
       renderer.render(engine.state, now);
       if (now - lastSnap > 100) {
@@ -124,9 +132,9 @@ export function useGame(opts: UseGameOptions) {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
         e.preventDefault();
-        engine.dispatch({ type: 'TOGGLE_PAUSE' });
-      } else if (e.key === 'd' || e.key === 'D') engine.dispatch({ type: 'DRAW' });
-      else if (e.key === 'Escape') engine.dispatch({ type: 'SELECT', unitId: null });
+        actRef.current({ type: 'TOGGLE_PAUSE' });
+      } else if (e.key === 'd' || e.key === 'D') actRef.current({ type: 'DRAW' });
+      else if (e.key === 'Escape') actRef.current({ type: 'SELECT', unitId: null });
     };
     window.addEventListener('keydown', onKey);
 
@@ -138,6 +146,9 @@ export function useGame(opts: UseGameOptions) {
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
       audio.stopBgm();
+      for (const t of timers.current) clearTimeout(t);
+      timers.current.clear();
+      if (toastTimer.current) clearTimeout(toastTimer.current);
       engineRef.current = null;
     };
     // 한 판 = 한 번 마운트. opts 변경으로 재생성하지 않는다 (App 이 key 로 리마운트).

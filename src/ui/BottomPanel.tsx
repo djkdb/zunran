@@ -29,13 +29,13 @@ export function BottomPanel({ snap, act, muted, onToggleMute }: Props) {
           </span>
         </button>
         <div className="controls">
-          <button className="ctrl" onClick={() => act({ type: 'TOGGLE_PAUSE' })} aria-label="일시정지">
+          <button className="ctrl" onClick={() => act({ type: 'TOGGLE_PAUSE' })} aria-label={snap.paused ? '계속하기' : '일시정지'}>
             {snap.paused ? '▶' : '⏸'}
           </button>
-          <button className={`ctrl ${snap.speed === 2 ? 'active' : ''}`} onClick={() => act({ type: 'SET_SPEED', speed: snap.speed === 1 ? 2 : 1 })} aria-label="배속">
+          <button className={`ctrl ${snap.speed === 2 ? 'active' : ''}`} onClick={() => act({ type: 'SET_SPEED', speed: snap.speed === 1 ? 2 : 1 })} aria-label="2배속" aria-pressed={snap.speed === 2}>
             ×{snap.speed}
           </button>
-          <button className="ctrl" onClick={onToggleMute} aria-label="음소거">
+          <button className="ctrl" onClick={onToggleMute} aria-label={muted ? '소리 켜기' : '소리 끄기'} aria-pressed={muted}>
             {muted ? '🔇' : '🔊'}
           </button>
         </div>
