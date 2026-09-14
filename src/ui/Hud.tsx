@@ -10,7 +10,9 @@ export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) 
       <div className="hud-row">
         <div className="hud-clock">
           <span className="hud-time">{snap.clock}</span>
-          <span className="hud-survive">⏱ {formatTime(snap.survivedSec)}</span>
+          <span className="hud-survive">
+            ⏱ {formatTime(snap.survivedSec)} · 🏆 W{Math.max(bestWave, snap.wave)}
+          </span>
         </div>
         <div className="hud-wave">
           <div className="hud-wave-label">
@@ -28,9 +30,6 @@ export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) 
           </div>
         </div>
         <div className="hud-coins">💰 {snap.coins.toLocaleString()}원</div>
-        <div className="hud-best" title="최고 기록">
-          🏆 W{Math.max(bestWave, snap.wave)}
-        </div>
       </div>
       {(snap.activeEvents.length > 0 || snap.bossAlive) && (
         <div className="hud-row hud-sub">

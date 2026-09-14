@@ -8,7 +8,7 @@ async function main() {
   const [url = 'http://localhost:4173', outdir = 'shots', mode = 'landscape', secondsArg = '60'] = process.argv.slice(2);
   const seconds = Number(secondsArg);
   fs.mkdirSync(outdir, { recursive: true });
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined });
   const viewport = mode === 'portrait' ? { width: 390, height: 844 } : { width: 1280, height: 800 };
   const context = await browser.newContext({ viewport, deviceScaleFactor: 2, isMobile: mode === 'portrait', hasTouch: mode === 'portrait' });
   const page = await context.newPage();

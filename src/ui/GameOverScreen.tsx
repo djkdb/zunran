@@ -56,7 +56,7 @@ export function GameOverScreen({ result, onRestart, onMenu }: { result: RunResul
             🔁 다시 하기
           </button>
           <button className="menu-btn" onClick={onMenu}>
-            메인으로 (업그레이드)
+            메인으로 (강화 상점)
           </button>
         </div>
       </div>

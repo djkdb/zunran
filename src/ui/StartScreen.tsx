@@ -129,7 +129,7 @@ export function StartScreen({ save, onStart, onBuy, onToggleMute, onReset }: Pro
             시작
           </button>
           <button className={tab === 'shop' ? 'active' : ''} onClick={() => setTab('shop')}>
-            업그레이드
+            강화
           </button>
           <button className={tab === 'codex' ? 'active' : ''} onClick={() => setTab('codex')}>
             도감

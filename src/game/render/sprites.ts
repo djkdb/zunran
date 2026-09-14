@@ -1,8 +1,11 @@
 import type { PixelSprite, SpriteSheet } from './spriteTypes';
 import { BASE_SPRITES } from './sprites/base';
+import { UNITS1_SPRITES } from './sprites/units1';
+import { UNITS2_SPRITES } from './sprites/units2';
+import { ENEMY_SPRITES } from './sprites/enemies';
 
-// 모든 스프라이트 시트를 하나로 합친다. 배치 파일은 워크플로우로 생성된다.
-const SHEETS: SpriteSheet[] = [BASE_SPRITES];
+// 모든 스프라이트 시트를 하나로 합친다.
+const SHEETS: SpriteSheet[] = [BASE_SPRITES, UNITS1_SPRITES, UNITS2_SPRITES, ENEMY_SPRITES];
 
 const REGISTRY: SpriteSheet = Object.assign({}, ...SHEETS);
 

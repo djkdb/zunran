@@ -1,6 +1,6 @@
 import type { GameState } from '../types';
 import { buildWave } from '../data/waves';
-import { waveClearBonus, THREE_AM_WAVE, isBossWave } from '../config';
+import { waveClearBonus, waveIncome, THREE_AM_WAVE, isBossWave } from '../config';
 import { spawnEnemy } from './enemySystem';
 import { addCoins } from './economy';
 import { sfx, addFloater } from './helpers';
@@ -16,6 +16,11 @@ export function startWave(state: GameState, wave: number): void {
   state.waveCleared = false;
   state.waveReached = false;
   state.stats.bestWave = Math.max(state.stats.bestWave ?? 0, wave);
+  if (wave > 1) {
+    const income = Math.round(waveIncome(wave) * state.modifiers.coinGain);
+    addCoins(state, income);
+    addFloater(state, { x: 320, y: 60, text: `시급 +${income}원`, color: '#fde047', size: 13, life: 1.3 });
+  }
 
   if (plan.script === 'threeAm') {
     state.threeAmTriggered = true;

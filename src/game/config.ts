@@ -68,8 +68,8 @@ export const SLOT_HIT_RADIUS = 34;
 export const START_COINS = 300;
 export const START_HP = 100;
 export const DRAW_BASE_COST = 100;
-export const DRAW_COST_STEP = 10; // 뽑기마다 +10
-export const DRAW_COST_CAP = 400;
+export const DRAW_COST_STEP = 12; // 뽑기마다 +12 (뽑기 남발로 전설이 흔해지는 것을 억제)
+export const DRAW_COST_CAP = 460;
 export const SELL_REFUND: Record<Rarity, number> = {
   common: 40,
   rare: 90,
@@ -115,7 +115,7 @@ export const RARITY_COLOR: Record<Rarity, string> = {
 };
 
 // ───────────── 티어 스케일 ─────────────
-export const TIER_DMG_MULT = 3.2;
+export const TIER_DMG_MULT = 3.4; // 합성 3개 → 1개가 확실한 이득이 되도록 (시뮬: 합성 유무 차이 확보)
 export const MAX_TIER: Tier = 5;
 export function tierDmgMult(tier: Tier): number {
   return Math.pow(TIER_DMG_MULT, tier - 1);
@@ -142,15 +142,20 @@ export function isBossWave(w: number): boolean {
   return w >= 10 && w % 10 === 0;
 }
 
-// 체력 스케일: 웨이브 10 ≈ 3.7x, 20 ≈ 8.6x, 30 ≈ 15.7x, 40 ≈ 25x, 이후 x1.08/웨이브
+// 체력 스케일: 웨이브 10 ≈ 4.5x, 20 ≈ 11.8x, 30 ≈ 22.9x, 40 ≈ 37.8x, 이후 x1.1/웨이브
+// (시뮬레이션 결과 중반이 너무 쉬워 2차항을 0.011 → 0.019 로 올림)
 export function enemyHpScale(wave: number): number {
   const w = Math.max(1, wave);
-  let s = 1 + 0.16 * w + 0.011 * w * w;
-  if (w > 40) s *= Math.pow(1.08, w - 40);
+  let s = 1 + 0.16 * w + 0.019 * w * w;
+  if (w > 40) s *= Math.pow(1.1, w - 40);
   return s;
 }
+// 웨이브 시작 시 기본 수입("시급"). 처치를 못 해도 최소한의 뽑기가 가능하게 해 죽음의 소용돌이를 막는다.
+export function waveIncome(wave: number): number {
+  return 30 + wave * 6;
+}
 export function enemyBountyScale(wave: number): number {
-  return 1 + wave * 0.035;
+  return 1 + wave * 0.025; // 후반 코인 인플레 억제
 }
 export function waveClearBonus(wave: number): number {
   return 40 + wave * 8;

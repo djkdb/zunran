@@ -69,6 +69,7 @@ button:disabled {
   aspect-ratio: 1 / 1;
   max-width: 100%;
   max-height: 100%;
+  width: min(100%, 100vh); /* dvh 미지원 브라우저 폴백 */
   width: min(100%, 100vh, 58dvh);
   border-radius: 10px;
   overflow: hidden;
@@ -143,9 +144,6 @@ button:disabled {
   .hud-coins {
     font-size: 13px;
   }
-  .hud-best {
-    font-size: 11px;
-  }
   .hud-row {
     gap: 6px;
   }
@@ -162,6 +160,7 @@ button:disabled {
   font-size: 11px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .hud-wave {
   flex: 1;
@@ -204,11 +203,6 @@ button:disabled {
   color: var(--accent);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-}
-.hud-best {
-  font-size: 12px;
-  color: var(--muted);
-  white-space: nowrap;
 }
 .bar {
   height: 8px;
@@ -737,6 +731,8 @@ button:disabled {
   background: #111827;
   border: 1px solid #334155;
   font-weight: 800;
+  white-space: nowrap;
+  padding: 0 6px;
 }
 .tabs button.active {
   background: #1d4ed8;

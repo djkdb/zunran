@@ -2,7 +2,7 @@ import type { Enemy, FxEvent, GameState, Unit } from '../types';
 import { FIELD_W, FIELD_H, PATH, SLOT_ROWS, SLOT_COLS, RARITY_COLOR, CHECKOUT_POS, AISLE_NAMES, THREE_AM_WAVE } from '../config';
 import { UNIT_BY_ID } from '../data/units';
 import { ENEMY_BY_ID } from '../data/enemies';
-import { rasterize, drawFallback, hasSprite } from './sprites';
+import { rasterize, drawFallback, getSprite } from './sprites';
 import { unitRange, auraRadius, unitDef } from '../engine/helpers';
 
 interface Particle {
@@ -467,7 +467,7 @@ export class Renderer {
     const def = ENEMY_BY_ID[e.defId];
     const scale = (e.isBoss ? BOSS_SCALE : ENEMY_SCALE) * def.size;
     const sprite = def.sprite;
-    const spriteSize = e.isBoss ? 24 : hasSprite(sprite) ? 16 : 16;
+    const spriteSize = getSprite(sprite)?.h ?? 16;
     const w = spriteSize * scale;
     const bob = Math.sin(now / 90 + e.id) * (e.stun > 0 ? 0 : 1.5);
     ctx.save();
@@ -603,7 +603,7 @@ export class Renderer {
       const w = ctx.measureText(text).width + 12;
       const size = (e.isBoss ? 24 : 16) * ENEMY_SCALE * ENEMY_BY_ID[e.defId].size;
       const x = Math.max(w / 2 + 2, Math.min(FIELD_W - w / 2 - 2, e.x));
-      const y = e.y - size - 22;
+      const y = Math.max(14, e.y - size - 22);
       ctx.fillStyle = 'rgba(255,255,255,0.95)';
       ctx.beginPath();
       ctx.roundRect(x - w / 2, y - 9, w, 18, 6);

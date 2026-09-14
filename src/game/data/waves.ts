@@ -81,8 +81,8 @@ export function buildWave(wave: number, rng: RNG): WavePlan {
   let script: WavePlan['script'];
   if (wave === THREE_AM_WAVE) {
     script = 'threeAm';
-    // 새벽 3시 러시: 20명이 6초 안에 몰려온다 + 진상 1명
-    for (let i = 0; i < 20; i++) entries.push({ at: 2 + i * 0.3, defId: 'basic', count: 1, hpMult: 0.8 });
+    // 새벽 3시 러시: 20명이 6초 안에 몰려온다 + 진상 1명. 체력은 낮춰서(0.55) 장관이되 처형은 아니게.
+    for (let i = 0; i < 20; i++) entries.push({ at: 2 + i * 0.3, defId: 'basic', count: 1, hpMult: 0.55 });
     if (!entries.some((e) => e.defId === 'karen3am')) entries.push({ at: 10, defId: 'karen3am', count: 1 });
   }
   if (wave === 18 || wave === 25 || wave === 33) {

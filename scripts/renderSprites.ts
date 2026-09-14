@@ -41,7 +41,7 @@ async function main() {
   </script></body>`;
   const tmp = path.resolve(out + '.html');
   fs.writeFileSync(tmp, html);
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || undefined });
   const page = await browser.newPage({ viewport: { width: cols * cell, height: rows * cell + 10 } });
   await page.goto('file://' + tmp);
   await page.screenshot({ path: out });

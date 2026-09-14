@@ -156,7 +156,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
   {
     id: 'karen3am',
     name: '새벽 3시 진상',
-    hp: 300,
+    hp: 230, // 300 은 13웨이브 시점 약한 빌드에 치명적이라 하향
     speed: 85,
     bounty: 60,
     storeDamage: 8,
@@ -362,7 +362,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     hp: 2400,
     speed: 35,
     bounty: 1500,
-    storeDamage: 100,
+    storeDamage: 60, // 즉사 대신 치명상: 체력이 넉넉하면 버틸 수 있게
     size: 2.2,
     behavior: { kind: 'boss', pattern: 'closing' },
     tags: ['boss'],
