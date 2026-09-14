@@ -1,0 +1,467 @@
+import type { Enemy, GameState, OnHitEffect, Unit } from '../types';
+import { ENEMY_BY_ID } from '../data/enemies';
+import { PATH_LENGTH, pathPos, enemyHpScale, MAX_ENEMIES_ON_FIELD, LOW_HP_THRESHOLD } from '../config';
+import { addFloater, sfx, unitDef, auraRadius, auraValue, dist2, isTargetable } from './helpers';
+import { rewardKill } from './economy';
+import { BOSS_INTRO } from '../data/dialogue';
+
+// ───────────── 스폰 ─────────────
+
+export function spawnEnemy(
+  state: GameState,
+  defId: string,
+  opts: { hpMult?: number; dist?: number; groupId?: number; wave?: number; silent?: boolean } = {},
+): Enemy | null {
+  if (state.enemies.length >= MAX_ENEMIES_ON_FIELD) return null;
+  const def = ENEMY_BY_ID[defId];
+  if (!def) return null;
+  const wave = opts.wave ?? state.wave;
+  const hp = Math.round(def.hp * enemyHpScale(wave) * (opts.hpMult ?? 1));
+  const pos = pathPos(opts.dist ?? 0);
+  const e: Enemy = {
+    id: state.nextId++,
+    defId,
+    hp,
+    maxHp: hp,
+    dist: opts.dist ?? -state.rng.next() * 20,
+    baseSpeed: def.speed,
+    speedMult: 1,
+    slow: { pct: 0, until: 0 },
+    stun: 0,
+    dot: { dps: 0, until: 0 },
+    hidden: false,
+    stateTimer: def.behavior.kind === 'askPrice' ? def.behavior.every * (0.5 + state.rng.next() * 0.5) : def.behavior.kind === 'charger' ? def.behavior.every * 0.6 : 0,
+    stateFlag: 0,
+    groupId: opts.groupId,
+    isBoss: def.tags.includes('boss'),
+    bossPhase: 0,
+    shield: 0,
+    spawnedWave: wave,
+    reached: false,
+    dead: false,
+    hitFlash: 0,
+    x: pos.x,
+    y: pos.y,
+    facing: 1,
+  };
+  if (!opts.silent && state.rng.next() < 0.55) {
+    e.bubble = { text: def.lines[Math.floor(state.rng.next() * def.lines.length)], until: state.time + 2.2 };
+  }
+  state.enemies.push(e);
+  if (!state.stats.seenEnemies.includes(defId)) state.stats.seenEnemies.push(defId);
+  if (e.isBoss) {
+    state.bossAlive = true;
+    const intro = BOSS_INTRO[defId];
+    state.fx.push({ type: 'banner', text: intro?.title ?? def.name, sub: intro?.sub ?? 'BOSS', style: 'boss', dur: 3 });
+    state.fx.push({ type: 'shake', amount: 14 });
+    sfx(state, 'boss');
+  } else if (defId === 'karen3am') {
+    state.fx.push({ type: 'banner', text: 'WARNING', sub: '새벽 3시 진상 손님 등장', style: 'warning', dur: 2.2 });
+    state.fx.push({ type: 'shake', amount: 6 });
+    sfx(state, 'warning');
+  } else if (!opts.silent) {
+    sfx(state, 'spawn');
+  }
+  return e;
+}
+
+// ───────────── 피해 ─────────────
+
+export function damageEnemy(state: GameState, e: Enemy, rawAmount: number, source: Unit | null, onHit?: OnHitEffect): void {
+  if (e.dead || e.reached) return;
+  const def = ENEMY_BY_ID[e.defId];
+  let amount = rawAmount;
+  let crit = false;
+  if (onHit?.randomMult) {
+    amount *= onHit.randomMult[0] + state.rng.next() * (onHit.randomMult[1] - onHit.randomMult[0]);
+  }
+  if (onHit?.critChance && state.rng.next() < onHit.critChance) {
+    amount *= onHit.critMult ?? 2;
+    crit = true;
+  }
+  if (e.shield > 0) {
+    const absorbed = Math.min(e.shield, amount);
+    e.shield -= absorbed;
+    amount -= absorbed;
+    if (absorbed > 0 && amount <= 0) {
+      addFloater(state, { x: e.x, y: e.y - 20, text: '보호막', color: '#c4b5fd', size: 11, life: 0.5 });
+      return;
+    }
+  }
+  amount = Math.max(0, amount);
+  e.hp -= amount;
+  e.hitFlash = 0.12;
+  if (source) {
+    source.damage += amount;
+    state.stats.unitDamage[source.defId] = (state.stats.unitDamage[source.defId] ?? 0) + amount;
+  }
+  if (crit) {
+    const big = (onHit?.critMult ?? 2) >= 10;
+    addFloater(state, {
+      x: e.x,
+      y: e.y - 24,
+      text: big ? `로또 1등!! ${Math.round(amount)}` : `치명타 ${Math.round(amount)}`,
+      color: big ? '#fbbf24' : '#f472b6',
+      size: big ? 18 : 13,
+      life: big ? 1.6 : 0.8,
+    });
+    if (big) {
+      state.fx.push({ type: 'banner', text: '로또 1등!!!', sub: `${Math.round(amount)} 피해`, style: 'legendary', dur: 1.6 });
+      state.fx.push({ type: 'shake', amount: 8 });
+      sfx(state, 'legendary');
+    }
+  } else if (amount >= 200 || e.isBoss) {
+    addFloater(state, { x: e.x + (state.rng.next() - 0.5) * 20, y: e.y - 18, text: `${Math.round(amount)}`, color: '#fff', size: e.isBoss ? 12 : 14, life: 0.6 });
+  }
+  // 명중 효과
+  if (onHit) {
+    const immune = def.immune ?? [];
+    if (onHit.slow && !immune.includes('slow')) applySlow(state, e, onHit.slow.pct, onHit.slow.dur);
+    if (onHit.stun && !immune.includes('stun') && state.rng.next() < onHit.stun.chance) {
+      e.stun = Math.max(e.stun, onHit.stun.dur);
+      addFloater(state, { x: e.x, y: e.y - 22, text: '미끌!', color: '#fdba74', size: 12, life: 0.6 });
+    }
+    if (onHit.dot) {
+      e.dot = { dps: Math.max(e.dot.until > state.time ? e.dot.dps : 0, onHit.dot.dps), until: state.time + onHit.dot.dur };
+    }
+    if (onHit.knockback && !immune.includes('knockback')) {
+      e.dist = Math.max(-10, e.dist - onHit.knockback);
+    }
+  }
+  // 화장실 손님: 맞으면 패닉 가속
+  if (def.behavior.kind === 'panic') e.stateTimer = def.behavior.dur;
+
+  if (e.hp <= 0) killEnemy(state, e, source, onHit?.coinOnKill ?? 0);
+}
+
+export function applySlow(state: GameState, e: Enemy, pct: number, dur: number): void {
+  const def = ENEMY_BY_ID[e.defId];
+  if (def.immune?.includes('slow')) return;
+  const until = state.time + dur;
+  if (pct >= e.slow.pct || e.slow.until <= state.time) e.slow = { pct, until };
+  else e.slow.until = Math.max(e.slow.until, until);
+}
+
+export function killEnemy(state: GameState, e: Enemy, killer: Unit | null, bonusCoin: number): void {
+  if (e.dead) return;
+  e.dead = true;
+  const def = ENEMY_BY_ID[e.defId];
+  rewardKill(state, e, killer, bonusCoin);
+  state.fx.push({ type: 'death', x: e.x, y: e.y, color: def.color, boss: e.isBoss });
+  if (e.isBoss) {
+    state.bossAlive = state.enemies.some((o) => o !== e && o.isBoss && !o.dead && !o.reached);
+    state.fx.push({ type: 'banner', text: `${def.name} 처리 완료`, sub: def.deathLines?.[0] ?? '', style: 'clear', dur: 2.2 });
+    state.fx.push({ type: 'shake', amount: 10 });
+    sfx(state, 'waveClear');
+  }
+  const lines = def.deathLines;
+  if (lines && state.rng.next() < 0.6) {
+    addFloater(state, { x: e.x, y: e.y - 30, text: lines[Math.floor(state.rng.next() * lines.length)], color: '#e2e8f0', size: 11, life: 1.1 });
+  }
+}
+
+// ───────────── 이동/행동 ─────────────
+
+export function updateEnemies(state: GameState, dt: number): void {
+  const m = state.modifiers;
+  // 냉장고 감속 오라, 사장님불러 버프는 위치 기반이라 먼저 소스 목록을 모은다.
+  const slowAuras: { x: number; y: number; r2: number; v: number }[] = [];
+  for (const u of state.units) {
+    const d = unitDef(u);
+    if (d.aura?.kind === 'enemySlow' && u.disabledUntil <= state.time) {
+      const s = state.slots[u.slot];
+      const r = auraRadius(d, u.tier);
+      slowAuras.push({ x: s.x, y: s.y, r2: r * r, v: auraValue(d, u.tier) });
+    }
+  }
+  const buffers = state.enemies.filter((e) => !e.dead && !e.reached && ENEMY_BY_ID[e.defId].behavior.kind === 'buffer');
+  const blockers = state.enemies.filter((e) => !e.dead && !e.reached && ENEMY_BY_ID[e.defId].behavior.kind === 'askPrice' && e.stateFlag === 1);
+  // 술 취한 친구들: 그룹 선두 dist
+  const groupLead = new Map<number, number>();
+  for (const e of state.enemies) {
+    if (e.groupId !== undefined && !e.dead && !e.reached) {
+      groupLead.set(e.groupId, Math.max(groupLead.get(e.groupId) ?? -Infinity, e.dist));
+    }
+  }
+
+  for (const e of state.enemies) {
+    if (e.dead || e.reached) continue;
+    const def = ENEMY_BY_ID[e.defId];
+    const b = def.behavior;
+    e.hitFlash = Math.max(0, e.hitFlash - dt);
+
+    // 지속 피해
+    if (e.dot.until > state.time && e.dot.dps > 0) {
+      e.hp -= e.dot.dps * dt;
+      if (e.hp <= 0) {
+        killEnemy(state, e, null, 0);
+        continue;
+      }
+    }
+
+    // 상태이상: 정지
+    if (e.stun > 0) {
+      e.stun -= dt;
+      updatePos(e);
+      continue;
+    }
+
+    // 속도 계산
+    let speed = e.baseSpeed * e.speedMult * m.enemySpeed * (m.enemySpeedById[e.defId] ?? 1);
+    let slow = e.slow.until > state.time ? e.slow.pct : 0;
+    for (const a of slowAuras) if (dist2(a.x, a.y, e.x, e.y) <= a.r2) slow = Math.max(slow, a.v);
+    if (def.immune?.includes('slow')) slow = 0;
+    slow = Math.min(0.8, slow);
+    speed *= 1 - slow;
+    for (const bf of buffers) {
+      if (bf === e) continue;
+      const bb = ENEMY_BY_ID[bf.defId].behavior;
+      if (bb.kind === 'buffer' && dist2(bf.x, bf.y, e.x, e.y) <= bb.radius * bb.radius) {
+        speed *= 1 + bb.speedBuff;
+        break;
+      }
+    }
+    // 가격 손님 뒤에 막힘
+    for (const bl of blockers) {
+      if (bl === e) continue;
+      const bb = ENEMY_BY_ID[bl.defId].behavior;
+      if (bb.kind === 'askPrice' && e.dist < bl.dist && bl.dist - e.dist < bb.blockRadius) {
+        speed *= 0.4;
+        break;
+      }
+    }
+
+    let move = true;
+    switch (b.kind) {
+      case 'walk':
+        break;
+      case 'drunk': {
+        e.stateTimer += dt;
+        if (e.stateFlag === 0 && e.stateTimer >= b.wobbleEvery) {
+          e.stateFlag = 1;
+          e.stateTimer = 0;
+          if (state.rng.next() < 0.5) e.bubble = { text: def.lines[Math.floor(state.rng.next() * def.lines.length)], until: state.time + 1.5 };
+        } else if (e.stateFlag === 1) {
+          speed = -speed * 0.6; // 뒤로 비틀거림
+          if (e.stateTimer >= b.backDur) {
+            e.stateFlag = 0;
+            e.stateTimer = 0;
+          }
+        }
+        break;
+      }
+      case 'linger': {
+        if (e.stateFlag === 0 && e.dist >= b.atDist) {
+          e.stateFlag = 1;
+          e.stateTimer = 0;
+          e.bubble = { text: '물 끓는 중…', until: state.time + b.duration };
+        }
+        if (e.stateFlag === 1) {
+          move = false;
+          e.stateTimer += dt;
+          // 머무는 동안 체력 회복 + 강해짐
+          const grow = b.growPerSec * dt;
+          e.maxHp *= 1 + grow;
+          e.hp = Math.min(e.maxHp, e.hp + e.maxHp * grow * 1.5);
+          e.speedMult += grow * 0.6;
+          if (e.stateTimer >= b.duration) {
+            e.stateFlag = 2;
+            e.bubble = { text: '후루룩!! (강해짐)', until: state.time + 1.5 };
+          }
+        }
+        break;
+      }
+      case 'askPrice': {
+        e.stateTimer -= dt;
+        if (e.stateFlag === 0 && e.stateTimer <= 0) {
+          e.stateFlag = 1;
+          e.stateTimer = b.stopDur;
+          e.bubble = { text: def.lines[Math.floor(state.rng.next() * def.lines.length)], until: state.time + b.stopDur };
+        } else if (e.stateFlag === 1) {
+          move = false;
+          if (e.stateTimer <= 0) {
+            e.stateFlag = 0;
+            e.stateTimer = b.every;
+          }
+        }
+        break;
+      }
+      case 'charger': {
+        e.stateTimer -= dt;
+        if (e.stateTimer <= 0) {
+          e.stateTimer = b.every;
+          // 가장 가까운 유닛을 잠깐 마비
+          let best: Unit | null = null;
+          let bestD = b.radius * b.radius;
+          for (const u of state.units) {
+            const s = state.slots[u.slot];
+            const d = dist2(s.x, s.y, e.x, e.y);
+            if (d < bestD) {
+              bestD = d;
+              best = u;
+            }
+          }
+          if (best) {
+            best.disabledUntil = Math.max(best.disabledUntil, state.time + b.disableDur);
+            const s = state.slots[best.slot];
+            addFloater(state, { x: s.x, y: s.y - 30, text: '충전 중…', color: '#a5f3fc', size: 11, life: 1 });
+            e.bubble = { text: '충전기 있어요?', until: state.time + 1.5 };
+          }
+        }
+        break;
+      }
+      case 'panic': {
+        if (e.stateTimer > 0) {
+          e.stateTimer -= dt;
+          speed *= b.speedUp;
+          if (!e.bubble || e.bubble.until < state.time) e.bubble = { text: '급해요!!', until: state.time + 0.8 };
+        }
+        break;
+      }
+      case 'buffer':
+        break;
+      case 'blink': {
+        e.stateTimer += dt;
+        if (!e.hidden && e.stateTimer >= b.visibleFor) {
+          e.hidden = true;
+          e.stateTimer = 0;
+        } else if (e.hidden && e.stateTimer >= b.hiddenFor) {
+          e.hidden = false;
+          e.stateTimer = 0;
+        }
+        break;
+      }
+      case 'boss':
+        updateBoss(state, e, dt, b.pattern);
+        if (b.pattern === 'party') speed *= 1 + 0.5 * Math.sin(state.time * 1.5);
+        if (b.pattern === 'inspector' && e.hp < e.maxHp * 0.3) speed *= 1.6;
+        break;
+    }
+
+    // 술 취한 친구들: 선두보다 너무 뒤처지면 따라붙고, 앞서면 기다림
+    if (e.groupId !== undefined) {
+      const lead = groupLead.get(e.groupId) ?? e.dist;
+      if (lead - e.dist > 40) speed *= 1.4;
+    }
+
+    if (move) e.dist += speed * dt;
+    if (e.dist < -30) e.dist = -30;
+    updatePos(e);
+    if (speed < 0) e.facing = e.facing === 1 ? -1 : 1;
+
+    if (e.bubble && e.bubble.until < state.time) e.bubble = undefined;
+
+    if (e.dist >= PATH_LENGTH) reachCheckout(state, e);
+  }
+}
+
+function updatePos(e: Enemy): void {
+  const p = pathPos(e.dist);
+  e.x = p.x;
+  e.y = p.y;
+  e.facing = p.facing;
+}
+
+function reachCheckout(state: GameState, e: Enemy): void {
+  const def = ENEMY_BY_ID[e.defId];
+  e.reached = true;
+  const dmg = def.storeDamage;
+  state.hp = Math.max(0, state.hp - dmg);
+  state.fx.push({ type: 'shake', amount: e.isBoss ? 16 : 4 });
+  state.fx.push({ type: 'hit', x: e.x, y: e.y, color: '#ef4444', big: e.isBoss });
+  addFloater(state, { x: e.x, y: e.y - 20, text: `-${dmg}`, color: '#ef4444', size: 16, life: 1 });
+  sfx(state, 'damage');
+  if (e.isBoss) {
+    state.bossAlive = state.enemies.some((o) => o !== e && o.isBoss && !o.dead && !o.reached);
+    state.fx.push({ type: 'banner', text: `${def.name}이(가) 계산대를 점령했다`, sub: `-${dmg} 체력`, style: 'bad', dur: 2 });
+  }
+  if (!state.lowHpWarned && state.hp > 0 && state.hp / state.maxHp <= LOW_HP_THRESHOLD) {
+    state.lowHpWarned = true;
+    state.fx.push({ type: 'banner', text: '편의점 체력 위험!', sub: '계산대가 무너지고 있다', style: 'warning', dur: 2 });
+    sfx(state, 'warning');
+  }
+}
+
+// ───────────── 보스 패턴 ─────────────
+
+function updateBoss(state: GameState, e: Enemy, dt: number, pattern: 'lunchbox' | 'party' | 'inspector' | 'closing'): void {
+  const def = ENEMY_BY_ID[e.defId];
+  switch (pattern) {
+    case 'lunchbox': {
+      // 체력 75/50/25% 마다 조각 3개 소환
+      const thresholds = [0.75, 0.5, 0.25];
+      const ratio = e.hp / e.maxHp;
+      while (e.bossPhase < thresholds.length && ratio <= thresholds[e.bossPhase]) {
+        e.bossPhase++;
+        for (let i = 0; i < 3; i++) spawnEnemy(state, 'lunchPiece', { dist: Math.max(0, e.dist - 20 - i * 18), silent: true, wave: e.spawnedWave });
+        e.bubble = { text: '(조각이 떨어졌다)', until: state.time + 1.5 };
+        state.fx.push({ type: 'explode', x: e.x, y: e.y, radius: 40, color: '#bef264' });
+      }
+      break;
+    }
+    case 'party': {
+      e.stateTimer += dt;
+      if (e.stateTimer >= 6) {
+        e.stateTimer = 0;
+        for (let i = 0; i < 3; i++) spawnEnemy(state, 'partyMember', { dist: Math.max(0, e.dist - 24 - i * 18), silent: true, wave: e.spawnedWave });
+        e.bubble = { text: def.lines[Math.floor(state.rng.next() * def.lines.length)], until: state.time + 1.5 };
+      }
+      break;
+    }
+    case 'inspector': {
+      e.stateTimer += dt;
+      if (e.stateTimer >= 5) {
+        e.stateTimer = 0;
+        let best: Unit | null = null;
+        let bestD = Infinity;
+        for (const u of state.units) {
+          const s = state.slots[u.slot];
+          const d = dist2(s.x, s.y, e.x, e.y);
+          if (d < bestD) {
+            bestD = d;
+            best = u;
+          }
+        }
+        if (best) {
+          best.disabledUntil = Math.max(best.disabledUntil, state.time + 3);
+          const s = state.slots[best.slot];
+          addFloater(state, { x: s.x, y: s.y - 30, text: '점검 중…', color: '#60a5fa', size: 12, life: 1.2 });
+          e.bubble = { text: '점검 좀 하겠습니다', until: state.time + 1.5 };
+          sfx(state, 'event');
+        }
+      }
+      break;
+    }
+    case 'closing': {
+      e.stateTimer += dt;
+      if (e.stateFlag === 0 && e.stateTimer >= 8) {
+        e.stateFlag = 1;
+        e.stateTimer = 0;
+        e.shield = e.maxHp * 0.1;
+        e.bubble = { text: '시재 확인 중', until: state.time + 3 };
+      } else if (e.stateFlag === 1 && e.stateTimer >= 3) {
+        e.stateFlag = 0;
+        e.stateTimer = 0;
+        e.shield = 0;
+      }
+      // 코인 흡수
+      state.coinDrain += 2 * dt;
+      if (state.coinDrain >= 1) {
+        const n = Math.floor(state.coinDrain);
+        state.coinDrain -= n;
+        if (state.coins > 0) state.coins = Math.max(0, state.coins - n);
+      }
+      break;
+    }
+  }
+}
+
+export function knockbackAll(state: GameState, px: number): void {
+  for (const e of state.enemies) {
+    if (!isTargetable(e) && !e.hidden) continue;
+    const def = ENEMY_BY_ID[e.defId];
+    if (def.immune?.includes('knockback') || e.isBoss) continue;
+    e.dist = Math.max(0, e.dist - px);
+    e.bubble = { text: '깜짝이야', until: state.time + 1 };
+  }
+}

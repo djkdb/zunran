@@ -1,0 +1,82 @@
+import type { Enemy, GameState, Unit, UnitDef, Tier, Rarity, Floater } from '../types';
+import { UNIT_BY_ID } from '../data/units';
+import { ENEMY_BY_ID } from '../data/enemies';
+import { tierDmgMult, tierIntervalMult, tierRangeBonus } from '../config';
+
+export function unitDef(u: Unit): UnitDef {
+  return UNIT_BY_ID[u.defId];
+}
+
+export function unitPos(state: GameState, u: Unit): { x: number; y: number } {
+  const s = state.slots[u.slot];
+  return { x: s.x, y: s.y };
+}
+
+export function dist2(ax: number, ay: number, bx: number, by: number): number {
+  const dx = ax - bx;
+  const dy = ay - by;
+  return dx * dx + dy * dy;
+}
+
+// 오라 값의 티어 스케일: 티어당 +40% (냉장고 t3 = 0.3 × 1.8 = 0.54 감속)
+export function auraValue(def: UnitDef, tier: Tier): number {
+  if (!def.aura) return 0;
+  const v = def.aura.value * (1 + 0.4 * (tier - 1));
+  return def.aura.kind === 'enemySlow' ? Math.min(0.75, v) : v;
+}
+export function auraRadius(def: UnitDef, tier: Tier): number {
+  if (!def.aura) return 0;
+  return def.aura.radius + tierRangeBonus(tier);
+}
+
+// 최종 피해량 (티어, 이벤트 배율, 오라 버프 반영)
+export function unitDamage(state: GameState, u: Unit): number {
+  const def = unitDef(u);
+  const m = state.modifiers;
+  const byId = m.unitDmgById[def.id] ?? 1;
+  return def.dmg * tierDmgMult(u.tier) * m.unitDmg * byId * (1 + u.buffs.dmg);
+}
+
+export function unitInterval(state: GameState, u: Unit): number {
+  const def = unitDef(u);
+  const base = def.interval * tierIntervalMult(u.tier);
+  return base / (state.modifiers.unitAtkSpeed * (1 + u.buffs.atkSpeed));
+}
+
+export function unitRange(u: Unit): number {
+  const def = unitDef(u);
+  return def.range + tierRangeBonus(u.tier);
+}
+
+export function isTargetable(e: Enemy): boolean {
+  return !e.dead && !e.reached && !e.hidden && e.dist > 0;
+}
+
+export function enemyName(e: Enemy): string {
+  return ENEMY_BY_ID[e.defId].name;
+}
+
+export function rarityRank(r: Rarity): number {
+  return { common: 0, rare: 1, epic: 2, special: 3, legendary: 4 }[r];
+}
+
+export function addFloater(state: GameState, f: Partial<Floater> & { x: number; y: number; text: string }): void {
+  if (state.floaters.length > 60) state.floaters.shift();
+  state.floaters.push({
+    x: f.x,
+    y: f.y,
+    text: f.text,
+    color: f.color ?? '#ffffff',
+    life: f.life ?? 1,
+    maxLife: f.life ?? 1,
+    vy: f.vy ?? -28,
+    size: f.size ?? 13,
+  });
+}
+
+export function sfx(state: GameState, id: Parameters<typeof pushSfx>[1]): void {
+  pushSfx(state, id);
+}
+function pushSfx(state: GameState, id: import('../types').SfxId): void {
+  state.fx.push({ type: 'sfx', id });
+}

@@ -1,0 +1,30 @@
+{
+  "name": "cvs-night-shift",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "편의점 야간근무 — 새벽 3시, 혼자 남았다. 웹 랜덤 디펜스 게임",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "sim": "tsx scripts/sim.ts"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "playwright": "^1.49.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8"
+  }
+}
