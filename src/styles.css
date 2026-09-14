@@ -94,7 +94,37 @@ button:disabled {
   overflow-y: auto;
 }
 
-/* 가로 화면 (PC / 가로 모바일): 패널을 오른쪽으로 */
+/* 가로 모바일 (짧은 높이): 좁은 사이드 패널 */
+@media (min-aspect-ratio: 5/4) and (max-width: 699px) {
+  .game {
+    grid-template-columns: minmax(0, 1fr) 230px;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: 'hud hud' 'field panel';
+  }
+  .panel {
+    max-height: none;
+    border-top: none;
+    border-left: 2px solid var(--line);
+    padding: 8px;
+  }
+  .field {
+    width: min(100%, 100vh);
+  }
+  .draw-btn {
+    min-height: 52px;
+  }
+  .draw-title {
+    font-size: 15px;
+  }
+  .hud {
+    padding: 3px 8px;
+  }
+  .hud-time {
+    font-size: 14px;
+  }
+}
+
+/* 가로 화면 (PC / 태블릿): 패널을 오른쪽으로 */
 @media (min-aspect-ratio: 5/4) and (min-width: 700px) {
   .game {
     grid-template-columns: minmax(0, 1fr) 340px;
