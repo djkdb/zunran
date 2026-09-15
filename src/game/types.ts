@@ -181,6 +181,7 @@ export interface SpawnEntry {
   count: number;
   groupId?: number;
   hpMult?: number;
+  spawned?: number; // 필드 상한으로 일부만 스폰된 경우 진행 카운터
 }
 
 // ───────────────────────── 투사체/연출 ─────────────────────────
@@ -256,6 +257,7 @@ export interface Modifiers {
   enemySpeedById: Record<string, number>;
   darkness: number; // 정전 연출 (0~1)
   rain: boolean;
+  auraMult: number; // 지원 유닛(CCTV 등) 오라 배율 (CCTV 점검 이벤트)
 }
 
 export type EventMood = 'good' | 'bad' | 'neutral';

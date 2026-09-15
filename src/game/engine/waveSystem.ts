@@ -2,13 +2,16 @@ import type { GameState } from '../types';
 import { buildWave } from '../data/waves';
 import { waveClearBonus, waveIncome, THREE_AM_WAVE, isBossWave } from '../config';
 import { spawnEnemy } from './enemySystem';
+import { ENEMY_BY_ID } from '../data/enemies';
 import { addCoins } from './economy';
 import { sfx, addFloater } from './helpers';
 
 export function startWave(state: GameState, wave: number): void {
   state.wave = wave;
   const plan = buildWave(wave, state.rng);
-  state.spawnQueue = plan.entries;
+  // 필드 상한으로 아직 못 나온 보스는 다음 웨이브 맨 앞으로 이월 (보스 스킵 방지)
+  const leftoverBoss = state.spawnQueue.filter((e) => ENEMY_BY_ID[e.defId]?.tags.includes('boss')).map((e) => ({ ...e, at: 0, spawned: 0 }));
+  state.spawnQueue = [...leftoverBoss, ...plan.entries];
   state.waveDuration = plan.duration;
   state.waveTimer = plan.duration;
   state.waveElapsed = 0;
@@ -68,16 +71,13 @@ export function updateWave(state: GameState, dt: number): void {
   // 스폰 큐 처리
   while (state.spawnQueue.length > 0 && state.spawnQueue[0].at <= state.waveElapsed) {
     const entry = state.spawnQueue[0];
-    let spawnedAll = true;
-    for (let i = 0; i < entry.count; i++) {
+    let i = entry.spawned ?? 0;
+    for (; i < entry.count; i++) {
       const e = spawnEnemy(state, entry.defId, { hpMult: entry.hpMult, dist: -i * 24, groupId: entry.groupId, silent: i > 0 });
-      if (!e) {
-        spawnedAll = false;
-        break;
-      }
-      state.waveEnemyIds.add(e.id);
+      if (!e) break;
     }
-    if (!spawnedAll) break; // 필드 개체 상한. 다음 틱에 재시도
+    entry.spawned = i;
+    if (i < entry.count) break; // 필드 개체 상한. 다음 틱에 남은 개체부터 재시도
     state.spawnQueue.shift();
   }
 
@@ -85,12 +85,9 @@ export function updateWave(state: GameState, dt: number): void {
   if (!state.waveCleared && state.spawnQueue.length === 0 && state.waveEnemyIds.size > 0) {
     let allDead = true;
     for (const e of state.enemies) {
-      if (state.waveEnemyIds.has(e.id)) {
-        if (e.reached) state.waveReached = true;
-        if (!e.dead && !e.reached) {
-          allDead = false;
-          break;
-        }
+      if (state.waveEnemyIds.has(e.id) && !e.dead && !e.reached) {
+        allDead = false;
+        break;
       }
     }
     if (allDead) {

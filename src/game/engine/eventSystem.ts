@@ -15,6 +15,7 @@ export function baseModifiers(coinGainMult: number): Modifiers {
     enemySpeedById: {},
     darkness: 0,
     rain: false,
+    auraMult: 1,
   };
 }
 
@@ -31,6 +32,7 @@ export function recomputeModifiers(state: GameState): void {
     if (mod.coinGain) m.coinGain *= mod.coinGain;
     if (mod.darkness) m.darkness = Math.max(m.darkness, mod.darkness);
     if (mod.rain) m.rain = true;
+    if (mod.auraMult) m.auraMult *= mod.auraMult;
     if (mod.unitDmgById) for (const [k, v] of Object.entries(mod.unitDmgById)) m.unitDmgById[k] = (m.unitDmgById[k] ?? 1) * v;
     if (mod.enemySpeedById) for (const [k, v] of Object.entries(mod.enemySpeedById)) m.enemySpeedById[k] = (m.enemySpeedById[k] ?? 1) * v;
   }

@@ -1,7 +1,7 @@
 import type { UnitDef, Rarity } from '../types';
 
 // 유닛 정의. dmg 는 티어1 기준 실제 피해 (희귀도별 밸런스는 여기서 직접 반영).
-// 티어가 오르면 config.tierDmgMult (×3.2/티어) 가 곱해진다.
+// 티어가 오르면 config.TIER_DMG_MULT (×3.4/티어, tierDmgMult()) 가 곱해진다.
 export const UNIT_DEFS: UnitDef[] = [
   // ───── 일반 ─────
   {

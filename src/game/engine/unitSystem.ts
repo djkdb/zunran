@@ -36,7 +36,7 @@ export function updateUnits(state: GameState, dt: number): void {
 }
 
 function computeBuffs(state: GameState): void {
-  const cctvBoost = state.modifiers.unitDmgById.__cctvBoost ?? 1;
+  const cctvBoost = state.modifiers.auraMult;
   const auras: { x: number; y: number; r2: number; kind: 'atkSpeed' | 'dmg'; v: number; id: number }[] = [];
   for (const u of state.units) {
     const d = unitDef(u);
@@ -145,11 +145,12 @@ function castSkill(state: GameState, u: Unit, def: UnitDef, targetable: Enemy[])
       for (const e of inRange) applySlow(state, e, Math.min(0.8, sk.value * tierBoost), sk.dur ?? 2);
       break;
     case 'stunOne': {
-      const target = inRange.reduce((a, b) => (a.hp > b.hp ? a : b));
-      if (ENEMY_BY_ID[target.defId].immune?.includes('stun')) {
+      const candidates = inRange.filter((e) => !ENEMY_BY_ID[e.defId].immune?.includes('stun'));
+      if (candidates.length === 0) {
         cast = false;
         break;
       }
+      const target = candidates.reduce((a, b) => (a.hp > b.hp ? a : b));
       target.stun = Math.max(target.stun, sk.value * tierBoost);
       target.bubble = { text: '…얼마라고요?', until: state.time + sk.value };
       break;

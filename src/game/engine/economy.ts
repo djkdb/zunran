@@ -33,7 +33,7 @@ export function rewardKill(state: GameState, e: Enemy, killer: Unit | null, bonu
   let coinAura = 0;
   for (const u of state.units) {
     const d = unitDef(u);
-    if (d.aura?.kind !== 'coin') continue;
+    if (d.aura?.kind !== 'coin' || u.disabledUntil > state.time) continue;
     const s = state.slots[u.slot];
     const r = auraRadius(d, u.tier);
     if (dist2(s.x, s.y, e.x, e.y) <= r * r) coinAura = Math.max(coinAura, auraValue(d, u.tier));

@@ -7,10 +7,11 @@ import { BOSS_INTRO } from '../data/dialogue';
 
 // ───────────── 스폰 ─────────────
 
+// trackWave(기본 true): 현재 웨이브 소속으로 등록해 클리어 판정에 포함한다 (이벤트 스폰, 보스 소환물 포함).
 export function spawnEnemy(
   state: GameState,
   defId: string,
-  opts: { hpMult?: number; dist?: number; groupId?: number; wave?: number; silent?: boolean } = {},
+  opts: { hpMult?: number; dist?: number; groupId?: number; wave?: number; silent?: boolean; trackWave?: boolean } = {},
 ): Enemy | null {
   if (state.enemies.length >= MAX_ENEMIES_ON_FIELD) return null;
   const def = ENEMY_BY_ID[defId];
@@ -48,6 +49,7 @@ export function spawnEnemy(
     e.bubble = { text: def.lines[Math.floor(state.rng.next() * def.lines.length)], until: state.time + 2.2 };
   }
   state.enemies.push(e);
+  if (opts.trackWave !== false) state.waveEnemyIds.add(e.id);
   if (!state.stats.seenEnemies.includes(defId)) state.stats.seenEnemies.push(defId);
   if (e.isBoss) {
     state.bossAlive = true;
@@ -124,8 +126,9 @@ export function damageEnemy(state: GameState, e: Enemy, rawAmount: number, sourc
     if (onHit.dot) {
       e.dot = { dps: Math.max(e.dot.until > state.time ? e.dot.dps : 0, onHit.dot.dps), until: state.time + onHit.dot.dur };
     }
-    if (onHit.knockback && !immune.includes('knockback')) {
-      e.dist = Math.max(-10, e.dist - onHit.knockback);
+    // 보스는 스킬/이벤트 넉백과 동일하게 제외 (청소기 하나로 보스를 영구히 묶는 것 방지). 하한 1 = 타겟 가능 경계 유지.
+    if (onHit.knockback && !immune.includes('knockback') && !e.isBoss) {
+      e.dist = Math.max(1, e.dist - onHit.knockback);
     }
   }
   // 화장실 손님: 맞으면 패닉 가속
@@ -190,9 +193,15 @@ export function updateEnemies(state: GameState, dt: number): void {
     const b = def.behavior;
     e.hitFlash = Math.max(0, e.hitFlash - dt);
 
-    // 지속 피해
+    // 지속 피해 (보호막이 먼저 소모됨)
     if (e.dot.until > state.time && e.dot.dps > 0) {
-      e.hp -= e.dot.dps * dt;
+      let amt = e.dot.dps * dt;
+      if (e.shield > 0) {
+        const absorbed = Math.min(e.shield, amt);
+        e.shield -= absorbed;
+        amt -= absorbed;
+      }
+      e.hp -= amt;
       if (e.hp <= 0) {
         killEnemy(state, e, null, 0);
         continue;
@@ -345,7 +354,7 @@ export function updateEnemies(state: GameState, dt: number): void {
     }
 
     if (move) e.dist += speed * dt;
-    if (e.dist < -30) e.dist = -30;
+    if (speed < 0 && e.dist < -30) e.dist = -30; // 뒷걸음질만 클램프 (스폰 간격은 보존)
     updatePos(e);
     if (speed < 0) e.facing = e.facing === 1 ? -1 : 1;
 
@@ -365,6 +374,7 @@ function updatePos(e: Enemy): void {
 function reachCheckout(state: GameState, e: Enemy): void {
   const def = ENEMY_BY_ID[e.defId];
   e.reached = true;
+  if (state.waveEnemyIds.has(e.id)) state.waveReached = true; // 이번 웨이브 클리어 보너스 무효
   const dmg = def.storeDamage;
   state.hp = Math.max(0, state.hp - dmg);
   state.fx.push({ type: 'shake', amount: e.isBoss ? 16 : 4 });
@@ -461,7 +471,7 @@ export function knockbackAll(state: GameState, px: number): void {
     if (!isTargetable(e) && !e.hidden) continue;
     const def = ENEMY_BY_ID[e.defId];
     if (def.immune?.includes('knockback') || e.isBoss) continue;
-    e.dist = Math.max(0, e.dist - px);
+    e.dist = Math.max(1, e.dist - px);
     e.bubble = { text: '깜짝이야', until: state.time + 1 };
   }
 }

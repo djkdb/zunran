@@ -124,12 +124,12 @@ export const EVENT_DEFS: EventDef[] = [
     weight: 3,
     duration: 20,
     mood: 'good',
-    modifiers: { unitDmgById: { __cctvBoost: 2 } },
+    modifiers: { auraMult: 2 },
   },
   {
     id: 'snackTime',
     title: '알바 야식 타임',
-    desc: '야간 알바생 공격력 2배 (20초)',
+    desc: '야간 알바생 공격력 2배 · 10년차 알바 1.5배 (20초)',
     minWave: 3,
     weight: 4,
     duration: 20,
@@ -160,7 +160,7 @@ export const EVENT_DEFS: EventDef[] = [
     id: 'karen',
     title: '진상 등장',
     desc: '새벽 3시 진상 손님이 문을 열었다',
-    minWave: 9,
+    minWave: 13, // 진상 해금(웨이브 13) 이후에만
     weight: 2,
     duration: 0,
     mood: 'bad',

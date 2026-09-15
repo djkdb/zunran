@@ -76,7 +76,7 @@ async function main() {
   const recordText = await page.locator('.records').innerText();
   console.log('records after reload:', recordText.replace(/\n/g, ' | '));
   // 메타 상점 구매
-  await page.getByText('업그레이드').click();
+  await page.getByText('강화').click();
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(outdir, 'shop.png') });
   const buy = page.locator('.shop-buy:not(.disabled)').first();

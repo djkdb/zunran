@@ -195,7 +195,7 @@ interface Unit {
 ```
 
 **티어 스케일**: 피해 = `dmg × 3.4^(tier-1)`. 사거리 +8/티어, 공격 간격 -4%/티어.
-합성 3개 → 1개이므로 3.2배는 "합성이 항상 이득"이 되게 하는 값이다.
+합성 3개 → 1개이므로 3.4배는 "합성이 항상 이득"이 되게 하는 값이다.
 `dmg` 는 희귀도별 밸런스를 이미 반영한 값이다 (일반 ≈ 10~15 DPS, 희귀 ≈ 25~30, 에픽 ≈ 60~75, 전설 ≈ 130+범위).
 오라(냉장고/CCTV/택배 접수기)는 티어당 +40%.
 
@@ -221,14 +221,14 @@ interface EnemyDef {
 
 type EnemyBehavior =
   | { kind: 'walk' }
-  | { kind: 'drunk'; wobbleEvery: number; backSteps: number }
-  | { kind: 'linger'; at: 'ramen'; duration: number; growPerSec: number }
+  | { kind: 'drunk'; wobbleEvery: number; backDur: number }             // 주기적으로 뒤로 비틀거림
+  | { kind: 'linger'; atDist: number; duration: number; growPerSec: number } // 라면 코너에서 머물며 강해짐
   | { kind: 'askPrice'; every: number; stopDur: number; blockRadius: number }
-  | { kind: 'charger'; every: number; disableDur: number }        // 근처 유닛 마비
-  | { kind: 'panic'; speedUpOnHit: number }                       // 화장실
-  | { kind: 'buffer'; radius: number; speedBuff: number }         // 사장님 불러
-  | { kind: 'blink'; visibleFor: number; hiddenFor: number }      // 유령
-  | { kind: 'boss'; pattern: BossPattern };
+  | { kind: 'charger'; every: number; disableDur: number; radius: number } // 근처 유닛 마비
+  | { kind: 'panic'; speedUp: number; dur: number }                     // 화장실: 맞으면 가속
+  | { kind: 'buffer'; radius: number; speedBuff: number }               // 사장님 불러
+  | { kind: 'blink'; visibleFor: number; hiddenFor: number }            // 유령
+  | { kind: 'boss'; pattern: BossPatternKind };
 
 interface Enemy {
   id: number; defId: string;
@@ -258,7 +258,7 @@ interface Enemy {
 - 웨이브는 **시간제**(기본 22초, 보스 웨이브 36초). 시간이 끝나면 살아있는 손님이 있어도
   다음 웨이브가 시작된다 (손님이 누적되며 압박).
 - 웨이브 안에서 스폰은 시간 분산: `SpawnEntry { at: number; defId: string; count: number }`.
-- 웨이브 클리어 보너스: 다음 웨이브 시작 전에 이번 웨이브 손님을 전부 처리하면 `40 + 8·w` 코인.
+- 웨이브 클리어 보너스: 다음 웨이브 시작 전에 이번 웨이브 손님(이벤트 스폰·보스 소환물 포함)을 전부 처리하면 `40 + 8·w` 코인. 한 명이라도 계산대에 도달하면 보너스 없음.
 - 구성: `waves.ts`의 `buildWave(w, rng)` 가 (1) 총 개체 수 `4 + 1.4w` (2) 해금된 손님 풀에서
   가중치 뽑기 (3) 특정 웨이브의 스크립트(새벽 3시 러시, 보스) 를 합쳐 반환한다.
 - 시계: 00:00 시작, 웨이브당 15분 진행. 웨이브 13 시작 = 03:00 → "새벽 3시입니다" 20명 러시 + 진상.
@@ -295,14 +295,15 @@ interface EventDef {
 }
 interface Modifiers {
   enemySpeed: number; unitAtkSpeed: number; unitDmg: number;
-  coinGain: number; drawCostMult: number;
+  coinGain: number; auraMult: number;    // auraMult: CCTV 등 지원 오라 배율
   unitDmgById: Record<string, number>;   // 특정 유닛 타입 배율
   enemySpeedById: Record<string, number>;
+  darkness: number; rain: boolean;       // 연출 플래그
 }
 ```
 - 웨이브 3부터 32~48초마다 하나 발생. 보스 웨이브 중에는 발생하지 않는다.
 - 배너 텍스트 + 사운드로 알리고 지속형은 HUD에 남은 시간 표시.
-- 20종 이상 구현 (요구 15종).
+- 23종 구현 (요구 15종). 진상 등장 이벤트는 진상 해금(웨이브 13) 이후에만 나온다.
 
 ---
 
@@ -328,7 +329,7 @@ interface SaveData {
 ```
 - 로드 시 버전 확인 → 누락 필드는 기본값으로 채움 (마이그레이션).
 - 매 게임오버 시 저장. 메타 상점 구매 시 즉시 저장. try/catch로 사파리 프라이빗 모드 대응.
-- 메타 화폐: 한 판에서 획득한 코인의 10% + 웨이브×5 를 "야간 수당"으로 지급.
+- 메타 화폐: 한 판에서 획득한 코인의 10% + 웨이브×5 + 처치 수×0.2 를 "야간 수당"으로 지급.
 
 메타 업그레이드(각 5레벨): 시작 코인 +100 / 초기 체력 +15 / 뽑기 비용 -6 /
 희귀 확률 +1.5%p / 에픽·전설 확률 +0.7%p·0.2%p / 코인 획득 +6%.
