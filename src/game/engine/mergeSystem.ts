@@ -85,7 +85,7 @@ export function mergeUnits(state: GameState, defId: string, tier: Tier): MergeRe
 }
 
 export function announceLegendary(state: GameState): void {
-  state.fx.push({ type: 'banner', text: 'LEGENDARY', sub: '점장이 출근했습니다.', style: 'legendary', dur: 3 });
+  state.fx.push({ type: 'banner', text: '전설 등장', sub: '점장이 출근했습니다', style: 'legendary', dur: 3 });
   state.fx.push({ type: 'shake', amount: 18 });
   state.fx.push({ type: 'flash', color: '#ffd166' });
 }

@@ -1,11 +1,6 @@
 import type { UISnapshot } from '../game/types';
 import { formatTime } from '../game/config';
-
-// 좁은 HUD 에서 넘치지 않게 1만 이상은 축약
-function formatCoins(n: number): string {
-  if (n >= 10000) return `${(n / 10000).toFixed(n >= 100000 ? 0 : 1)}만`;
-  return n.toLocaleString();
-}
+import { Icon } from './Icon';
 
 export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) {
   const hpPct = Math.round((snap.hp / snap.maxHp) * 100);
@@ -17,15 +12,21 @@ export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) 
         <div className="hud-clock">
           <span className="hud-time">{snap.clock}</span>
           <span className="hud-survive">
-            ⏱ {formatTime(snap.survivedSec)} · 🏆 W{Math.max(bestWave, snap.wave)}
+            <Icon name="clock" size={10} strokeWidth={2.6} />
+            {formatTime(snap.survivedSec)}
+            <span className="hud-best">
+              <Icon name="trophy" size={10} strokeWidth={2.6} />W{Math.max(bestWave, snap.wave)}
+            </span>
           </span>
         </div>
+
         <div className="hud-wave">
           <div className="hud-wave-label">
             WAVE <b>{snap.wave}</b>
             {snap.nextIsBoss && !snap.bossAlive && (
-              <span className="hud-next-boss" title="다음 웨이브에 보스 등장">
-                👿 다음 보스
+              <span className="hud-next-boss">
+                <Icon name="boss" size={11} strokeWidth={2.4} />
+                다음 보스
               </span>
             )}
             <span className="hud-wave-timer">{Math.ceil(snap.waveTimer)}s</span>
@@ -34,19 +35,31 @@ export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) 
             <div className="bar-fill" style={{ width: `${waveProgress * 100}%` }} />
           </div>
         </div>
+
         <div className="hud-hp">
-          <div className={`hud-hp-label ${hpClass}`}>❤️ {hpPct}%</div>
+          <div className={`hud-hp-label ${hpClass}`}>
+            <span>매장 체력</span>
+            <b>{hpPct}%</b>
+          </div>
           <div className={`bar bar-hp ${hpClass}`}>
             <div className="bar-fill" style={{ width: `${hpPct}%` }} />
           </div>
         </div>
-        <div className="hud-coins">💰 {formatCoins(snap.coins)}원</div>
+
+        <div className="hud-coins">
+          <span>보유 금액</span>
+          <b>{formatCoins(snap.coins)}원</b>
+        </div>
       </div>
+
       {(snap.activeEvents.length > 0 || snap.bossAlive) && (
         <div className="hud-row hud-sub">
           {snap.bossAlive && (
             <div className="boss-bar">
-              <span className="boss-name">👿 {snap.bossName}</span>
+              <span className="boss-name">
+                <Icon name="boss" size={13} strokeWidth={2.4} />
+                {snap.bossName}
+              </span>
               <div className="bar bar-boss">
                 <div className="bar-fill" style={{ width: `${(snap.bossHp / Math.max(1, snap.bossMaxHp)) * 100}%` }} />
               </div>
@@ -61,4 +74,10 @@ export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) 
       )}
     </header>
   );
+}
+
+// 좁은 HUD 에서 넘치지 않게 1만 이상은 축약
+function formatCoins(n: number): string {
+  if (n >= 10000) return `${(n / 10000).toFixed(n >= 100000 ? 0 : 1)}만`;
+  return n.toLocaleString();
 }

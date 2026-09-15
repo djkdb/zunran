@@ -55,7 +55,7 @@ export function drawFallback(ctx: CanvasRenderingContext2D, x: number, y: number
   ctx.strokeStyle = '#111827';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.roundRect(x - size / 2, y - size, size, size, 6);
+  ctx.rect(x - size / 2, y - size, size, size);
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = '#111827';

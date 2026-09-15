@@ -65,7 +65,7 @@ export class Renderer {
           break;
         case 'death':
           this.burst(f.x, f.y, f.color, f.boss ? 40 : 8, f.boss ? 220 : 90, 'puff');
-          if (f.boss) this.ring(f.x, f.y, 120, '#fde047');
+          if (f.boss) this.ring(f.x, f.y, 120, '#ffd23f');
           break;
         case 'explode':
           this.ring(f.x, f.y, f.radius, f.color);
@@ -208,7 +208,7 @@ export class Renderer {
     ctx.fillRect(26, 4, 52, 36);
     ctx.fillStyle = '#0ea5e9';
     ctx.fillRect(50, 4, 3, 36);
-    ctx.fillStyle = '#fde047';
+    ctx.fillStyle = '#ffd23f';
     ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('24H', 52, 30);
@@ -304,7 +304,7 @@ export class Renderer {
     ctx.fillStyle = '#e2e8f0';
     ctx.font = 'bold 11px sans-serif';
     ctx.fillText('계산대', CHECKOUT_POS.x + 20, 585);
-    ctx.fillStyle = '#fde047';
+    ctx.fillStyle = '#ffd23f';
     ctx.font = 'bold 9px sans-serif';
     ctx.fillText('여기 도달하면 피해!', CHECKOUT_POS.x + 20, 600);
 
@@ -331,14 +331,14 @@ export class Renderer {
       ctx.save();
       ctx.translate(s.x, s.y);
       if (empty) {
-        ctx.strokeStyle = selected ? 'rgba(253,224,71,0.9)' : 'rgba(148,163,184,0.35)';
+        ctx.strokeStyle = selected ? 'rgba(255,210,63,0.95)' : 'rgba(244,241,234,0.32)';
         ctx.setLineDash(selected ? [] : [4, 4]);
         ctx.lineWidth = selected ? 2 : 1;
         ctx.beginPath();
-        ctx.roundRect(-22, -36, 44, 44, 6);
+        ctx.rect(-22, -36, 44, 44);
         ctx.stroke();
         if (selected) {
-          ctx.fillStyle = 'rgba(253,224,71,0.12)';
+          ctx.fillStyle = 'rgba(255,210,63,0.14)';
           ctx.fill();
         }
       } else {
@@ -388,7 +388,7 @@ export class Renderer {
     ctx.translate(s.x, s.y);
     // 사거리 (선택 시)
     if (selected && def.attack !== 'none') {
-      ctx.strokeStyle = 'rgba(253,224,71,0.7)';
+      ctx.strokeStyle = 'rgba(255,210,63,0.8)';
       ctx.setLineDash([6, 4]);
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -431,7 +431,7 @@ export class Renderer {
       ctx.textAlign = 'center';
       ctx.fillStyle = '#0f172a';
       ctx.fillText('★'.repeat(u.tier), 0, -w + 4);
-      ctx.fillStyle = u.tier >= 4 ? '#f472b6' : '#fde047';
+      ctx.fillStyle = u.tier >= 4 ? '#e8497c' : '#ffd23f';
       ctx.fillText('★'.repeat(u.tier), 0, -w + 3);
     }
     if (disabled) {
@@ -440,10 +440,10 @@ export class Renderer {
       ctx.fillText('🔧', 0, -w / 2);
     }
     if (selected) {
-      ctx.strokeStyle = '#fde047';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#ffd23f';
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.roundRect(-26, -w + 2, 52, w + 8, 8);
+      ctx.rect(-26, -w + 2, 52, w + 8); // 간판 스타일: 각진 선택 틀
       ctx.stroke();
     }
     ctx.restore();
@@ -608,8 +608,11 @@ export class Renderer {
       const y = Math.max(14, e.y - size - 22);
       ctx.fillStyle = 'rgba(255,255,255,0.95)';
       ctx.beginPath();
-      ctx.roundRect(x - w / 2, y - 9, w, 18, 6);
+      ctx.rect(x - w / 2, y - 9, w, 18);
       ctx.fill();
+      ctx.strokeStyle = '#14120f';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(x - 4, y + 9);
       ctx.lineTo(x + 4, y + 9);

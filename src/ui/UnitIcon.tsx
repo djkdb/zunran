@@ -23,13 +23,11 @@ export function UnitIcon({ defId, size = 36, enemy = false, dim = false }: { def
       const s = size / Math.max(img.width, img.height);
       const w = img.width * s;
       const h = img.height * s;
-      if (dim) ctx.filter = 'grayscale(1) brightness(0.4)';
+      if (dim) ctx.filter = 'grayscale(1) brightness(0.45)';
       ctx.drawImage(img, (size - w) / 2, size - h, w, h);
     } else {
       ctx.fillStyle = def.color;
-      ctx.beginPath();
-      ctx.roundRect(4, 4, size - 8, size - 8, 6);
-      ctx.fill();
+      ctx.fillRect(3, 3, size - 6, size - 6);
       ctx.fillStyle = '#0f172a';
       ctx.font = `bold ${size * 0.4}px sans-serif`;
       ctx.textAlign = 'center';
@@ -39,5 +37,5 @@ export function UnitIcon({ defId, size = 36, enemy = false, dim = false }: { def
   }, [def, size, dim]);
   if (!def) return null;
   const color = enemy ? def.color : RARITY_COLOR[(def as (typeof UNIT_BY_ID)[string]).rarity];
-  return <canvas ref={ref} style={{ width: size, height: size, display: 'block', borderRadius: 6, background: dim ? '#0f172a' : `${color}22` }} aria-label={def.name} />;
+  return <canvas ref={ref} style={{ width: size, height: size, display: 'block', background: dim ? '#cdc8bd' : `${color}26` }} aria-label={def.name} />;
 }

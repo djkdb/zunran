@@ -1,4 +1,5 @@
 import type { MetaEffects, MetaUpgradeId } from '../types';
+import type { IconName } from '../../ui/Icon';
 import { START_COINS, START_HP } from '../config';
 
 export interface MetaUpgradeDef {
@@ -7,16 +8,16 @@ export interface MetaUpgradeDef {
   desc: (lvl: number) => string;
   maxLevel: number;
   cost: (lvl: number) => number; // 다음 레벨 비용 (lvl = 현재 레벨)
-  icon: string;
+  icon: IconName;
 }
 
 export const META_UPGRADES: MetaUpgradeDef[] = [
-  { id: 'startCoins', name: '시작 코인', icon: '💰', maxLevel: 5, desc: (l) => `시작 코인 +${l * 100}원`, cost: (l) => 80 + l * 70 },
-  { id: 'startHp', name: '초기 체력', icon: '❤️', maxLevel: 5, desc: (l) => `편의점 체력 +${l * 15}`, cost: (l) => 80 + l * 70 },
-  { id: 'drawCost', name: '뽑기 할인', icon: '🏷️', maxLevel: 5, desc: (l) => `뽑기 비용 -${l * 6}원`, cost: (l) => 100 + l * 90 },
-  { id: 'rareChance', name: '희귀 확률', icon: '🔷', maxLevel: 5, desc: (l) => `희귀 확률 +${(l * 1.5).toFixed(1)}%p`, cost: (l) => 120 + l * 100 },
-  { id: 'epicChance', name: '에픽·전설 확률', icon: '🌟', maxLevel: 5, desc: (l) => `에픽 +${(l * 0.7).toFixed(1)}%p · 전설 +${(l * 0.2).toFixed(1)}%p`, cost: (l) => 160 + l * 140 },
-  { id: 'coinGain', name: '코인 획득량', icon: '📈', maxLevel: 5, desc: (l) => `코인 획득 +${l * 6}%`, cost: (l) => 100 + l * 90 },
+  { id: 'startCoins', name: '시작 코인', icon: 'coin', maxLevel: 5, desc: (l) => `시작 코인 +${l * 100}원`, cost: (l) => 80 + l * 70 },
+  { id: 'startHp', name: '초기 체력', icon: 'heart', maxLevel: 5, desc: (l) => `편의점 체력 +${l * 15}`, cost: (l) => 80 + l * 70 },
+  { id: 'drawCost', name: '뽑기 할인', icon: 'tag', maxLevel: 5, desc: (l) => `뽑기 비용 -${l * 6}원`, cost: (l) => 100 + l * 90 },
+  { id: 'rareChance', name: '희귀 확률', icon: 'gem', maxLevel: 5, desc: (l) => `희귀 확률 +${(l * 1.5).toFixed(1)}%p`, cost: (l) => 120 + l * 100 },
+  { id: 'epicChance', name: '에픽·전설 확률', icon: 'star', maxLevel: 5, desc: (l) => `에픽 +${(l * 0.7).toFixed(1)}%p · 전설 +${(l * 0.2).toFixed(1)}%p`, cost: (l) => 160 + l * 140 },
+  { id: 'coinGain', name: '코인 획득량', icon: 'chart', maxLevel: 5, desc: (l) => `코인 획득 +${l * 6}%`, cost: (l) => 100 + l * 90 },
 ];
 
 export const DEFAULT_META_LEVELS: Record<MetaUpgradeId, number> = {

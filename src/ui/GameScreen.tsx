@@ -18,8 +18,8 @@ interface Props {
 
 // 첫 판 힌트: 뽑기 → 합성 → 이동 순서로 한 번씩만 보여준다.
 function hintFor(snap: { unitCount: number; groups: { mergeable: boolean }[]; wave: number; selected: unknown }): string | null {
-  if (snap.unitCount === 0) return '👇 [유닛 뽑기]를 눌러 첫 유닛을 뽑으세요';
-  if (snap.groups.some((g) => g.mergeable)) return '✨ 같은 유닛 3개! 아래 [합성] 버튼을 누르세요';
+  if (snap.unitCount === 0) return '아래 [유닛 뽑기]를 눌러 첫 유닛을 뽑으세요';
+  if (snap.groups.some((g) => g.mergeable)) return '같은 유닛 3개! 아래 [합성] 버튼을 누르세요';
   if (snap.unitCount >= 3 && snap.wave <= 4 && !snap.selected) return '유닛을 탭하면 사거리가 보이고, 빈 칸을 탭하면 옮길 수 있어요';
   return null;
 }

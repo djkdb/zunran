@@ -58,7 +58,7 @@ export function spawnEnemy(
     state.fx.push({ type: 'shake', amount: 14 });
     sfx(state, 'boss');
   } else if (defId === 'karen3am') {
-    state.fx.push({ type: 'banner', text: 'WARNING', sub: '새벽 3시 진상 손님 등장', style: 'warning', dur: 2.2 });
+    state.fx.push({ type: 'banner', text: '진상 등장', sub: '새벽 3시 진상 손님', style: 'warning', dur: 2.2 });
     state.fx.push({ type: 'shake', amount: 6 });
     sfx(state, 'warning');
   } else if (!opts.silent) {

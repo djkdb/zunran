@@ -33,14 +33,14 @@ export function startWave(state: GameState, wave: number): void {
     sfx(state, 'warning');
   } else if (plan.boss) {
     // 보스 배너는 스폰 시 출력. 여기서는 예고만.
-    state.fx.push({ type: 'banner', text: `WAVE ${wave}`, sub: 'BOSS 접근 중', style: 'warning', dur: 1.6 });
+    state.fx.push({ type: 'banner', text: `웨이브 ${wave}`, sub: '보스 접근 중', style: 'warning', dur: 1.6 });
     sfx(state, 'warning');
   } else if (wave > 1) {
-    state.fx.push({ type: 'banner', text: `WAVE ${wave}`, sub: waveHint(wave), style: 'info', dur: 1.2 });
+    state.fx.push({ type: 'banner', text: `웨이브 ${wave}`, sub: waveHint(wave), style: 'info', dur: 1.2 });
   }
   if (state.bestWaveRecord > 0 && wave > state.bestWaveRecord && !state.recordAnnounced) {
     state.recordAnnounced = true;
-    state.fx.push({ type: 'banner', text: 'NEW RECORD', sub: `${wave}웨이브 돌파!`, style: 'record', dur: 2.4 });
+    state.fx.push({ type: 'banner', text: '신기록', sub: `${wave}웨이브 돌파`, style: 'record', dur: 2.4 });
     sfx(state, 'record');
   }
 }
@@ -95,7 +95,7 @@ export function updateWave(state: GameState, dt: number): void {
       if (!state.waveReached) {
         const bonus = Math.round(waveClearBonus(state.wave) * state.modifiers.coinGain);
         addCoins(state, bonus);
-        state.fx.push({ type: 'banner', text: `WAVE ${state.wave} CLEAR`, sub: `+${bonus}원`, style: 'clear', dur: 1.4 });
+        state.fx.push({ type: 'banner', text: `웨이브 ${state.wave} 클리어`, sub: `+${bonus}원`, style: 'clear', dur: 1.4 });
         addFloater(state, { x: 320, y: 560, text: `+${bonus}원 웨이브 클리어`, color: '#fde047', size: 15, life: 1.4 });
         sfx(state, 'waveClear');
         // 초반: 클리어하면 바로 다음 웨이브 (지루함 방지)

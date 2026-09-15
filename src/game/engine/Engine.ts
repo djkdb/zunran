@@ -178,7 +178,7 @@ export class Engine {
       announceLegendary(s);
       sfx(s, 'legendary');
     } else if (rarity === 'epic') {
-      s.fx.push({ type: 'banner', text: 'EPIC', sub: `${def.name} — ${line}`, style: 'good', dur: 1.6 });
+      s.fx.push({ type: 'banner', text: '에픽 등장', sub: `${def.name} · ${line}`, style: 'good', dur: 1.6 });
       s.fx.push({ type: 'flash', color: '#c77dff' });
       sfx(s, 'epic');
     } else if (rarity === 'rare') {
