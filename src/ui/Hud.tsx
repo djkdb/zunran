@@ -23,7 +23,11 @@ export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) 
         <div className="hud-wave">
           <div className="hud-wave-label">
             WAVE <b>{snap.wave}</b>
-            {snap.nextIsBoss && !snap.bossAlive && <span className="hud-next-boss">다음: 👿 보스</span>}
+            {snap.nextIsBoss && !snap.bossAlive && (
+              <span className="hud-next-boss" title="다음 웨이브에 보스 등장">
+                👿 다음 보스
+              </span>
+            )}
             <span className="hud-wave-timer">{Math.ceil(snap.waveTimer)}s</span>
           </div>
           <div className="bar bar-wave">

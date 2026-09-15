@@ -483,7 +483,14 @@ button:disabled {
   color: #fca5a5;
   font-weight: 800;
   margin-left: 6px;
+  white-space: nowrap;
+  font-size: 11px;
   animation: blink 1s infinite;
+}
+.hud-wave-label {
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
 }
 .merge-row {
   display: flex;
