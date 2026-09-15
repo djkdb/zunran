@@ -230,6 +230,21 @@ button:disabled {
     display: none; /* 좁은 화면: 진행 바만 */
   }
 }
+@media (max-width: 340px) {
+  .hud-survive {
+    max-width: 64px;
+  }
+  .hud-wave,
+  .hud-hp {
+    min-width: 44px;
+  }
+  .hud-clock {
+    min-width: 0;
+  }
+  .hud-time {
+    font-size: 13px;
+  }
+}
 .hud-time {
   white-space: nowrap;
   font-size: 18px;
