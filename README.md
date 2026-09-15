@@ -49,8 +49,34 @@ Playwright 스크립트는 `npx playwright install chromium` 이 필요하다 (�
 
 - **Vercel / Netlify**: 저장소 연결 → Build command `npm run build`, Output `dist`. 끝.
 - **GitHub Pages**: `npm run build` 후 `dist/` 를 `gh-pages` 브랜치로 푸시 (`npx gh-pages -d dist`).
-- **Cloudflare Pages**: Build `npm run build`, Output `dist`.
+- **Cloudflare Pages** (아래 §4-1 상세).
 - **직접 호스팅**: `dist/` 폴더를 nginx/S3 등 아무 정적 서버에 업로드.
+
+### 4-1. Cloudflare Pages 배포 (권장, 무료)
+
+**방법 A — GitHub 연동 (푸시하면 자동 배포)**
+
+1. https://dash.cloudflare.com → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**
+2. 이 저장소(`djkdb/zunran`)와 브랜치를 선택
+3. 빌드 설정:
+   - Framework preset: **Vite**
+   - Build command: `npm run build`
+   - Build output directory: `dist`
+   - 환경 변수(Environment variables)에 추가: `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` = `1` (테스트용 Playwright 가 브라우저를 내려받지 않게 해 빌드 시간을 줄인다), `NODE_VERSION` = `20`
+4. **Save and Deploy** → 1~2분 뒤 `https://<프로젝트명>.pages.dev` 주소가 생긴다. 이후 브랜치에 푸시할 때마다 자동 재배포된다.
+
+**방법 B — 명령어 한 줄 (Wrangler)**
+
+```bash
+npx wrangler login                 # 브라우저에서 Cloudflare 계정 승인 (최초 1회)
+npm run deploy:cf                  # build 후 dist/ 를 Pages 프로젝트 cvs-night-shift 로 업로드
+```
+
+처음 실행하면 프로젝트를 새로 만들지 물어보니 Enter. 출력되는 `https://cvs-night-shift.pages.dev` 가 배포 주소다.
+
+**커스텀 도메인**: Pages 프로젝트 → **Custom domains** → 도메인 입력. Cloudflare 에서 관리하는 도메인이면 DNS 가 자동으로 잡힌다.
+
+**확인 사항**: `vite.config.ts` 의 `base: './'` 덕분에 추가 설정 없이 동작한다. SPA 라우팅이 없으므로 `_redirects` 도 필요 없다. HTTPS 는 기본 제공되어 클립보드 복사(결과 공유) 기능도 정상 동작한다.
 
 친구에게 링크만 보내면 설치 없이 바로 플레이된다. 모바일은 "홈 화면에 추가"로 앱처럼 실행 가능.
 
