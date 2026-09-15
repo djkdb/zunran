@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { GameAction, UISnapshot } from '../game/types';
 import { UNIT_BY_ID } from '../game/data/units';
 import { RARITY_COLOR, RARITY_LABEL, tierDmgMult } from '../game/config';
@@ -16,6 +17,18 @@ interface Props {
 export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggleAutoMerge }: Props) {
   const mergeables = snap.groups.filter((g) => g.mergeable);
   const sel = snap.selected ? UNIT_BY_ID[snap.selected.defId] : null;
+  // 값나가는 유닛은 실수로 팔리지 않게 한 번 더 묻는다
+  const [confirmSell, setConfirmSell] = useState<number | null>(null);
+  const selectedId = snap.selected?.unitId ?? null;
+  useEffect(() => {
+    setConfirmSell(null);
+  }, [selectedId]);
+  useEffect(() => {
+    if (confirmSell === null) return;
+    const t = window.setTimeout(() => setConfirmSell(null), 2500);
+    return () => clearTimeout(t);
+  }, [confirmSell]);
+  const needsConfirm = !!sel && (sel.rarity !== 'common' || (snap.selected?.tier ?? 1) > 1);
   const odds = snap.rarityOdds;
   const free = snap.freeDraws > 0;
   return (
@@ -129,11 +142,11 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
         </div>
       )}
 
-      {sel && snap.selected ? (
+      {sel && snap.selected && (
         <div className="selected-card">
           <div className="selected-rarity" style={{ background: RARITY_COLOR[sel.rarity] }} />
           <div className="selected-main">
-            <UnitIcon defId={sel.id} size={44} />
+            <UnitIcon defId={sel.id} size={36} />
             <div className="selected-info">
               <div className="selected-name">
                 <span className="selected-rank" style={{ background: RARITY_COLOR[sel.rarity], color: sel.rarity === 'legendary' ? '#14120f' : '#fff' }}>
@@ -152,23 +165,35 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
               </div>
               <div className="selected-aisle">
                 {snap.selected.aisle} 배치 · <b>{snap.selected.aisleBonus}</b>
+                {snap.selected.groupCount >= 2 && <span className="selected-group">같은 유닛 {snap.selected.groupCount}개 (합성 {3 - snap.selected.groupCount > 0 ? `${3 - snap.selected.groupCount}개 남음` : '가능'})</span>}
               </div>
-              <div className="selected-hint">빈 칸을 탭하면 이동 · 다른 유닛을 탭하면 교환</div>
+              <div className="selected-hint">끌어서 옮기거나, 빈 칸을 탭해 배치하세요</div>
             </div>
           </div>
           <div className="selected-actions">
-            <button className="sell-btn" onClick={() => act({ type: 'SELL', unitId: snap.selected!.unitId })}>
-              판매 +{snap.selected.sellPrice}
+            <button
+              className={`sell-btn ${confirmSell === snap.selected.unitId ? 'confirm' : ''}`}
+              onClick={() => {
+                const id = snap.selected!.unitId;
+                if (needsConfirm && confirmSell !== id) {
+                  setConfirmSell(id);
+                  return;
+                }
+                act({ type: 'SELL', unitId: id });
+              }}
+            >
+              {confirmSell === snap.selected.unitId ? '정말 판매?' : `판매 +${snap.selected.sellPrice}`}
             </button>
             <button className="ctrl small" onClick={() => act({ type: 'SELECT', unitId: null })}>
               닫기
             </button>
           </div>
         </div>
-      ) : (
-        <div className="inventory">
-          {snap.groups.length === 0 && <div className="inventory-empty">유닛을 뽑아서 편의점을 지키세요. 같은 유닛 3개 = 합성!</div>}
-          {snap.groups.map((g) => {
+      )}
+
+      <div className="inventory">
+        {snap.groups.length === 0 && <div className="inventory-empty">유닛을 뽑아서 편의점을 지키세요. 같은 유닛 3개 = 합성!</div>}
+        {snap.groups.map((g) => {
             const def = UNIT_BY_ID[g.defId];
             return (
               <button
@@ -189,8 +214,7 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
               </button>
             );
           })}
-        </div>
-      )}
+      </div>
     </section>
   );
 }

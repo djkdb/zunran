@@ -497,7 +497,7 @@ export interface UISnapshot {
   bossMaxHp: number;
   bossName: string;
   groups: UnitGroup[];
-  selected: { unitId: number; defId: string; tier: Tier; kills: number; damage: number; sellPrice: number; aisle: string; aisleBonus: string } | null;
+  selected: { unitId: number; defId: string; tier: Tier; kills: number; damage: number; sellPrice: number; aisle: string; aisleBonus: string; groupCount: number } | null;
   activeEvents: { title: string; remain: number; mood: EventMood }[];
   stats: RunStats;
   unitCount: number;

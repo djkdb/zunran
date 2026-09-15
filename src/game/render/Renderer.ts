@@ -34,6 +34,13 @@ export class Renderer {
   private lastTime = 0;
   private rainDrops: { x: number; y: number; s: number }[] = [];
   private frame = 0;
+  // UI 가 넣어주는 조작 상태 (드래그 중인 유닛, 드롭 후보 슬롯)
+  interaction: { dragUnitId: number | null; dragX: number; dragY: number; hoverSlot: number | null } = {
+    dragUnitId: null,
+    dragX: 0,
+    dragY: 0,
+    hoverSlot: null,
+  };
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d')!;
@@ -160,6 +167,7 @@ export class Renderer {
     for (const d of drawables) d.draw();
 
     this.drawProjectiles(state);
+    this.drawDragGhost(state);
     this.drawParticles();
     this.drawBubbles(state);
     this.drawFloaters(state);
@@ -338,23 +346,32 @@ export class Renderer {
 
   private drawSlots(state: GameState): void {
     const ctx = this.ctx;
-    const selected = state.selectedUnitId !== null;
+    const placing = state.selectedUnitId !== null || this.interaction.dragUnitId !== null;
     for (const s of state.slots) {
       const empty = s.unitId === null;
+      const hovered = this.interaction.hoverSlot === s.index;
       ctx.save();
       ctx.translate(s.x, s.y);
       if (empty) {
-        ctx.strokeStyle = selected ? 'rgba(255,210,63,0.95)' : 'rgba(244,241,234,0.32)';
-        ctx.setLineDash(selected ? [] : [4, 4]);
-        ctx.lineWidth = selected ? 2 : 1;
+        ctx.strokeStyle = hovered ? '#ffd23f' : placing ? 'rgba(255,210,63,0.95)' : 'rgba(244,241,234,0.32)';
+        ctx.setLineDash(placing ? [] : [4, 4]);
+        ctx.lineWidth = hovered ? 3.5 : placing ? 2 : 1;
         ctx.beginPath();
         ctx.rect(-22, -36, 44, 44);
         ctx.stroke();
-        if (selected) {
-          ctx.fillStyle = 'rgba(255,210,63,0.14)';
+        if (placing) {
+          ctx.fillStyle = hovered ? 'rgba(255,210,63,0.34)' : 'rgba(255,210,63,0.14)';
           ctx.fill();
         }
       } else {
+        if (hovered) {
+          // 교환 대상임을 알린다
+          ctx.strokeStyle = '#3d93d8';
+          ctx.lineWidth = 3.5;
+          ctx.beginPath();
+          ctx.rect(-24, -38, 48, 48);
+          ctx.stroke();
+        }
         ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.beginPath();
         ctx.ellipse(0, 4, 20, 7, 0, 0, Math.PI * 2);
@@ -389,6 +406,10 @@ export class Renderer {
     const def = UNIT_BY_ID[u.defId];
     const s = state.slots[u.slot];
     const selected = state.selectedUnitId === u.id;
+    const dragging = this.interaction.dragUnitId === u.id;
+    // 같은 종류·같은 티어 유닛은 함께 빛난다 (합성 재료가 어디 있는지 한눈에)
+    const sel = state.selectedUnitId !== null ? state.units.find((x) => x.id === state.selectedUnitId) : undefined;
+    const inGroup = !!sel && sel.id !== u.id && sel.defId === u.defId && sel.tier === u.tier;
     const disabled = u.disabledUntil > state.time;
     const pulse = this.spawnPulse.get(u.id) ?? 0;
     const sinceAttack = state.time - u.lastAttackAt;
@@ -397,8 +418,18 @@ export class Renderer {
     if (sinceAttack < 0.15) scale *= 1 + (0.15 - sinceAttack) * 1.2;
     const w = 16 * scale;
 
+    if (dragging) return; // 드래그 중인 유닛은 커서 쪽에 따로 그린다
     ctx.save();
     ctx.translate(s.x, s.y);
+    if (inGroup) {
+      ctx.strokeStyle = '#d93a2b';
+      ctx.setLineDash([5, 3]);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.rect(-24, -w + 2, 48, w + 10);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     // 사거리 (선택 시)
     if (selected && def.attack !== 'none') {
       ctx.strokeStyle = 'rgba(255,210,63,0.8)';
@@ -473,6 +504,30 @@ export class Renderer {
       ctx.restore();
     }
     void now;
+  }
+
+  // 드래그 중인 유닛을 손가락 위치에 반투명하게 그린다
+  private drawDragGhost(state: GameState): void {
+    const id = this.interaction.dragUnitId;
+    if (id === null) return;
+    const u = state.units.find((x) => x.id === id);
+    if (!u) return;
+    const def = UNIT_BY_ID[u.defId];
+    const ctx = this.ctx;
+    const w = 16 * UNIT_SCALE * 1.1;
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.translate(this.interaction.dragX, this.interaction.dragY);
+    ctx.fillStyle = RARITY_COLOR[def.rarity];
+    ctx.fillRect(-24, -w + 6, 48, 4);
+    const img = rasterize(def.sprite);
+    if (img) {
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, -w / 2, -w + 10, w, w);
+    } else {
+      drawFallback(ctx, 0, 10, w, def.color, def.name);
+    }
+    ctx.restore();
   }
 
   // ───────────── 손님 ─────────────

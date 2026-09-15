@@ -180,6 +180,8 @@ export class Engine {
     s.stats.drawsByRarity[rarity]++;
     if (!s.stats.seenUnits.includes(def.id)) s.stats.seenUnits.push(def.id);
     s.lastDrawResult = { defId: def.id, rarity, at: s.time };
+    // 방금 뽑은 유닛을 선택 상태로 둔다 — 빈 칸이 강조되어 한 번 탭으로 원하는 코너에 놓을 수 있다.
+    s.selectedUnitId = unit.id;
 
     s.fx.push({ type: 'unitSpawn', unitId: unit.id, rarity });
     const line = s.rng.pick(DRAW_LINES[rarity]);
@@ -328,6 +330,7 @@ export class Engine {
             sellPrice: sellPrice(sel),
             aisle: AISLE_NAMES[s.slots[sel.slot].row],
             aisleBonus: AISLE_BONUS[s.slots[sel.slot].row].label,
+            groupCount: s.units.filter((u) => u.defId === sel.defId && u.tier === sel.tier).length,
           }
         : null,
       activeEvents: s.activeEvents.map((ae) => ({ title: ae.title, remain: Math.max(0, ae.until - s.time), mood: ae.mood })),

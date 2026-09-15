@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type React from 'react';
 import { Engine } from '../game/engine/Engine';
 import { Renderer } from '../game/render/Renderer';
 import { audio } from '../game/audio/sfx';
@@ -167,29 +168,89 @@ export function useGame(opts: UseGameOptions) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 캔버스 탭 → 슬롯 판정
-  const onCanvasPointer = useCallback(
-    (clientX: number, clientY: number) => {
+  // 논리 좌표에서 가장 가까운 슬롯
+  const slotAt = useCallback((clientX: number, clientY: number): number => {
+    const engine = engineRef.current;
+    const renderer = rendererRef.current;
+    if (!engine || !renderer) return -1;
+    const p = renderer.toLogical(clientX, clientY);
+    let best = -1;
+    let bestD = SLOT_HIT_RADIUS * SLOT_HIT_RADIUS;
+    for (const s of engine.state.slots) {
+      const dx = s.x - p.x;
+      const dy = s.y - 16 - p.y;
+      const d = dx * dx + dy * dy;
+      if (d < bestD) {
+        bestD = d;
+        best = s.index;
+      }
+    }
+    return best;
+  }, []);
+
+  // 탭과 드래그를 함께 지원한다.
+  // - 짧게 누르면(움직임 < 10px) 기존 탭 동작: 선택 / 이동 / 교환
+  // - 유닛을 끌면 손가락을 따라오고, 놓은 자리로 이동하거나 교환한다
+  const drag = useRef<{ unitId: number; fromSlot: number; moved: boolean; pointerId: number } | null>(null);
+
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      e.preventDefault();
       const engine = engineRef.current;
       const renderer = rendererRef.current;
-      if (!engine || !renderer) return;
-      const p = renderer.toLogical(clientX, clientY);
-      let best = -1;
-      let bestD = SLOT_HIT_RADIUS * SLOT_HIT_RADIUS;
-      for (const s of engine.state.slots) {
-        const dx = s.x - p.x;
-        const dy = s.y - 16 - p.y;
-        const d = dx * dx + dy * dy;
-        if (d < bestD) {
-          bestD = d;
-          best = s.index;
-        }
+      if (!engine || !renderer || engine.state.phase !== 'playing') return;
+      const slot = slotAt(e.clientX, e.clientY);
+      const unitId = slot >= 0 ? engine.state.slots[slot].unitId : null;
+      if (slot >= 0 && unitId !== null) {
+        drag.current = { unitId, fromSlot: slot, moved: false, pointerId: e.pointerId };
+        e.currentTarget.setPointerCapture(e.pointerId);
+        const p = renderer.toLogical(e.clientX, e.clientY);
+        renderer.interaction = { dragUnitId: null, dragX: p.x, dragY: p.y, hoverSlot: null };
+      } else {
+        drag.current = null;
       }
-      if (best >= 0) act({ type: 'TAP_SLOT', slot: best });
-      else if (engine.state.selectedUnitId !== null) act({ type: 'SELECT', unitId: null });
     },
-    [act],
+    [slotAt],
   );
 
-  return { canvasRef, snap, banners, act, toast, onCanvasPointer, engineRef };
+  const onPointerMove = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      const d = drag.current;
+      const renderer = rendererRef.current;
+      if (!d || !renderer || d.pointerId !== e.pointerId) return;
+      const p = renderer.toLogical(e.clientX, e.clientY);
+      if (!d.moved) {
+        const from = engineRef.current?.state.slots[d.fromSlot];
+        if (from && Math.hypot(from.x - p.x, from.y - 16 - p.y) < 10) return; // 아직 탭일 수 있다
+        d.moved = true;
+        engineRef.current?.dispatch({ type: 'SELECT', unitId: d.unitId });
+      }
+      const over = slotAt(e.clientX, e.clientY);
+      renderer.interaction = { dragUnitId: d.unitId, dragX: p.x, dragY: p.y, hoverSlot: over >= 0 && over !== d.fromSlot ? over : null };
+    },
+    [slotAt],
+  );
+
+  const endDrag = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      const d = drag.current;
+      const renderer = rendererRef.current;
+      drag.current = null;
+      if (renderer) renderer.interaction = { dragUnitId: null, dragX: 0, dragY: 0, hoverSlot: null };
+      const engine = engineRef.current;
+      if (!engine) return;
+      const slot = slotAt(e.clientX, e.clientY);
+      if (d && d.moved) {
+        if (slot >= 0 && slot !== d.fromSlot) act({ type: 'MOVE', unitId: d.unitId, slot });
+        else act({ type: 'SELECT', unitId: d.unitId });
+        return;
+      }
+      // 드래그가 아니면 기존 탭 동작
+      if (slot >= 0) act({ type: 'TAP_SLOT', slot });
+      else if (engine.state.selectedUnitId !== null) act({ type: 'SELECT', unitId: null });
+    },
+    [act, slotAt],
+  );
+
+  return { canvasRef, snap, banners, act, toast, onPointerDown, onPointerMove, endDrag, engineRef };
 }
