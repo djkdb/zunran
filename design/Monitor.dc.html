@@ -1,0 +1,173 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+  <style>
+    body { margin: 0; font-family: 'IBM Plex Sans KR', system-ui, sans-serif; }
+    a { color: #ffb000; } a:hover { color: #cc8c00; }
+    .m { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+    .lbl { font-size: 9px; letter-spacing: 0.2em; color: #7d7a6e; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #0b0c0a; display: flex; flex-direction: column; overflow: hidden; position: relative">
+
+  <!-- 스캔라인 -->
+  <div style="position: absolute; inset: 0; pointer-events: none; z-index: 5; background: repeating-linear-gradient(to bottom, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 3px)"></div>
+
+  <!-- 상단 상태 스트립 -->
+  <div style="flex: none; border-bottom: 1px solid #2a2b26; padding: 7px 12px; display: flex; align-items: center; gap: 10px">
+    <div style="flex: none; display: flex; align-items: center; gap: 5px">
+      <div style="width: 7px; height: 7px; background: #ff3b30"></div>
+      <span class="m" style="font-size: 10px; letter-spacing: 0.16em; color: #ff3b30">REC</span>
+    </div>
+    <span class="m" style="font-size: 10px; letter-spacing: 0.1em; color: #7d7a6e">CH-01 STORE</span>
+    <span style="flex: 1"></span>
+    <span class="m" style="font-size: 11px; letter-spacing: 0.06em; color: #d8d2bf">2026-09-15 02:15:47</span>
+  </div>
+
+  <!-- 판독 스트립 -->
+  <div style="flex: none; padding: 10px 12px 11px; display: flex; flex-direction: column; gap: 9px; border-bottom: 1px solid #2a2b26">
+
+    <div style="display: flex; align-items: flex-end; gap: 14px">
+      <div style="flex: none">
+        <div class="lbl">WAVE</div>
+        <div class="m" style="font-size: 30px; line-height: 1; color: #ffb000; font-weight: 500; margin-top: 1px">12</div>
+      </div>
+      <div style="flex: 1; min-width: 0">
+        <div style="display: flex; align-items: baseline; justify-content: space-between">
+          <span class="lbl">STORE INTEGRITY</span>
+          <span class="m" style="font-size: 12px; color: #d8d2bf">74%</span>
+        </div>
+        <div style="display: flex; gap: 2px; margin-top: 5px">
+          <div style="flex: 1; height: 10px; background: #ffb000"></div>
+          <div style="flex: 1; height: 10px; background: #ffb000"></div>
+          <div style="flex: 1; height: 10px; background: #ffb000"></div>
+          <div style="flex: 1; height: 10px; background: #ffb000"></div>
+          <div style="flex: 1; height: 10px; background: #ffb000"></div>
+          <div style="flex: 1; height: 10px; background: #ffb000"></div>
+          <div style="flex: 1; height: 10px; background: #ffb000"></div>
+          <div style="flex: 1; height: 10px; background: #2a2b26"></div>
+          <div style="flex: 1; height: 10px; background: #2a2b26"></div>
+          <div style="flex: 1; height: 10px; background: #2a2b26"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 0; border: 1px solid #2a2b26">
+      <div style="flex: 1; padding: 5px 8px 6px; border-right: 1px solid #2a2b26">
+        <div class="lbl">손님</div>
+        <div class="m" style="font-size: 14px; color: #d8d2bf; margin-top: 1px">26</div>
+      </div>
+      <div style="flex: 1; padding: 5px 8px 6px; border-right: 1px solid #2a2b26">
+        <div class="lbl">빈 칸</div>
+        <div class="m" style="font-size: 14px; color: #d8d2bf; margin-top: 1px">07/21</div>
+      </div>
+      <div style="flex: 1.4; padding: 5px 8px 6px; background: #1a0f0c">
+        <div class="lbl" style="color: #ff8178">다음 웨이브</div>
+        <div class="m" style="font-size: 14px; color: #ff3b30; margin-top: 1px">BOSS</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 카메라 뷰 -->
+  <div style="flex: none; padding: 9px 12px 8px; position: relative; display: flex; justify-content: center">
+    <div style="position: relative; line-height: 0; border: 1px solid #2a2b26">
+      <img src="field.jpg" alt="매장 카메라" style="width: 304px; height: 304px; display: block; filter: contrast(1.12) saturate(0.55) brightness(0.94)">
+      <div style="position: absolute; top: 0; left: 0; width: 18px; height: 18px; border-left: 2px solid #ffb000; border-top: 2px solid #ffb000"></div>
+      <div style="position: absolute; top: 0; right: 0; width: 18px; height: 18px; border-right: 2px solid #ffb000; border-top: 2px solid #ffb000"></div>
+      <div style="position: absolute; bottom: 0; left: 0; width: 18px; height: 18px; border-left: 2px solid #ffb000; border-bottom: 2px solid #ffb000"></div>
+      <div style="position: absolute; bottom: 0; right: 0; width: 18px; height: 18px; border-right: 2px solid #ffb000; border-bottom: 2px solid #ffb000"></div>
+      <div class="m" style="position: absolute; bottom: 5px; left: 7px; font-size: 9px; letter-spacing: 0.12em; color: #ffb000">CAM 01 · 1F</div>
+    </div>
+  </div>
+
+  <!-- 조작부 -->
+  <div style="flex: 1; padding: 0 12px 12px; display: flex; flex-direction: column; gap: 9px; min-height: 0">
+
+    <div style="display: flex; gap: 8px; align-items: stretch">
+      <div style="flex: 1; border: 1px solid #ffb000; background: #191507; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between">
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span class="m" style="font-size: 16px; letter-spacing: 0.08em; color: #ffb000">▸ 유닛 뽑기</span>
+          <span class="lbl" style="letter-spacing: 0.12em">RANDOM DRAW</span>
+        </div>
+        <span class="m" style="font-size: 20px; color: #ffb000">220</span>
+      </div>
+      <div style="flex: none; display: flex; flex-direction: column; gap: 4px">
+        <div style="width: 40px; height: 29px; border: 1px solid #2a2b26; display: flex; align-items: center; justify-content: center">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#d8d2bf"><rect x="5" y="4" width="5" height="16"></rect><rect x="14" y="4" width="5" height="16"></rect></svg>
+        </div>
+        <div style="width: 40px; height: 29px; border: 1px solid #ffb000; background: #191507; display: flex; align-items: center; justify-content: center">
+          <span class="m" style="font-size: 12px; color: #ffb000">x2</span>
+        </div>
+        <div style="width: 40px; height: 29px; border: 1px solid #2a2b26; display: flex; align-items: center; justify-content: center">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#d8d2bf" stroke-width="2" stroke-linecap="square"><path d="M4 9v6h4l5 4V5L8 9H4z"></path><path d="M17 8.5a5 5 0 0 1 0 7"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 0; border: 1px solid #2a2b26">
+      <div class="lbl" style="flex: none; padding: 4px 8px 5px; border-right: 1px solid #2a2b26">ODDS</div>
+      <div class="m" style="flex: 1; display: flex; justify-content: space-around; font-size: 10px; padding: 4px 0 5px">
+        <span style="color: #7d7a6e">N 60</span>
+        <span style="color: #9fb8c4">R 28</span>
+        <span style="color: #b89ac4">E 10</span>
+        <span style="color: #ffb000">L 02</span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 7px">
+      <div style="flex: 1; border: 1px solid #ff3b30; background: #1a0f0c; padding: 7px 9px; text-align: center">
+        <span class="m" style="font-size: 11px; letter-spacing: 0.1em; color: #ff3b30">MERGE ×3</span>
+      </div>
+      <div style="flex: 1; border: 1px solid #2a2b26; padding: 7px 9px; text-align: center">
+        <span class="m" style="font-size: 11px; letter-spacing: 0.1em; color: #7d7a6e">CLEAR +240</span>
+      </div>
+    </div>
+
+    <div style="border: 1px solid #2a2b26; display: flex; flex-direction: column">
+      <div style="display: flex; padding: 4px 9px 5px; border-bottom: 1px solid #2a2b26">
+        <span class="lbl" style="flex: 1">UNIT</span>
+        <span class="lbl" style="flex: none; width: 52px">TIER</span>
+        <span class="lbl" style="flex: none; width: 26px; text-align: right">QTY</span>
+      </div>
+      <div style="display: flex; padding: 5px 9px; align-items: center">
+        <span style="flex: 1; font-size: 12px; color: #ffb000">점장</span>
+        <span class="m" style="flex: none; width: 52px; font-size: 11px; color: #ffb000">★★</span>
+        <span class="m" style="flex: none; width: 26px; font-size: 11px; color: #d8d2bf; text-align: right">2</span>
+      </div>
+      <div style="display: flex; padding: 5px 9px; align-items: center; background: #1a0f0c">
+        <span style="flex: 1; font-size: 12px; color: #ff8178">커피머신</span>
+        <span class="m" style="flex: none; width: 52px; font-size: 11px; color: #ff3b30">MERGE</span>
+        <span class="m" style="flex: none; width: 26px; font-size: 11px; color: #ff3b30; text-align: right">3</span>
+      </div>
+      <div style="display: flex; padding: 5px 9px; align-items: center">
+        <span style="flex: 1; font-size: 12px; color: #d8d2bf">전자레인지</span>
+        <span class="m" style="flex: none; width: 52px; font-size: 11px; color: #7d7a6e">★</span>
+        <span class="m" style="flex: none; width: 26px; font-size: 11px; color: #d8d2bf; text-align: right">1</span>
+      </div>
+      <div style="display: flex; padding: 5px 9px; align-items: center">
+        <span style="flex: 1; font-size: 12px; color: #d8d2bf">CCTV</span>
+        <span class="m" style="flex: none; width: 52px; font-size: 11px; color: #7d7a6e">★★</span>
+        <span class="m" style="flex: none; width: 26px; font-size: 11px; color: #d8d2bf; text-align: right">2</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: baseline; justify-content: space-between; border-top: 1px solid #2a2b26; padding-top: 8px; margin-top: auto">
+      <span class="lbl">보유 금액</span>
+      <span class="m" style="font-size: 19px; color: #ffb000">3,240</span>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

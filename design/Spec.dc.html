@@ -1,0 +1,195 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gothic+A1:wght@500;700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Gothic A1', system-ui, sans-serif; }
+    a { color: #1c6fb0; } a:hover { color: #14527f; }
+    .sign-num { font-family: 'Black Han Sans', 'Gothic A1', sans-serif; font-weight: 400; }
+    .cap { font-size: 9px; font-weight: 800; letter-spacing: 0.18em; color: #8a8378; }
+  </style>
+</helmet>
+
+<div style="box-sizing: border-box; width: 900px; height: 590px; background: #f4f1ea; padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; overflow: hidden">
+
+  <div style="display: flex; align-items: baseline; gap: 12px; border-bottom: 3px solid #14120f; padding-bottom: 9px">
+    <div class="sign-num" style="font-size: 26px; color: #14120f">간판 스타일 · 구성 요소</div>
+    <div style="font-size: 11px; font-weight: 700; color: #6b655b">그라데이션 없음 · 라운드 0~2px · 글로우 없음 · 그림자는 blur 0 오프셋 단색</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; flex: 1; min-height: 0">
+
+    <div style="display: flex; flex-direction: column; gap: 14px; min-width: 0">
+
+      <div>
+        <div class="cap">색</div>
+        <div style="display: flex; gap: 7px; margin-top: 6px">
+          <div style="flex: 1">
+            <div style="height: 52px; background: #14120f; border: 2px solid #14120f"></div>
+            <div style="font-size: 9px; font-weight: 700; color: #6b655b; margin-top: 3px">먹색 #14120f</div>
+          </div>
+          <div style="flex: 1">
+            <div style="height: 52px; background: #f4f1ea; border: 2px solid #14120f"></div>
+            <div style="font-size: 9px; font-weight: 700; color: #6b655b; margin-top: 3px">종이 #f4f1ea</div>
+          </div>
+          <div style="flex: 1">
+            <div style="height: 52px; background: #1c6fb0; border: 2px solid #14120f"></div>
+            <div style="font-size: 9px; font-weight: 700; color: #6b655b; margin-top: 3px">간판 #1c6fb0</div>
+          </div>
+          <div style="flex: 1">
+            <div style="height: 52px; background: #d93a2b; border: 2px solid #14120f"></div>
+            <div style="font-size: 9px; font-weight: 700; color: #6b655b; margin-top: 3px">경고 #d93a2b</div>
+          </div>
+          <div style="flex: 1">
+            <div style="height: 52px; background: #ffd23f; border: 2px solid #14120f"></div>
+            <div style="font-size: 9px; font-weight: 700; color: #6b655b; margin-top: 3px">가격표 #ffd23f</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="cap">글자</div>
+        <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 5px">
+          <div style="display: flex; align-items: baseline; gap: 10px">
+            <span class="sign-num" style="font-size: 30px; color: #14120f">웨이브 12</span>
+            <span style="font-size: 10px; color: #8a8378">Black Han Sans · 숫자와 큰 제목</span>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 10px">
+            <span style="font-size: 14px; font-weight: 800; color: #14120f">합성 가능합니다</span>
+            <span style="font-size: 10px; color: #8a8378">Gothic A1 800 · 버튼과 라벨</span>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 10px">
+            <span style="font-size: 12px; font-weight: 500; color: #4b463e">주변 유닛의 공격 속도를 올린다</span>
+            <span style="font-size: 10px; color: #8a8378">Gothic A1 500 · 설명</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="cap">버튼</div>
+        <div style="margin-top: 8px; display: flex; gap: 12px; align-items: flex-start">
+          <div style="background: #ffd23f; border: 3px solid #14120f; box-shadow: 4px 4px 0 #14120f; padding: 9px 14px 10px; transform: rotate(-0.6deg)">
+            <div class="sign-num" style="font-size: 19px; color: #14120f; line-height: 1.05">유닛 뽑기</div>
+            <div style="font-size: 10px; font-weight: 800; color: #6b4e00">220원</div>
+          </div>
+          <div style="background: #fff; border: 2px solid #14120f; padding: 8px 12px">
+            <span style="font-size: 12px; font-weight: 800; color: #14120f">정리 +240</span>
+          </div>
+          <div style="background: #e4e0d7; border: 2px solid #a8a196; padding: 8px 12px">
+            <span style="font-size: 12px; font-weight: 800; color: #a8a196">돈 부족</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="cap">체력 · 진행 막대</div>
+        <div style="margin-top: 7px; display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; gap: 2px">
+            <div style="flex: 1; height: 10px; background: #2e8b57"></div>
+            <div style="flex: 1; height: 10px; background: #2e8b57"></div>
+            <div style="flex: 1; height: 10px; background: #2e8b57"></div>
+            <div style="flex: 1; height: 10px; background: #2e8b57"></div>
+            <div style="flex: 1; height: 10px; background: #2e8b57"></div>
+            <div style="flex: 1; height: 10px; background: #2e8b57"></div>
+            <div style="flex: 1; height: 10px; background: #2e8b57"></div>
+            <div style="flex: 1; height: 10px; background: #cdc8bd"></div>
+            <div style="flex: 1; height: 10px; background: #cdc8bd"></div>
+            <div style="flex: 1; height: 10px; background: #cdc8bd"></div>
+          </div>
+          <div style="display: flex; gap: 2px">
+            <div style="flex: 1; height: 10px; background: #d93a2b"></div>
+            <div style="flex: 1; height: 10px; background: #d93a2b"></div>
+            <div style="flex: 1; height: 10px; background: #cdc8bd"></div>
+            <div style="flex: 1; height: 10px; background: #cdc8bd"></div>
+            <div style="flex: 1; height: 10px; background: #cdc8bd"></div>
+            <div style="flex: 1; height: 10px; background: #cdc8bd"></div>
+            <div style="flex: 1; height: 10px; background: #cdc8bd"></div>
+            <div style="flex: 1; height: 10px; background: #cdc8bd"></div>
+            <div style="flex: 1; height: 10px; background: #cdc8bd"></div>
+            <div style="flex: 1; height: 10px; background: #cdc8bd"></div>
+          </div>
+          <div style="font-size: 10px; color: #8a8378; font-weight: 700">칸으로 끊는다. 부드러운 그라데이션 막대 금지 — 작은 화면에서 잔량이 한눈에 읽힌다.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 14px; min-width: 0">
+
+      <div>
+        <div class="cap">유닛 칩 (윗줄 색 = 등급)</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 7px">
+          <div style="border: 2px solid #14120f; background: #fff">
+            <div style="height: 5px; background: #8a8378"></div>
+            <div style="padding: 7px; display: flex; flex-direction: column; gap: 4px">
+              <div style="display: flex; justify-content: space-between; align-items: baseline">
+                <span style="font-size: 11px; font-weight: 800">삼각김밥</span>
+                <span class="sign-num" style="font-size: 12px; color: #6b655b">×2</span>
+              </div>
+              <div style="display: flex; gap: 2px"><div style="width: 9px; height: 3px; background: #14120f"></div><div style="width: 9px; height: 3px; background: #cdc8bd"></div><div style="width: 9px; height: 3px; background: #cdc8bd"></div></div>
+            </div>
+          </div>
+          <div style="border: 2px solid #d93a2b; background: #fff5f3; box-shadow: 3px 3px 0 #d93a2b">
+            <div style="height: 5px; background: #1c6fb0"></div>
+            <div style="padding: 7px; display: flex; flex-direction: column; gap: 4px">
+              <div style="display: flex; justify-content: space-between; align-items: baseline">
+                <span style="font-size: 11px; font-weight: 800">커피머신</span>
+                <span class="sign-num" style="font-size: 12px; color: #d93a2b">×3</span>
+              </div>
+              <div style="font-size: 9px; font-weight: 800; color: #d93a2b">합성 가능</div>
+            </div>
+          </div>
+          <div style="border: 2px dashed #a8a196; background: #edeae2; display: flex; align-items: center; justify-content: center; min-height: 54px">
+            <span style="font-size: 10px; font-weight: 800; color: #8a8378">+ 뽑기</span>
+          </div>
+        </div>
+        <div style="font-size: 10px; color: #8a8378; font-weight: 700; margin-top: 5px">등급 = 윗줄 색 · 티어 = 아래 눈금. 별 이모지 대신 도형으로.</div>
+      </div>
+
+      <div>
+        <div class="cap">연출 배너</div>
+        <div style="margin-top: 7px; display: flex; flex-direction: column; gap: 8px">
+          <div style="background: #ffd23f; border: 3px solid #14120f; box-shadow: 5px 5px 0 #14120f; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between">
+            <div class="sign-num" style="font-size: 34px; color: #14120f; line-height: 1">전설 등장</div>
+            <div style="font-size: 12px; font-weight: 800; color: #6b4e00; text-align: right; line-height: 1.3">점장이<br>출근했습니다</div>
+          </div>
+          <div style="background: #d93a2b; border: 3px solid #14120f; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between">
+            <div class="sign-num" style="font-size: 26px; color: #fff; line-height: 1">새벽 3시</div>
+            <div style="font-size: 11px; font-weight: 800; color: #ffd9d4">손님 20명 진입</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="cap">아이콘</div>
+        <div style="display: flex; gap: 14px; align-items: center; margin-top: 8px">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#14120f" stroke-width="2" stroke-linecap="square"><rect x="3" y="8" width="18" height="12"></rect><path d="M3 12h18"></path><path d="M12 8v12"></path><path d="M12 8c-3.5 0-5-1-5-2.5S8.5 4 12 8z"></path><path d="M12 8c3.5 0 5-1 5-2.5S15.5 4 12 8z"></path></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#14120f" stroke-width="2" stroke-linecap="square"><path d="M12 3v7"></path><path d="M12 21v-7"></path><path d="M6 7l6 3 6-3"></path><path d="M6 17l6-3 6 3"></path></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#14120f" stroke-width="2" stroke-linecap="square"><path d="M4 20h7"></path><path d="M8 20l6-13"></path><path d="M12 5l5 2-3 6"></path></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#14120f" stroke-width="2" stroke-linecap="square"><path d="M4 9v6h4l5 4V5L8 9H4z"></path><path d="M17 8.5a5 5 0 0 1 0 7"></path></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#14120f"><rect x="5" y="4" width="5" height="16"></rect><rect x="14" y="4" width="5" height="16"></rect></svg>
+          <span style="font-size: 10px; color: #8a8378; font-weight: 700">2px 선 · 끝은 각지게 · 24px 격자. 이모지 전면 금지.</span>
+        </div>
+      </div>
+
+      <div style="border: 2px solid #14120f; background: #14120f; padding: 11px 13px">
+        <div class="cap" style="color: #ffd23f">적용 규칙</div>
+        <div style="font-size: 11px; color: #e8e4da; line-height: 1.65; margin-top: 4px">
+          모서리 반경 0 (예외: 없음) · 테두리 2~3px 먹색 · 그림자는 <span style="color: #ffd23f">4px 4px 0</span> 단색 · 그라데이션·블러·글로우 전부 삭제 · 이모지를 SVG로 교체 · 숫자는 Black Han Sans
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

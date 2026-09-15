@@ -1,0 +1,218 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gothic+A1:wght@500;700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Gothic A1', system-ui, sans-serif; }
+    a { color: #1c6fb0; } a:hover { color: #14527f; }
+    .sign-num { font-family: 'Black Han Sans', 'Gothic A1', sans-serif; font-weight: 400; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #14120f; display: flex; flex-direction: column; overflow: hidden">
+
+  <!-- ── 상단: 간판 바 ── -->
+  <div style="flex: none; background: #14120f; border-bottom: 3px solid #ffd23f; padding: 8px 10px 7px; display: flex; flex-direction: column; gap: 6px">
+
+    <div style="display: flex; align-items: stretch; gap: 0">
+      <div style="flex: none; background: #1c6fb0; padding: 3px 7px 4px; display: flex; flex-direction: column; justify-content: center">
+        <div style="font-size: 8px; font-weight: 800; letter-spacing: 0.18em; color: #bcdcf5">NIGHT</div>
+        <div class="sign-num" style="font-size: 17px; color: #fff; line-height: 1">02:15</div>
+      </div>
+      <div style="flex: 1; background: #f4f1ea; border-left: 2px solid #14120f; padding: 3px 8px 4px; display: flex; flex-direction: column; justify-content: center; min-width: 0">
+        <div style="display: flex; align-items: baseline; gap: 5px">
+          <span style="font-size: 9px; font-weight: 800; letter-spacing: 0.14em; color: #6b655b">WAVE</span>
+          <span class="sign-num" style="font-size: 20px; color: #14120f; line-height: 1">12</span>
+          <span style="flex: 1"></span>
+          <span style="font-size: 9px; font-weight: 800; color: #d93a2b">다음 보스</span>
+        </div>
+        <div style="display: flex; gap: 2px; margin-top: 3px">
+          <div style="flex: 1; height: 5px; background: #14120f"></div>
+          <div style="flex: 1; height: 5px; background: #14120f"></div>
+          <div style="flex: 1; height: 5px; background: #14120f"></div>
+          <div style="flex: 1; height: 5px; background: #cdc8bd"></div>
+          <div style="flex: 1; height: 5px; background: #cdc8bd"></div>
+          <div style="flex: 1; height: 5px; background: #cdc8bd"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: stretch; gap: 7px">
+      <div style="flex: 1; background: #f4f1ea; border: 2px solid #14120f; padding: 4px 7px 5px; min-width: 0">
+        <div style="display: flex; align-items: baseline; justify-content: space-between">
+          <span style="font-size: 9px; font-weight: 800; letter-spacing: 0.12em; color: #6b655b">매장 체력</span>
+          <span class="sign-num" style="font-size: 13px; color: #14120f; line-height: 1">74%</span>
+        </div>
+        <div style="display: flex; gap: 2px; margin-top: 4px">
+          <div style="flex: 1; height: 8px; background: #2e8b57"></div>
+          <div style="flex: 1; height: 8px; background: #2e8b57"></div>
+          <div style="flex: 1; height: 8px; background: #2e8b57"></div>
+          <div style="flex: 1; height: 8px; background: #2e8b57"></div>
+          <div style="flex: 1; height: 8px; background: #2e8b57"></div>
+          <div style="flex: 1; height: 8px; background: #2e8b57"></div>
+          <div style="flex: 1; height: 8px; background: #2e8b57"></div>
+          <div style="flex: 1; height: 8px; background: #cdc8bd"></div>
+          <div style="flex: 1; height: 8px; background: #cdc8bd"></div>
+          <div style="flex: 1; height: 8px; background: #cdc8bd"></div>
+        </div>
+      </div>
+
+      <div style="flex: none; background: #ffd23f; border: 2px solid #14120f; padding: 3px 9px 4px; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; transform: rotate(-1.4deg); box-shadow: 3px 3px 0 #14120f">
+        <div style="font-size: 8px; font-weight: 800; letter-spacing: 0.1em; color: #6b4e00">보유 금액</div>
+        <div class="sign-num" style="font-size: 19px; color: #14120f; line-height: 1">3,240<span style="font-size: 11px">원</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 필드 ── -->
+  <div style="flex: none; padding: 8px; background: #14120f">
+    <div style="border: 3px solid #f4f1ea; position: relative; line-height: 0">
+      <img src="field.jpg" alt="편의점 내부" style="width: 368px; height: 368px; display: block">
+      <div style="position: absolute; top: 0; left: 0; background: #d93a2b; color: #fff; font-size: 9px; font-weight: 800; letter-spacing: 0.12em; padding: 3px 8px 4px">손님 26명</div>
+      <div style="position: absolute; bottom: 0; right: 0; background: #ffd23f; color: #14120f; font-size: 10px; font-weight: 800; padding: 3px 9px 4px; border-left: 2px solid #14120f; border-top: 2px solid #14120f">빈 칸 7 / 21</div>
+    </div>
+  </div>
+
+  <!-- ── 하단: 계산대 패널 ── -->
+  <div style="flex: 1; background: #f4f1ea; border-top: 3px solid #14120f; padding: 9px 10px 10px; display: flex; flex-direction: column; gap: 8px; min-height: 0">
+
+    <div style="display: flex; gap: 8px; align-items: stretch">
+      <div style="flex: 1; background: #ffd23f; border: 3px solid #14120f; box-shadow: 4px 4px 0 #14120f; padding: 9px 12px 10px; display: flex; align-items: center; gap: 10px; transform: rotate(-0.6deg)">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#14120f" stroke-width="2" stroke-linecap="square" style="flex: none">
+          <rect x="3" y="8" width="18" height="12"></rect>
+          <path d="M3 12h18"></path>
+          <path d="M12 8v12"></path>
+          <path d="M12 8c-3.5 0-5-1-5-2.5S8.5 4 12 8zM12 8c3.5 0 5-1 5-2.5S15.5 4 12 8z"></path>
+        </svg>
+        <div style="flex: 1; min-width: 0">
+          <div class="sign-num" style="font-size: 21px; color: #14120f; line-height: 1.05">유닛 뽑기</div>
+          <div style="font-size: 10px; font-weight: 800; color: #6b4e00; letter-spacing: 0.04em; margin-top: 1px">한 번 220원 · 랜덤</div>
+        </div>
+        <div class="sign-num" style="font-size: 26px; color: #d93a2b; line-height: 1">220</div>
+      </div>
+      <div style="flex: none; display: flex; flex-direction: column; gap: 4px">
+        <div style="width: 44px; height: 30px; background: #14120f; display: flex; align-items: center; justify-content: center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#f4f1ea"><rect x="5" y="4" width="5" height="16"></rect><rect x="14" y="4" width="5" height="16"></rect></svg>
+        </div>
+        <div style="width: 44px; height: 30px; background: #1c6fb0; display: flex; align-items: center; justify-content: center">
+          <span class="sign-num" style="font-size: 15px; color: #fff">×2</span>
+        </div>
+        <div style="width: 44px; height: 30px; background: #14120f; display: flex; align-items: center; justify-content: center">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f4f1ea" stroke-width="2" stroke-linecap="square"><path d="M4 9v6h4l5 4V5L8 9H4z"></path><path d="M17 8.5a5 5 0 0 1 0 7"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 0; border: 2px solid #14120f; background: #fff">
+      <div style="flex: none; background: #14120f; color: #f4f1ea; font-size: 9px; font-weight: 800; letter-spacing: 0.1em; padding: 4px 7px 5px">확률</div>
+      <div style="flex: 1; display: flex; align-items: center; justify-content: space-around; font-size: 10px; font-weight: 800; padding: 0 4px">
+        <span style="color: #6b655b">일반 60</span>
+        <span style="color: #1c6fb0">희귀 28</span>
+        <span style="color: #7b3fa0">에픽 10</span>
+        <span style="color: #d93a2b">전설 2</span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 6px">
+      <div style="flex: 1; background: #d93a2b; border: 2px solid #14120f; padding: 7px 9px; display: flex; align-items: center; gap: 7px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="square"><path d="M12 3v7"></path><path d="M12 21v-7"></path><path d="M6 7l6 3 6-3"></path><path d="M6 17l6-3 6 3"></path></svg>
+        <span style="font-size: 12px; font-weight: 800; color: #fff">합성 3</span>
+      </div>
+      <div style="flex: 1; background: #fff; border: 2px solid #14120f; padding: 7px 9px; display: flex; align-items: center; gap: 7px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#14120f" stroke-width="2.2" stroke-linecap="square"><path d="M4 20h7"></path><path d="M8 20l6-13"></path><path d="M12 5l5 2-3 6"></path></svg>
+        <span style="font-size: 12px; font-weight: 800; color: #14120f">정리 +240</span>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+
+      <div style="border: 2px solid #14120f; background: #fff">
+        <div style="height: 5px; background: #ffd23f"></div>
+        <div style="padding: 6px 6px 7px; display: flex; flex-direction: column; gap: 3px">
+          <div style="display: flex; align-items: baseline; justify-content: space-between">
+            <span style="font-size: 11px; font-weight: 800; color: #14120f">점장</span>
+            <span class="sign-num" style="font-size: 12px; color: #d93a2b">×2</span>
+          </div>
+          <div style="display: flex; gap: 2px">
+            <div style="width: 9px; height: 3px; background: #14120f"></div>
+            <div style="width: 9px; height: 3px; background: #14120f"></div>
+            <div style="width: 9px; height: 3px; background: #cdc8bd"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="border: 2px solid #14120f; background: #fff">
+        <div style="height: 5px; background: #7b3fa0"></div>
+        <div style="padding: 6px 6px 7px; display: flex; flex-direction: column; gap: 3px">
+          <div style="display: flex; align-items: baseline; justify-content: space-between">
+            <span style="font-size: 11px; font-weight: 800; color: #14120f">전자레인지</span>
+            <span class="sign-num" style="font-size: 12px; color: #6b655b">×1</span>
+          </div>
+          <div style="display: flex; gap: 2px">
+            <div style="width: 9px; height: 3px; background: #14120f"></div>
+            <div style="width: 9px; height: 3px; background: #cdc8bd"></div>
+            <div style="width: 9px; height: 3px; background: #cdc8bd"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="border: 2px solid #d93a2b; background: #fff5f3; box-shadow: 3px 3px 0 #d93a2b">
+        <div style="height: 5px; background: #1c6fb0"></div>
+        <div style="padding: 6px 6px 7px; display: flex; flex-direction: column; gap: 3px">
+          <div style="display: flex; align-items: baseline; justify-content: space-between">
+            <span style="font-size: 11px; font-weight: 800; color: #14120f">커피머신</span>
+            <span class="sign-num" style="font-size: 12px; color: #d93a2b">×3</span>
+          </div>
+          <div style="font-size: 9px; font-weight: 800; color: #d93a2b; letter-spacing: 0.06em">합성 가능</div>
+        </div>
+      </div>
+
+      <div style="border: 2px solid #14120f; background: #fff">
+        <div style="height: 5px; background: #1c6fb0"></div>
+        <div style="padding: 6px 6px 7px; display: flex; flex-direction: column; gap: 3px">
+          <div style="display: flex; align-items: baseline; justify-content: space-between">
+            <span style="font-size: 11px; font-weight: 800; color: #14120f">CCTV</span>
+            <span class="sign-num" style="font-size: 12px; color: #6b655b">×2</span>
+          </div>
+          <div style="display: flex; gap: 2px">
+            <div style="width: 9px; height: 3px; background: #14120f"></div>
+            <div style="width: 9px; height: 3px; background: #14120f"></div>
+            <div style="width: 9px; height: 3px; background: #cdc8bd"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="border: 2px solid #14120f; background: #fff">
+        <div style="height: 5px; background: #8a8378"></div>
+        <div style="padding: 6px 6px 7px; display: flex; flex-direction: column; gap: 3px">
+          <div style="display: flex; align-items: baseline; justify-content: space-between">
+            <span style="font-size: 11px; font-weight: 800; color: #14120f">삼각김밥</span>
+            <span class="sign-num" style="font-size: 12px; color: #6b655b">×2</span>
+          </div>
+          <div style="display: flex; gap: 2px">
+            <div style="width: 9px; height: 3px; background: #14120f"></div>
+            <div style="width: 9px; height: 3px; background: #cdc8bd"></div>
+            <div style="width: 9px; height: 3px; background: #cdc8bd"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="border: 2px dashed #a8a196; background: #edeae2; display: flex; align-items: center; justify-content: center">
+        <span style="font-size: 10px; font-weight: 800; color: #8a8378">+ 뽑기</span>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
