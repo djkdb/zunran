@@ -209,42 +209,6 @@ button:disabled {
   min-width: 78px;
   flex: none;
 }
-@media (max-width: 480px) {
-  .hud-time {
-    font-size: 15px;
-  }
-  .hud-coins {
-    font-size: 13px;
-  }
-  .hud-row {
-    gap: 6px;
-  }
-  .hud-clock {
-    min-width: 0;
-  }
-  .hud-wave,
-  .hud-hp {
-    min-width: 56px;
-  }
-  .hud-wave-timer {
-    display: none; /* 좁은 화면: 진행 바만 */
-  }
-}
-@media (max-width: 340px) {
-  .hud-survive {
-    max-width: 64px;
-  }
-  .hud-wave,
-  .hud-hp {
-    min-width: 44px;
-  }
-  .hud-clock {
-    min-width: 0;
-  }
-  .hud-time {
-    font-size: 13px;
-  }
-}
 .hud-time {
   white-space: nowrap;
   font-size: 18px;
@@ -1171,5 +1135,40 @@ button:disabled {
   }
   to {
     opacity: 1;
+  }
+}
+
+/* ───────── 좁은 화면 HUD (기본 규칙보다 뒤에 있어야 우선한다) ───────── */
+@media (max-width: 480px) {
+  .hud-time {
+    font-size: 15px;
+  }
+  .hud-coins {
+    font-size: 13px;
+  }
+  .hud-row {
+    gap: 6px;
+  }
+  .hud-clock {
+    min-width: 0;
+  }
+  .hud-wave,
+  .hud-hp {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .hud-wave-timer {
+    display: none; /* 좁은 화면: 진행 바만 */
+  }
+}
+@media (max-width: 340px) {
+  .hud-survive {
+    max-width: 64px;
+  }
+  .hud-clock {
+    min-width: 0;
+  }
+  .hud-time {
+    font-size: 13px;
   }
 }
