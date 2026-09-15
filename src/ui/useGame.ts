@@ -10,6 +10,7 @@ export interface UseGameOptions {
   meta: MetaEffects;
   bestWave: number;
   muted: boolean;
+  autoMerge: boolean;
   onGameOver: (engine: Engine) => void;
 }
 
@@ -28,6 +29,9 @@ export function useGame(opts: UseGameOptions) {
   const toastTimer = useRef<number | null>(null);
   const onGameOverRef = useRef(opts.onGameOver);
   onGameOverRef.current = opts.onGameOver;
+  const autoMergeRef = useRef(opts.autoMerge);
+  autoMergeRef.current = opts.autoMerge;
+  const lastAutoMerge = useRef(0);
   const timers = useRef(new Set<number>());
 
   const showToast = useCallback((msg: string) => {
@@ -102,6 +106,14 @@ export function useGame(opts: UseGameOptions) {
         if (newBanners.length) pushBanners(newBanners);
       }
       renderer.render(engine.state, now);
+      // 자동 합성: 0.45초에 하나씩 (연출이 겹치지 않게)
+      if (autoMergeRef.current && engine.state.phase === 'playing' && now - lastAutoMerge.current > 450) {
+        const g = engine.snapshot().groups.find((x) => x.mergeable);
+        if (g) {
+          engine.dispatch({ type: 'MERGE', defId: g.defId, tier: g.tier });
+          lastAutoMerge.current = now;
+        }
+      }
       if (now - lastSnap > 100) {
         lastSnap = now;
         setSnap(engine.snapshot());

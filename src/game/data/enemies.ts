@@ -309,7 +309,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     hp: 1100,
     speed: 30,
     bounty: 300,
-    storeDamage: 30,
+    storeDamage: 20, // 보스 한 방에 체력이 절벽처럼 깎이지 않게 (플레이테스트 반영)
     size: 1.9,
     behavior: { kind: 'boss', pattern: 'lunchbox' },
     tags: ['boss', 'tank'],
@@ -327,7 +327,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     hp: 1400,
     speed: 40,
     bounty: 500,
-    storeDamage: 40,
+    storeDamage: 25,
     size: 2,
     behavior: { kind: 'boss', pattern: 'party' },
     tags: ['boss', 'group'],
@@ -344,7 +344,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     hp: 1700,
     speed: 45,
     bounty: 800,
-    storeDamage: 50,
+    storeDamage: 30,
     size: 1.8,
     behavior: { kind: 'boss', pattern: 'inspector' },
     tags: ['boss'],
@@ -362,7 +362,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     hp: 2400,
     speed: 35,
     bounty: 1500,
-    storeDamage: 60, // 즉사 대신 치명상: 체력이 넉넉하면 버틸 수 있게
+    storeDamage: 45, // 즉사 대신 치명상: 체력이 넉넉하면 버틸 수 있게
     size: 2.2,
     behavior: { kind: 'boss', pattern: 'closing' },
     tags: ['boss'],

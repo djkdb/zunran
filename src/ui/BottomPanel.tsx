@@ -8,9 +8,11 @@ interface Props {
   act: (a: GameAction) => void;
   muted: boolean;
   onToggleMute: () => void;
+  autoMerge: boolean;
+  onToggleAutoMerge: () => void;
 }
 
-export function BottomPanel({ snap, act, muted, onToggleMute }: Props) {
+export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggleAutoMerge }: Props) {
   const mergeables = snap.groups.filter((g) => g.mergeable);
   const sel = snap.selected ? UNIT_BY_ID[snap.selected.defId] : null;
   const odds = snap.rarityOdds;
@@ -45,6 +47,14 @@ export function BottomPanel({ snap, act, muted, onToggleMute }: Props) {
         <span style={{ color: RARITY_COLOR.rare }}>희귀 {Math.round(odds.rare * 100)}%</span>
         <span style={{ color: RARITY_COLOR.epic }}>에픽 {(odds.epic * 100).toFixed(1)}%</span>
         <span style={{ color: RARITY_COLOR.legendary }}>전설 {(odds.legendary * 100).toFixed(1)}%</span>
+      </div>
+      <div className="quick-row">
+        <button className={`quick-btn ${autoMerge ? 'active' : ''}`} onClick={onToggleAutoMerge} aria-pressed={autoMerge}>
+          {autoMerge ? '✨ 자동 합성 ON' : '자동 합성 OFF'}
+        </button>
+        <button className={`quick-btn ${snap.junkCount > 0 ? '' : 'disabled'}`} disabled={snap.junkCount === 0} onClick={() => act({ type: 'SELL_JUNK' })} title="짝이 없는 ★1 일반 유닛을 전부 판매">
+          🧹 정리 {snap.junkCount > 0 ? `${snap.junkCount}개 +${snap.junkValue}원` : ''}
+        </button>
       </div>
 
       {mergeables.length > 0 && (

@@ -1,5 +1,5 @@
 import type { FxEvent, GameAction, GameState, MetaEffects, Rarity, Tier, UISnapshot, UnitGroup, Unit } from '../types';
-import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, MAX_TIER, drawCost, formatClock, EVENT_INTERVAL } from '../config';
+import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, MAX_TIER, drawCost, formatClock, EVENT_INTERVAL, isBossWave } from '../config';
 import { UNIT_BY_ID, unitsOfRarity } from '../data/units';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { DRAW_LINES } from '../data/dialogue';
@@ -114,6 +114,8 @@ export class Engine {
         return this.move(action.unitId, action.slot);
       case 'TAP_SLOT':
         return this.tapSlot(action.slot);
+      case 'SELL_JUNK':
+        return this.sellJunk();
       case 'TOGGLE_PAUSE':
         if (s.phase !== 'playing') return { ok: false };
         s.paused = !s.paused;
@@ -205,6 +207,26 @@ export class Engine {
     return { ok: true };
   }
 
+  // 정리: 같은 종류가 하나뿐인 티어1 일반 유닛 (합성 가망 없음) 을 한 번에 판매
+  junkUnits(): Unit[] {
+    const s = this.state;
+    const count = new Map<string, number>();
+    for (const u of s.units) if (u.tier === 1) count.set(u.defId, (count.get(u.defId) ?? 0) + 1);
+    return s.units.filter((u) => u.tier === 1 && UNIT_BY_ID[u.defId].rarity === 'common' && (count.get(u.defId) ?? 0) === 1);
+  }
+
+  private sellJunk(): { ok: boolean; reason?: string } {
+    const junk = this.junkUnits();
+    if (junk.length === 0) return { ok: false, reason: '정리할 유닛이 없어요.' };
+    let total = 0;
+    for (const u of junk) {
+      total += sellPrice(u);
+      this.sell(u.id);
+    }
+    addFloater(this.state, { x: 320, y: 300, text: `정리 완료 +${total}원`, color: '#fde047', size: 16, life: 1.4 });
+    return { ok: true };
+  }
+
   private move(unitId: number, slotIdx: number): { ok: boolean } {
     const s = this.state;
     const u = s.units.find((x) => x.id === unitId);
@@ -261,6 +283,7 @@ export class Engine {
     const sel = s.selectedUnitId !== null ? s.units.find((u) => u.id === s.selectedUnitId) : undefined;
     const emptySlots = s.slots.filter((sl) => sl.unitId === null).length;
     const cost = this.currentDrawCost();
+    const junk = this.junkUnits();
     this.cachedSnapshot = {
       version: this.snapshotVersion,
       phase: s.phase,
@@ -293,6 +316,9 @@ export class Engine {
       unitCount: s.units.length,
       rarityOdds: this.rarityOdds(),
       disabledUnits: s.units.filter((u) => u.disabledUntil > s.time).length,
+      nextIsBoss: isBossWave(s.wave + 1),
+      junkCount: junk.length,
+      junkValue: junk.reduce((a, u) => a + sellPrice(u), 0),
     };
     return this.cachedSnapshot;
   }

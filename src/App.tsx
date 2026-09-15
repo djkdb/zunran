@@ -75,6 +75,7 @@ export function App() {
         seenEnemies: Array.from(new Set([...save.seenEnemies, ...s.stats.seenEnemies])),
         metaPoints: save.metaPoints + points,
         lastRun: { wave: s.wave, time: s.realTime, kills: s.stats.kills, coins: s.stats.coinsEarned, mvp: mvp?.defId ?? null, at: Date.now() },
+        hintsSeen: true,
       };
       persist(next);
       setResult(res);
@@ -97,6 +98,10 @@ export function App() {
     [save, persist],
   );
 
+  const toggleAutoMerge = useCallback(() => {
+    persist({ ...save, autoMerge: !save.autoMerge });
+  }, [save, persist]);
+
   const toggleMute = useCallback(() => {
     audio.unlock();
     const muted = !save.muted;
@@ -111,7 +116,17 @@ export function App() {
   }
   return (
     <div className="app">
-      <GameScreen key={runKey} meta={meta} bestWave={save.bestWave} muted={save.muted} onToggleMute={toggleMute} onGameOver={onGameOver} />
+      <GameScreen
+        key={runKey}
+        meta={meta}
+        bestWave={save.bestWave}
+        muted={save.muted}
+        autoMerge={save.autoMerge}
+        showHints={!save.hintsSeen}
+        onToggleMute={toggleMute}
+        onToggleAutoMerge={toggleAutoMerge}
+        onGameOver={onGameOver}
+      />
       {result && <GameOverScreen result={result} onRestart={startGame} onMenu={() => setScreen('start')} />}
     </div>
   );

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { UNIT_BY_ID } from '../game/data/units';
 import { formatTime, RARITY_COLOR } from '../game/config';
 import { UnitIcon } from './UnitIcon';
@@ -5,6 +6,17 @@ import type { RunResult } from '../App';
 
 export function GameOverScreen({ result, onRestart, onMenu }: { result: RunResult; onRestart: () => void; onMenu: () => void }) {
   const mvp = result.mvp ? UNIT_BY_ID[result.mvp] : null;
+  const [copied, setCopied] = useState(false);
+  const shareText = `🏪 편의점 야간근무 — 새벽 3시, 혼자 남았다.\nWAVE ${result.wave} · 생존 ${formatTime(result.time)} · 손님 ${result.kills}명 처리${mvp ? ` · MVP ${mvp.name}` : ''}${result.newRecord ? ' · 🏆 NEW RECORD' : ''}\n${location.href}`;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // 클립보드 권한이 없으면 조용히 무시
+    }
+  };
   return (
     <div className="gameover">
       <div className="gameover-card">
@@ -57,6 +69,9 @@ export function GameOverScreen({ result, onRestart, onMenu }: { result: RunResul
           </button>
           <button className="menu-btn" onClick={onMenu}>
             메인으로 (강화 상점)
+          </button>
+          <button className="menu-btn" onClick={copy}>
+            {copied ? '✅ 복사됨!' : '📋 결과 복사 (공유용)'}
           </button>
         </div>
       </div>

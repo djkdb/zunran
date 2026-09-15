@@ -404,6 +404,7 @@ export type GameAction =
   | { type: 'SELECT'; unitId: number | null }
   | { type: 'MOVE'; unitId: number; slot: number }
   | { type: 'TAP_SLOT'; slot: number } // UI 편의: 선택 상태에 따라 선택/이동/교환
+  | { type: 'SELL_JUNK' } // 합성 짝이 없는 티어1 일반 유닛 일괄 판매
   | { type: 'TOGGLE_PAUSE' }
   | { type: 'SET_SPEED'; speed: 1 | 2 }
   | { type: 'GIVE_UP' };
@@ -447,4 +448,7 @@ export interface UISnapshot {
   unitCount: number;
   rarityOdds: Record<Exclude<Rarity, 'special'>, number>;
   disabledUnits: number;
+  nextIsBoss: boolean;
+  junkCount: number; // 정리 판매 대상 수
+  junkValue: number;
 }

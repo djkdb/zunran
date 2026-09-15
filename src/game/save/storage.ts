@@ -24,6 +24,8 @@ export interface SaveData {
   metaPoints: number;
   metaLevels: Record<MetaUpgradeId, number>;
   muted: boolean;
+  autoMerge: boolean;
+  hintsSeen: boolean;
   lastRun?: LastRun;
 }
 
@@ -40,6 +42,8 @@ export function defaultSave(): SaveData {
     metaPoints: 0,
     metaLevels: { ...DEFAULT_META_LEVELS },
     muted: false,
+    autoMerge: false,
+    hintsSeen: false,
   };
 }
 

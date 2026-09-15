@@ -68,8 +68,8 @@ export const SLOT_HIT_RADIUS = 34;
 export const START_COINS = 300;
 export const START_HP = 100;
 export const DRAW_BASE_COST = 100;
-export const DRAW_COST_STEP = 12; // 뽑기마다 +12 (뽑기 남발로 전설이 흔해지는 것을 억제)
-export const DRAW_COST_CAP = 460;
+export const DRAW_COST_STEP = 10; // 뽑기마다 +10
+export const DRAW_COST_CAP = 420;
 export const SELL_REFUND: Record<Rarity, number> = {
   common: 40,
   rare: 90,
@@ -142,17 +142,17 @@ export function isBossWave(w: number): boolean {
   return w >= 10 && w % 10 === 0;
 }
 
-// 체력 스케일: 웨이브 10 ≈ 4.5x, 20 ≈ 11.8x, 30 ≈ 22.9x, 40 ≈ 37.8x, 이후 x1.1/웨이브
+// 체력 스케일: 웨이브 10 ≈ 4.8x, 20 ≈ 13x, 30 ≈ 25.6x, 40 ≈ 42.6x, 이후 x1.1/웨이브
 // (시뮬레이션 결과 중반이 너무 쉬워 2차항을 0.011 → 0.019 로 올림)
 export function enemyHpScale(wave: number): number {
   const w = Math.max(1, wave);
-  let s = 1 + 0.16 * w + 0.019 * w * w;
+  let s = 1 + 0.16 * w + 0.022 * w * w;
   if (w > 40) s *= Math.pow(1.1, w - 40);
   return s;
 }
 // 웨이브 시작 시 기본 수입("시급"). 처치를 못 해도 최소한의 뽑기가 가능하게 해 죽음의 소용돌이를 막는다.
 export function waveIncome(wave: number): number {
-  return 30 + wave * 6;
+  return 40 + wave * 9; // 불운한 판(제어 유닛만 뽑힘)도 3웨이브에 1회는 뽑을 수 있게
 }
 export function enemyBountyScale(wave: number): number {
   return 1 + wave * 0.025; // 후반 코인 인플레 억제
