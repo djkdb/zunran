@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600&display=swap">
+  <style>
+    body { margin: 0; font-family: 'IBM Plex Sans KR', system-ui, sans-serif; }
+    a { color: #5ad1c8; } a:hover { color: #3fa8a0; }
+    .n { font-variant-numeric: tabular-nums; font-weight: 500; }
+    .cap { font-size: 9px; font-weight: 500; letter-spacing: 0.18em; color: #6f7a86; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #0e1116; display: flex; flex-direction: column; overflow: hidden; color: #e6eaee">
+
+  <!-- HUD -->
+  <div style="flex: none; padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 12px">
+
+    <div style="display: flex; align-items: flex-end; gap: 14px">
+      <div style="flex: none">
+        <div class="cap">NIGHT SHIFT</div>
+        <div class="n" style="font-size: 26px; font-weight: 300; letter-spacing: -0.01em; line-height: 1.1; margin-top: 2px">02:15</div>
+      </div>
+      <div style="flex: 1; min-width: 0; text-align: right">
+        <div class="cap">보유</div>
+        <div class="n" style="font-size: 22px; font-weight: 400; color: #5ad1c8; line-height: 1.1; margin-top: 2px">3,240<span style="font-size: 13px; color: #8b959f; margin-left: 2px">원</span></div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 16px">
+      <div style="flex: 1; min-width: 0">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px">
+          <span class="cap">WAVE</span>
+          <span class="n" style="font-size: 14px; font-weight: 500">12</span>
+        </div>
+        <div style="height: 2px; background: #1d232b">
+          <div style="width: 38%; height: 2px; background: #5ad1c8"></div>
+        </div>
+      </div>
+      <div style="flex: 1.3; min-width: 0">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px">
+          <span class="cap">매장 체력</span>
+          <span class="n" style="font-size: 14px; font-weight: 500">74<span style="font-size: 10px; color: #6f7a86">%</span></span>
+        </div>
+        <div style="height: 2px; background: #1d232b">
+          <div style="width: 74%; height: 2px; background: #e6eaee"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 8px">
+      <span style="flex: none; font-size: 10px; font-weight: 500; letter-spacing: 0.06em; color: #ff6b5e">다음 보스</span>
+      <span style="flex: 1; height: 1px; background: #1d232b"></span>
+      <span style="flex: none; font-size: 10px; color: #6f7a86" class="n">손님 26</span>
+    </div>
+
+  </div>
+
+  <!-- 필드 -->
+  <div style="flex: none; padding: 0 12px">
+    <div style="border: 1px solid #1d232b; line-height: 0">
+      <img src="field.jpg" alt="편의점 내부" style="width: 364px; height: 364px; display: block">
+    </div>
+  </div>
+
+  <!-- 조작 -->
+  <div style="flex: 1; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 11px; min-height: 0">
+
+    <button style="all: unset; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #5ad1c8; color: #0e1116; cursor: pointer">
+      <span style="display: flex; flex-direction: column; gap: 1px">
+        <span style="font-size: 16px; font-weight: 600; letter-spacing: -0.01em">유닛 뽑기</span>
+        <span style="font-size: 10px; font-weight: 400; opacity: 0.7">빈 칸 7 · 랜덤</span>
+      </span>
+      <span class="n" style="font-size: 20px; font-weight: 500">220</span>
+    </button>
+
+    <div style="display: flex; gap: 14px; justify-content: space-between; font-size: 10px; color: #6f7a86; padding: 0 2px">
+      <span>일반 <span class="n" style="color: #9aa4ae">60</span></span>
+      <span>희귀 <span class="n" style="color: #5aa9d1">28</span></span>
+      <span>에픽 <span class="n" style="color: #a78bd1">10</span></span>
+      <span>전설 <span class="n" style="color: #d1b45a">2</span></span>
+    </div>
+
+    <div style="display: flex; gap: 8px">
+      <div style="flex: 1; border: 1px solid #2a323c; padding: 9px 11px; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 12px; font-weight: 500">셔터 내려</span>
+        <span style="font-size: 10px; color: #6f7a86">전원 정지</span>
+      </div>
+      <div style="flex: 1; border: 1px solid #2a323c; padding: 9px 11px; display: flex; flex-direction: column; gap: 2px; opacity: 0.4">
+        <span style="font-size: 12px; font-weight: 500">폐기 처리</span>
+        <span class="n" style="font-size: 10px; color: #6f7a86">38초</span>
+      </div>
+    </div>
+
+    <div style="height: 1px; background: #1d232b"></div>
+
+    <div style="display: flex; flex-direction: column; gap: 1px">
+
+      <div style="display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-left: 2px solid #d1b45a; padding-left: 10px">
+        <span style="flex: 1; font-size: 13px; font-weight: 500">점장</span>
+        <span style="flex: none; display: flex; gap: 3px; align-items: center">
+          <i style="width: 12px; height: 2px; background: #e6eaee; display: block"></i>
+          <i style="width: 12px; height: 2px; background: #e6eaee; display: block"></i>
+          <i style="width: 12px; height: 2px; background: #2a323c; display: block"></i>
+        </span>
+        <span class="n" style="flex: none; width: 24px; text-align: right; font-size: 13px; color: #8b959f">2</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-left: 2px solid #ff6b5e; padding-left: 10px; background: rgba(255,107,94,0.06)">
+        <span style="flex: 1; font-size: 13px; font-weight: 500">커피머신</span>
+        <span style="flex: none; font-size: 10px; color: #ff6b5e; letter-spacing: 0.04em">합성 가능</span>
+        <span class="n" style="flex: none; width: 24px; text-align: right; font-size: 13px; color: #ff6b5e">3</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-left: 2px solid #a78bd1; padding-left: 10px">
+        <span style="flex: 1; font-size: 13px; font-weight: 500">전자레인지</span>
+        <span style="flex: none; display: flex; gap: 3px; align-items: center">
+          <i style="width: 12px; height: 2px; background: #e6eaee; display: block"></i>
+          <i style="width: 12px; height: 2px; background: #2a323c; display: block"></i>
+          <i style="width: 12px; height: 2px; background: #2a323c; display: block"></i>
+        </span>
+        <span class="n" style="flex: none; width: 24px; text-align: right; font-size: 13px; color: #8b959f">1</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-left: 2px solid #5aa9d1; padding-left: 10px">
+        <span style="flex: 1; font-size: 13px; font-weight: 500">CCTV</span>
+        <span style="flex: none; display: flex; gap: 3px; align-items: center">
+          <i style="width: 12px; height: 2px; background: #e6eaee; display: block"></i>
+          <i style="width: 12px; height: 2px; background: #e6eaee; display: block"></i>
+          <i style="width: 12px; height: 2px; background: #2a323c; display: block"></i>
+        </span>
+        <span class="n" style="flex: none; width: 24px; text-align: right; font-size: 13px; color: #8b959f">2</span>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Silkscreen:wght@400;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Do Hyeon', system-ui, sans-serif; }
+    a { color: #4fe3d0; } a:hover { color: #35b3a3; }
+    .px { font-family: 'Silkscreen', monospace; letter-spacing: 0.02em; }
+    /* 픽셀 테두리: 모서리를 한 칸 깎아 계단 모양을 만든다 (라운드 대신) */
+    .frame {
+      position: relative;
+      background: #1b1533;
+      box-shadow:
+        0 -3px 0 0 #3a2f63, 0 3px 0 0 #3a2f63, -3px 0 0 0 #3a2f63, 3px 0 0 0 #3a2f63;
+    }
+    .frame-lit {
+      box-shadow:
+        0 -3px 0 0 #4fe3d0, 0 3px 0 0 #4fe3d0, -3px 0 0 0 #4fe3d0, 3px 0 0 0 #4fe3d0;
+    }
+    .frame-hot {
+      box-shadow:
+        0 -3px 0 0 #ff4d8d, 0 3px 0 0 #ff4d8d, -3px 0 0 0 #ff4d8d, 3px 0 0 0 #ff4d8d;
+    }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #120e24; display: flex; flex-direction: column; overflow: hidden; color: #efeaff; padding: 6px; box-sizing: border-box; gap: 6px">
+
+  <!-- HUD -->
+  <div class="frame" style="flex: none; padding: 9px 11px; display: flex; flex-direction: column; gap: 8px; margin: 3px">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <span class="px" style="font-size: 16px; color: #4fe3d0">02:15</span>
+      <span class="px" style="font-size: 10px; color: #8a7fb8">AM</span>
+      <span style="flex: 1"></span>
+      <span class="px" style="font-size: 10px; color: #ffd84d">COIN</span>
+      <span class="px" style="font-size: 16px; color: #ffd84d">3240</span>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: center">
+      <span style="font-size: 14px; color: #efeaff">웨이브</span>
+      <span class="px" style="font-size: 18px; color: #fff">12</span>
+      <div style="flex: 1; display: flex; gap: 2px">
+        <i style="flex: 1; height: 7px; background: #4fe3d0; display: block"></i>
+        <i style="flex: 1; height: 7px; background: #4fe3d0; display: block"></i>
+        <i style="flex: 1; height: 7px; background: #2b2352; display: block"></i>
+        <i style="flex: 1; height: 7px; background: #2b2352; display: block"></i>
+        <i style="flex: 1; height: 7px; background: #2b2352; display: block"></i>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: center">
+      <span style="font-size: 14px; color: #efeaff">체력</span>
+      <div style="flex: 1; display: flex; gap: 2px">
+        <i style="flex: 1; height: 9px; background: #7bf06a; display: block"></i>
+        <i style="flex: 1; height: 9px; background: #7bf06a; display: block"></i>
+        <i style="flex: 1; height: 9px; background: #7bf06a; display: block"></i>
+        <i style="flex: 1; height: 9px; background: #7bf06a; display: block"></i>
+        <i style="flex: 1; height: 9px; background: #7bf06a; display: block"></i>
+        <i style="flex: 1; height: 9px; background: #7bf06a; display: block"></i>
+        <i style="flex: 1; height: 9px; background: #7bf06a; display: block"></i>
+        <i style="flex: 1; height: 9px; background: #2b2352; display: block"></i>
+        <i style="flex: 1; height: 9px; background: #2b2352; display: block"></i>
+        <i style="flex: 1; height: 9px; background: #2b2352; display: block"></i>
+      </div>
+      <span class="px" style="font-size: 13px; color: #7bf06a">74</span>
+    </div>
+  </div>
+
+  <div style="flex: none; display: flex; align-items: center; gap: 7px; padding: 0 6px">
+    <span class="px" style="font-size: 10px; color: #ff4d8d; background: #2b1030; padding: 3px 7px">! BOSS NEXT</span>
+    <span class="px" style="font-size: 10px; color: #8a7fb8">ENEMY 26</span>
+  </div>
+
+  <!-- 필드 -->
+  <div class="frame frame-lit" style="flex: none; margin: 3px; padding: 0; line-height: 0">
+    <img src="field.jpg" alt="편의점 내부" style="width: 366px; height: 366px; display: block">
+  </div>
+
+  <!-- 조작 -->
+  <div style="flex: 1; display: flex; flex-direction: column; gap: 9px; padding: 3px 3px 0; min-height: 0">
+
+    <div class="frame frame-hot" style="margin: 3px; padding: 11px 13px; display: flex; align-items: center; gap: 12px; background: #2b1030">
+      <span style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 21px; color: #fff; line-height: 1">유닛 뽑기</span>
+        <span class="px" style="font-size: 9px; color: #ff9cc0">SLOT 7 FREE</span>
+      </span>
+      <span class="px" style="font-size: 22px; color: #ffd84d">220</span>
+    </div>
+
+    <div style="display: flex; gap: 6px; padding: 0 6px">
+      <span class="px" style="flex: 1; font-size: 9px; color: #8a7fb8; text-align: center">N 60</span>
+      <span class="px" style="flex: 1; font-size: 9px; color: #4fe3d0; text-align: center">R 28</span>
+      <span class="px" style="flex: 1; font-size: 9px; color: #c77dff; text-align: center">E 10</span>
+      <span class="px" style="flex: 1; font-size: 9px; color: #ffd84d; text-align: center">L 02</span>
+    </div>
+
+    <div style="display: flex; gap: 6px">
+      <div class="frame frame-lit" style="flex: 1; margin: 3px; padding: 8px 10px; display: flex; flex-direction: column; gap: 1px">
+        <span style="font-size: 15px; color: #4fe3d0; line-height: 1.1">셔터 내려</span>
+        <span class="px" style="font-size: 8px; color: #8a7fb8">READY</span>
+      </div>
+      <div class="frame" style="flex: 1; margin: 3px; padding: 8px 10px; display: flex; flex-direction: column; gap: 1px">
+        <span style="font-size: 15px; color: #6b6194; line-height: 1.1">폐기 처리</span>
+        <span class="px" style="font-size: 8px; color: #6b6194">38 SEC</span>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px">
+
+      <div class="frame" style="margin: 3px; padding: 7px 9px; display: flex; align-items: center; gap: 7px">
+        <i style="width: 4px; height: 26px; background: #ffd84d; display: block"></i>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 14px; line-height: 1.1">점장</span>
+          <span style="display: flex; gap: 2px">
+            <i style="width: 9px; height: 3px; background: #ffd84d; display: block"></i>
+            <i style="width: 9px; height: 3px; background: #ffd84d; display: block"></i>
+            <i style="width: 9px; height: 3px; background: #2b2352; display: block"></i>
+          </span>
+        </span>
+        <span class="px" style="font-size: 12px; color: #8a7fb8">2</span>
+      </div>
+
+      <div class="frame frame-hot" style="margin: 3px; padding: 7px 9px; display: flex; align-items: center; gap: 7px; background: #2b1030">
+        <i style="width: 4px; height: 26px; background: #4fe3d0; display: block"></i>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 14px; line-height: 1.1">커피머신</span>
+          <span class="px" style="font-size: 8px; color: #ff9cc0">MERGE!</span>
+        </span>
+        <span class="px" style="font-size: 12px; color: #ff4d8d">3</span>
+      </div>
+
+      <div class="frame" style="margin: 3px; padding: 7px 9px; display: flex; align-items: center; gap: 7px">
+        <i style="width: 4px; height: 26px; background: #c77dff; display: block"></i>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 14px; line-height: 1.1">전자레인지</span>
+          <span style="display: flex; gap: 2px">
+            <i style="width: 9px; height: 3px; background: #c77dff; display: block"></i>
+            <i style="width: 9px; height: 3px; background: #2b2352; display: block"></i>
+            <i style="width: 9px; height: 3px; background: #2b2352; display: block"></i>
+          </span>
+        </span>
+        <span class="px" style="font-size: 12px; color: #8a7fb8">1</span>
+      </div>
+
+      <div class="frame" style="margin: 3px; padding: 7px 9px; display: flex; align-items: center; gap: 7px">
+        <i style="width: 4px; height: 26px; background: #4fe3d0; display: block"></i>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 14px; line-height: 1.1">CCTV</span>
+          <span style="display: flex; gap: 2px">
+            <i style="width: 9px; height: 3px; background: #4fe3d0; display: block"></i>
+            <i style="width: 9px; height: 3px; background: #4fe3d0; display: block"></i>
+            <i style="width: 9px; height: 3px; background: #2b2352; display: block"></i>
+          </span>
+        </span>
+        <span class="px" style="font-size: 12px; color: #8a7fb8">2</span>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
