@@ -226,6 +226,9 @@ button:disabled {
   .hud-hp {
     min-width: 56px;
   }
+  .hud-wave-timer {
+    display: none; /* 좁은 화면: 진행 바만 */
+  }
 }
 .hud-time {
   white-space: nowrap;
@@ -240,6 +243,9 @@ button:disabled {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .hud-wave {
   flex: 1;
@@ -282,10 +288,7 @@ button:disabled {
   color: var(--accent);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-  flex: 0 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: none; /* 코인은 항상 온전히 보이게; 대신 웨이브 블록이 줄어든다 */
 }
 .bar {
   height: 8px;
