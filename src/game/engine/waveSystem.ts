@@ -1,6 +1,7 @@
 import type { GameState } from '../types';
 import { buildWave } from '../data/waves';
-import { waveClearBonus, waveIncome, THREE_AM_WAVE, isBossWave } from '../config';
+import { waveClearBonus, waveIncome, THREE_AM_WAVE, isBossWave, isRewardWave } from '../config';
+import { openRewardChoice } from './rewardSystem';
 import { spawnEnemy } from './enemySystem';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { addCoins } from './economy';
@@ -9,6 +10,14 @@ import { sfx, addFloater } from './helpers';
 export function startWave(state: GameState, wave: number): void {
   state.wave = wave;
   const plan = buildWave(wave, state.rng);
+  // "새벽 장사" 도박을 골랐다면 이 웨이브만 손님이 확 늘어난다 (보상은 economy 에서 2배)
+  if (state.riskWave === wave) {
+    const extra = plan.entries
+      .filter((e) => e.defId !== 'boss_lunchbox' && !e.defId.startsWith('boss_'))
+      .slice(0, Math.ceil(plan.entries.length * 0.6))
+      .map((e) => ({ ...e, at: e.at + 0.6, spawned: 0 }));
+    plan.entries = [...plan.entries, ...extra].sort((a, b) => a.at - b.at);
+  }
   // 필드 상한으로 아직 못 나온 보스는 다음 웨이브 맨 앞으로 이월 (보스 스킵 방지)
   const leftoverBoss = state.spawnQueue.filter((e) => ENEMY_BY_ID[e.defId]?.tags.includes('boss')).map((e) => ({ ...e, at: 0, spawned: 0 }));
   state.spawnQueue = [...leftoverBoss, ...plan.entries];
@@ -38,6 +47,13 @@ export function startWave(state: GameState, wave: number): void {
   } else if (wave > 1) {
     state.fx.push({ type: 'banner', text: `웨이브 ${wave}`, sub: waveHint(wave), style: 'info', dur: 1.2 });
   }
+  if (state.riskWave === wave) {
+    state.fx.push({ type: 'banner', text: '새벽 장사', sub: '손님이 두 배로 몰려온다 · 코인도 두 배', style: 'warning', dur: 2.2 });
+    state.fx.push({ type: 'shake', amount: 8 });
+    sfx(state, 'warning');
+  }
+  // 3웨이브마다(그리고 보스 직후) 보상 카드를 고른다 — 로그라이크의 핵심 선택 지점
+  if (isRewardWave(wave)) openRewardChoice(state);
   if (state.bestWaveRecord > 0 && wave > state.bestWaveRecord && !state.recordAnnounced) {
     state.recordAnnounced = true;
     state.fx.push({ type: 'banner', text: '신기록', sub: `${wave}웨이브 돌파`, style: 'record', dur: 2.4 });

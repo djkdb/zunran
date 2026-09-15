@@ -66,6 +66,10 @@ export function StartScreen({ save, onStart, onBuy, onToggleMute, onReset }: Pro
                 <Icon name="merge" size={20} strokeWidth={2.2} />
                 같은 유닛 3개 = 합성 (결과는 랜덤!)
               </div>
+              <div className="howto-row">
+                <Icon name="trophy" size={20} strokeWidth={2.2} />
+                3웨이브마다 보상 3장 중 하나를 고른다
+              </div>
             </div>
             <div className="tip">
               <Icon name="bulb" size={16} strokeWidth={2.2} />

@@ -13,6 +13,8 @@ function runFor(engine: Engine, seconds: number) {
   for (let t = 0; t < seconds; t += 0.05) {
     engine.tick(0.05);
     engine.drainFx();
+    // 보상 선택이 뜨면 첫 카드를 골라 진행을 이어간다 (실제 플레이에서는 플레이어가 고른다)
+    if (engine.state.phase === 'reward') engine.dispatch({ type: 'CHOOSE_REWARD', defId: engine.state.rewardOffers[0].defId });
   }
 }
 

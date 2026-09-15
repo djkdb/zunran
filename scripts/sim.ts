@@ -7,9 +7,20 @@ import type { MetaUpgradeId } from '../src/game/types';
 
 type Strategy = 'greedy' | 'saver' | 'noMerge' | 'sellCommons';
 
+const TONE_RANK = { best: 2, good: 1, normal: 0 } as const;
+
 function autoPlay(engine: Engine, strategy: Strategy): void {
   const s = engine.state;
+  // 보상 선택: 등급이 높은 카드를 고른다 (사람이 흔히 하는 선택)
+  if (s.phase === 'reward' && s.rewardOffers.length > 0) {
+    const best = [...s.rewardOffers].sort((a, b) => TONE_RANK[b.tone] - TONE_RANK[a.tone])[0];
+    engine.dispatch({ type: 'CHOOSE_REWARD', defId: best.defId });
+    return;
+  }
   const snap = engine.snapshot();
+  // 긴급 스킬: 손님이 몰렸을 때만
+  if (snap.skillReady.shutter && snap.enemyCount >= 14) engine.dispatch({ type: 'USE_SKILL', skill: 'shutter' });
+  if (snap.skillReady.dump && snap.enemyCount >= 20) engine.dispatch({ type: 'USE_SKILL', skill: 'dump' });
   // 합성: 가능한 그룹 전부
   if (strategy !== 'noMerge') {
     for (const g of snap.groups) {
@@ -43,11 +54,11 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 60, metaLevel = 0) 
   let t = 0;
   const waveHp: number[] = [];
   let lastWave = 0;
-  while (engine.state.phase === 'playing' && engine.state.wave <= maxWave && t < 60 * 60) {
+  while (engine.state.phase !== 'gameover' && engine.state.wave <= maxWave && t < 60 * 60) {
     engine.tick(0.1);
     engine.drainFx();
     t += 0.1;
-    if (Math.round(t * 10) % 5 === 0) autoPlay(engine, strategy);
+    if (engine.state.phase === 'reward' || Math.round(t * 10) % 5 === 0) autoPlay(engine, strategy);
     if (engine.state.wave !== lastWave) {
       lastWave = engine.state.wave;
       waveHp.push(engine.state.hp);
@@ -66,6 +77,9 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 60, metaLevel = 0) 
     maxTier: s.stats.maxTierReached,
     legendary: s.stats.legendaryDraws,
     coinsEarned: s.stats.coinsEarned,
+    rewards: s.rewardsTaken.length,
+    combo: s.stats.bestCombo,
+    skills: s.stats.skillsUsed,
     mvp: mvp ? `${UNIT_BY_ID[mvp.defId].name}` : '-',
     units: s.units.map((u) => `${UNIT_BY_ID[u.defId].name}★${u.tier}`).join(','),
     waveHp,
@@ -90,11 +104,13 @@ console.log(`waves: min=${Math.min(...waves)} median=${median} avg=${avg.toFixed
 console.log(`mean hp entering wave: w5=${mean(hpAt(4))} w10=${mean(hpAt(9))} w11=${mean(hpAt(10))} w13=${mean(hpAt(12))} w14=${mean(hpAt(13))} w20=${mean(hpAt(19))} w21=${mean(hpAt(20))} w30=${mean(hpAt(29))} w31=${mean(hpAt(30))} w40=${mean(hpAt(39))} w41=${mean(hpAt(40))}`);
 const mvpCount = new Map<string, number>();
 for (const r of results) mvpCount.set(r.mvp, (mvpCount.get(r.mvp) ?? 0) + 1);
+const avgOf = (f: (r: typeof results[number]) => number) => (results.reduce((a, b) => a + f(b), 0) / results.length).toFixed(1);
+console.log(`avg: rewards=${avgOf((r) => r.rewards)} bestCombo=${avgOf((r) => r.combo)} skills=${avgOf((r) => r.skills)} merges=${avgOf((r) => r.merges)} tier=${avgOf((r) => r.maxTier)}`);
 console.log('mvp:', [...mvpCount.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}×${v}`).join(' '));
 const verbose = process.argv[5] === 'v';
 if (!verbose) process.exit(0);
 for (const r of results) {
-  console.log(`seed=${r.seed} wave=${r.wave} t=${r.time}s hp=${r.hp} kills=${r.kills} draws=${r.draws} merges=${r.merges} tier=${r.maxTier} leg=${r.legendary} coins=${r.coinsEarned} ev=${r.events} mvp=${r.mvp}`);
+  console.log(`seed=${r.seed} wave=${r.wave} t=${r.time}s hp=${r.hp} kills=${r.kills} draws=${r.draws} merges=${r.merges} tier=${r.maxTier} leg=${r.legendary} coins=${r.coinsEarned} rw=${r.rewards} combo=${r.combo} sk=${r.skills} mvp=${r.mvp}`);
   console.log(`   units: ${r.units}`);
   console.log(`   hp by wave: ${r.waveHp.join(' ')}`);
 }

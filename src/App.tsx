@@ -22,6 +22,8 @@ export interface RunResult {
   newRecord: boolean;
   metaPoints: number;
   quip: string;
+  bestCombo: number;
+  rewards: number;
 }
 
 type Screen = 'start' | 'game';
@@ -63,6 +65,8 @@ export function App() {
         newRecord,
         metaPoints: points,
         quip: GAMEOVER_QUIPS[Math.floor(Math.random() * GAMEOVER_QUIPS.length)],
+        bestCombo: s.stats.bestCombo,
+        rewards: s.rewardsTaken.length,
       };
       const next: SaveData = {
         ...save,

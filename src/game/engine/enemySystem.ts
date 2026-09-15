@@ -1,6 +1,6 @@
 import type { Enemy, GameState, OnHitEffect, Unit } from '../types';
 import { ENEMY_BY_ID } from '../data/enemies';
-import { PATH_LENGTH, pathPos, enemyHpScale, MAX_ENEMIES_ON_FIELD, LOW_HP_THRESHOLD } from '../config';
+import { PATH_LENGTH, pathPos, enemyHpScale, enemyDamageScale, MAX_ENEMIES_ON_FIELD, LOW_HP_THRESHOLD } from '../config';
 import { addFloater, sfx, unitDef, auraRadius, auraValue, dist2, isTargetable } from './helpers';
 import { rewardKill } from './economy';
 import { BOSS_INTRO } from '../data/dialogue';
@@ -77,8 +77,10 @@ export function damageEnemy(state: GameState, e: Enemy, rawAmount: number, sourc
   if (onHit?.randomMult) {
     amount *= onHit.randomMult[0] + state.rng.next() * (onHit.randomMult[1] - onHit.randomMult[0]);
   }
-  if (onHit?.critChance && state.rng.next() < onHit.critChance) {
-    amount *= onHit.critMult ?? 2;
+  // 보상 카드의 치명타는 유닛이 가한 모든 공격에 얹힌다
+  const critChance = (onHit?.critChance ?? 0) + (source ? state.perma.critChance : 0);
+  if (critChance > 0 && state.rng.next() < critChance) {
+    amount *= onHit?.critMult ?? 2;
     crit = true;
   }
   if (e.shield > 0) {
@@ -174,7 +176,7 @@ export function updateEnemies(state: GameState, dt: number): void {
     if (d.aura?.kind === 'enemySlow' && u.disabledUntil <= state.time) {
       const s = state.slots[u.slot];
       const r = auraRadius(d, u.tier);
-      slowAuras.push({ x: s.x, y: s.y, r2: r * r, v: auraValue(d, u.tier) });
+      slowAuras.push({ x: s.x, y: s.y, r2: r * r, v: auraValue(state, d, u.tier) });
     }
   }
   const buffers = state.enemies.filter((e) => !e.dead && !e.reached && ENEMY_BY_ID[e.defId].behavior.kind === 'buffer');
@@ -375,7 +377,7 @@ function reachCheckout(state: GameState, e: Enemy): void {
   const def = ENEMY_BY_ID[e.defId];
   e.reached = true;
   if (state.waveEnemyIds.has(e.id)) state.waveReached = true; // 이번 웨이브 클리어 보너스 무효
-  const dmg = def.storeDamage;
+  const dmg = Math.max(1, Math.round(def.storeDamage * enemyDamageScale(e.spawnedWave)));
   state.hp = Math.max(0, state.hp - dmg);
   state.fx.push({ type: 'shake', amount: e.isBoss ? 16 : 4 });
   state.fx.push({ type: 'hit', x: e.x, y: e.y, color: '#ef4444', big: e.isBoss });

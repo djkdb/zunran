@@ -24,12 +24,24 @@ async function main() {
   let frames: number[] = [];
   while ((Date.now() - t0) / 1000 < Number(maxSecArg)) {
     if ((await page.locator('.gameover').count()) > 0) break;
+    // 보상 3택이 뜨면 첫 카드를 고른다
+    if ((await page.locator('.reward-card').count()) > 0) {
+      await page.locator('.reward-card').first().click({ timeout: 500 }).catch(() => {});
+      await page.waitForTimeout(250);
+      continue;
+    }
     const st = (await page.evaluate(`(() => { const s = window.__game.engine.state; const snap = window.__game.engine.snapshot();
       return { wave: s.wave, hp: s.hp, coins: s.coins, units: s.units.length, enemies: s.enemies.length, canDraw: snap.canDraw, empty: snap.emptySlots, cost: snap.drawCost, groups: snap.groups.map(g => [g.defId, g.tier, g.count, g.mergeable]), boss: snap.bossAlive, events: snap.activeEvents.map(e=>e.title) }; })()`)) as { wave: number; hp: number; coins: number; units: number; enemies: number; canDraw: boolean; empty: number; cost: number; groups: unknown[]; boss: boolean; events: string[] };
     if (st.wave !== lastWave) {
       lastWave = st.wave;
       log.push({ t: Math.round((Date.now() - t0) / 1000), ...st });
       if (st.wave % 5 === 0 || st.wave === 13 || st.wave === 3) await page.screenshot({ path: path.join(outdir, `w${String(st.wave).padStart(2, '0')}.png`) });
+    }
+    // 손님이 몰리면 긴급 스킬
+    const sk = page.locator('.skill-btn.ready:not([disabled])');
+    if (st.enemies >= 16 && (await sk.count()) > 0) {
+      await sk.first().click({ timeout: 400 }).catch(() => {});
+      await page.waitForTimeout(200);
     }
     // 사람처럼: 합성 가능하면 합성 (버튼 클릭)
     const merge = page.locator('.merge-btn').first();

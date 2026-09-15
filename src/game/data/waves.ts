@@ -1,6 +1,6 @@
 import type { RNG, SpawnEntry } from '../types';
 import { ENEMY_DEFS, bossForWave } from './enemies';
-import { BOSS_WAVE_DURATION, WAVE_DURATION, THREE_AM_WAVE, isBossWave } from '../config';
+import { BOSS_WAVE_DURATION, waveDuration, THREE_AM_WAVE, isBossWave } from '../config';
 
 export interface WavePlan {
   entries: SpawnEntry[];
@@ -13,7 +13,7 @@ export interface WavePlan {
 export function buildWave(wave: number, rng: RNG): WavePlan {
   const entries: SpawnEntry[] = [];
   const boss = isBossWave(wave) ? bossForWave(wave) : undefined;
-  const duration = boss ? BOSS_WAVE_DURATION : WAVE_DURATION;
+  const duration = boss ? BOSS_WAVE_DURATION : waveDuration(wave);
   let groupSeq = wave * 1000;
 
   // 초반 3웨이브는 학습용: 아주 쉽게.
@@ -33,7 +33,7 @@ export function buildWave(wave: number, rng: RNG): WavePlan {
   }
 
   // 총 개체 수: 4 + 1.4w (40웨이브 이후 완만하게)
-  let total = Math.round(4 + 1.4 * Math.min(wave, 40) + Math.max(0, wave - 40) * 0.5);
+  let total = Math.round(4 + 1.8 * Math.min(wave, 40) + Math.max(0, wave - 40) * 0.8);
   if (boss) total = Math.round(total * 0.55);
 
   const pool = ENEMY_DEFS.filter((e) => e.minWave <= wave && e.weight > 0 && !e.tags.includes('boss'));
@@ -81,8 +81,9 @@ export function buildWave(wave: number, rng: RNG): WavePlan {
   let script: WavePlan['script'];
   if (wave === THREE_AM_WAVE) {
     script = 'threeAm';
-    // 새벽 3시 러시: 20명이 6초 안에 몰려온다 + 진상 1명. 체력은 낮춰서(0.55) 장관이되 처형은 아니게.
-    for (let i = 0; i < 20; i++) entries.push({ at: 2 + i * 0.3, defId: 'basic', count: 1, hpMult: 0.55 });
+    // 새벽 3시 러시: 24명이 7초 안에 몰려온다 + 진상. 이 게임의 시그니처 순간이라 실제로 아파야 한다.
+    for (let i = 0; i < 24; i++) entries.push({ at: 2 + i * 0.3, defId: 'basic', count: 1, hpMult: 0.9 });
+    entries.push({ at: 5, defId: 'cig', count: 4 });
     if (!entries.some((e) => e.defId === 'karen3am')) entries.push({ at: 10, defId: 'karen3am', count: 1 });
   }
   if (wave === 18 || wave === 25 || wave === 33) {

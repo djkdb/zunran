@@ -1,5 +1,5 @@
 import type { Enemy, FxEvent, GameState, Unit } from '../types';
-import { FIELD_W, FIELD_H, PATH, SLOT_ROWS, SLOT_COLS, RARITY_COLOR, CHECKOUT_POS, AISLE_NAMES, THREE_AM_WAVE } from '../config';
+import { FIELD_W, FIELD_H, PATH, SLOT_ROWS, SLOT_COLS, RARITY_COLOR, CHECKOUT_POS, AISLE_NAMES, AISLE_BONUS, THREE_AM_WAVE } from '../config';
 import { UNIT_BY_ID } from '../data/units';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { rasterize, drawFallback, getSprite } from './sprites';
@@ -283,13 +283,26 @@ export class Renderer {
         ctx.fillStyle = cols[(Math.floor(x / 12) + 1) % cols.length];
         ctx.fillRect(x, top + 24, 8, 10);
       }
-      // 코너 이름표
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(FIELD_W / 2 - 40, top - 14, 80, 14);
-      ctx.fillStyle = '#e2e8f0';
+      // 코너 이름표 + 배치 보너스 (어느 줄에 둘지가 전략이 되도록 항상 보이게)
+      const name = AISLE_NAMES[row];
+      const bonus = AISLE_BONUS[row].label;
       ctx.font = 'bold 10px sans-serif';
+      const nameW = ctx.measureText(name).width + 14;
+      ctx.font = 'bold 9px sans-serif';
+      const bonusW = ctx.measureText(bonus).width + 12;
+      const totalW = nameW + bonusW;
+      const tagX = FIELD_W / 2 - totalW / 2;
+      ctx.fillStyle = '#14120f';
+      ctx.fillRect(tagX, top - 16, nameW, 15);
+      ctx.fillStyle = '#ffd23f';
+      ctx.fillRect(tagX + nameW, top - 16, bonusW, 15);
       ctx.textAlign = 'center';
-      ctx.fillText(AISLE_NAMES[row], FIELD_W / 2, top - 3);
+      ctx.fillStyle = '#f4f1ea';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.fillText(name, tagX + nameW / 2, top - 5);
+      ctx.fillStyle = '#14120f';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText(bonus, tagX + nameW + bonusW / 2, top - 5);
     });
 
     // 계산대
@@ -392,7 +405,7 @@ export class Renderer {
       ctx.setLineDash([6, 4]);
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(0, -16, unitRange(u), 0, Math.PI * 2);
+      ctx.arc(0, -16, unitRange(state, u), 0, Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
     }

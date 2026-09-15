@@ -20,6 +20,14 @@ export const PATH: { x: number; y: number }[] = [
 
 export const AISLE_NAMES = ['음료 코너', '과자 코너', '라면 코너'];
 
+// 코너(진열대 줄)마다 배치 보너스를 준다 — "어디에 둘까"가 의미를 갖게.
+// 0열 = 입구에 가까운 음료 코너, 2열 = 계산대 바로 앞 라면 코너.
+export const AISLE_BONUS: { label: string; dmg: number; atkSpeed: number; range: number }[] = [
+  { label: '사거리 +18', dmg: 1, atkSpeed: 1, range: 18 },
+  { label: '공격속도 +12%', dmg: 1, atkSpeed: 1.12, range: 0 },
+  { label: '공격력 +22%', dmg: 1.22, atkSpeed: 1, range: 0 },
+];
+
 // 경로 누적 길이 (dist → 좌표 변환용)
 export const PATH_SEGMENTS = (() => {
   const segs: { x0: number; y0: number; x1: number; y1: number; len: number; start: number }[] = [];
@@ -134,6 +142,10 @@ export const MERGE_ODDS = { upgrade: 0.7, promote: 0.25, special: 0.05 };
 // ───────────── 웨이브 ─────────────
 export const WAVE_DURATION = 22;
 export const BOSS_WAVE_DURATION = 36;
+// 밤이 깊어질수록 손님이 몰아친다: 웨이브 간격이 22초에서 14초까지 줄어든다.
+export function waveDuration(wave: number): number {
+  return Math.max(14, WAVE_DURATION - (wave - 1) * 0.22);
+}
 export const BOSS_WAVES = [10, 20, 30, 40];
 export const THREE_AM_WAVE = 13; // 00:00 시작, 웨이브당 15분 → 웨이브 13 시작 시각 = 03:00
 export const MINUTES_PER_WAVE = 15;
@@ -143,18 +155,25 @@ export function isBossWave(w: number): boolean {
   return w >= 10 && w % 10 === 0;
 }
 
-// 체력 스케일: 웨이브 10 ≈ 4.8x, 20 ≈ 13x, 30 ≈ 25.6x, 40 ≈ 42.6x, 이후 x1.1/웨이브
+// 체력 스케일: 웨이브 10 ≈ 7.6x, 20 ≈ 24x, 30 ≈ 51x, 40 ≈ 87x, 이후 x1.07/웨이브
+// (보상 카드로 유닛이 훨씬 강해지므로 그만큼 손님도 단단해야 한다)
 // (시뮬레이션 결과 중반이 너무 쉬워 2차항을 0.011 → 0.019 로 올림)
 export function enemyHpScale(wave: number): number {
   const w = Math.max(1, wave);
-  let s = 1 + 0.16 * w + 0.022 * w * w;
-  if (w > 40) s *= Math.pow(1.1, w - 40);
+  let s = 1 + 0.16 * w + 0.05 * w * w;
+  if (w > 40) s *= Math.pow(1.07, w - 40);
   return s;
 }
 // 웨이브 시작 시 기본 수입("시급"). 처치를 못 해도 최소한의 뽑기가 가능하게 해 죽음의 소용돌이를 막는다.
 export function waveIncome(wave: number): number {
   return 40 + wave * 9; // 불운한 판(제어 유닛만 뽑힘)도 3웨이브에 1회는 뽑을 수 있게
 }
+// 계산대 도달 피해도 웨이브에 따라 커진다. 이게 없으면 후반에 손님이 뚫려도 체력이 안 깎여
+// 사실상 죽지 않는 게임이 된다 (보상 카드로 회복까지 되므로).
+export function enemyDamageScale(wave: number): number {
+  return 1 + 0.06 * Math.max(0, wave - 1);
+}
+
 export function enemyBountyScale(wave: number): number {
   return 1 + wave * 0.025; // 후반 코인 인플레 억제
 }
@@ -163,6 +182,20 @@ export function waveClearBonus(wave: number): number {
 }
 
 // ───────────── 이벤트 ─────────────
+// ───────────── 보상 / 액티브 스킬 ─────────────
+// 3웨이브마다, 그리고 보스를 넘긴 직후에 보상 카드를 고른다.
+export const REWARD_EVERY = 3;
+export function isRewardWave(wave: number): boolean {
+  return wave > 1 && (wave % REWARD_EVERY === 1 || wave % 10 === 1);
+}
+export const SHUTTER_COOLDOWN = 45;
+export const SHUTTER_STUN = 2.5;
+export const SHUTTER_PUSH = 60;
+export const DUMP_COOLDOWN = 70;
+export const DUMP_DAMAGE_BASE = 90; // 웨이브 스케일이 곱해진다
+export const COMBO_WINDOW = 2.2; // 이 시간 안에 이어서 처치하면 콤보 유지
+export const COMBO_STEP = 5; // 5연쇄마다 보너스
+
 export const EVENT_START_WAVE = 3;
 export const EVENT_INTERVAL: [number, number] = [32, 48];
 

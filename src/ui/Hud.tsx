@@ -23,12 +23,6 @@ export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) 
         <div className="hud-wave">
           <div className="hud-wave-label">
             WAVE <b>{snap.wave}</b>
-            {snap.nextIsBoss && !snap.bossAlive && (
-              <span className="hud-next-boss">
-                <Icon name="boss" size={11} strokeWidth={2.4} />
-                다음 보스
-              </span>
-            )}
             <span className="hud-wave-timer">{Math.ceil(snap.waveTimer)}s</span>
           </div>
           <div className="bar bar-wave">
@@ -38,7 +32,7 @@ export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) 
 
         <div className="hud-hp">
           <div className={`hud-hp-label ${hpClass}`}>
-            <span>매장 체력</span>
+            <span>체력</span>
             <b>{hpPct}%</b>
           </div>
           <div className={`bar bar-hp ${hpClass}`}>
@@ -52,8 +46,20 @@ export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) 
         </div>
       </div>
 
-      {(snap.activeEvents.length > 0 || snap.bossAlive) && (
+      {(snap.activeEvents.length > 0 || snap.bossAlive || snap.combo >= 3 || snap.riskWave || (snap.nextIsBoss && snap.phase === 'playing')) && (
         <div className="hud-row hud-sub">
+          {snap.nextIsBoss && !snap.bossAlive && (
+            <span className="hud-next-boss">
+              <Icon name="boss" size={12} strokeWidth={2.4} />
+              다음 웨이브 보스
+            </span>
+          )}
+          {snap.combo >= 3 && (
+            <span className="combo-chip">
+              {snap.combo} 연속
+            </span>
+          )}
+          {snap.riskWave && <span className="event-chip event-bad">새벽 장사 · 코인 2배</span>}
           {snap.bossAlive && (
             <div className="boss-bar">
               <span className="boss-name">

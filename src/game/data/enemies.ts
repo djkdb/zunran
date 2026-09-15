@@ -306,7 +306,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
   {
     id: 'boss_lunchbox',
     name: '폐기 직전 도시락',
-    hp: 1100,
+    hp: 1900,
     speed: 30,
     bounty: 300,
     storeDamage: 20, // 보스 한 방에 체력이 절벽처럼 깎이지 않게 (플레이테스트 반영)
@@ -324,7 +324,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
   {
     id: 'boss_party',
     name: '새벽 3시 단체 손님',
-    hp: 1400,
+    hp: 2500,
     speed: 40,
     bounty: 500,
     storeDamage: 25,
@@ -341,7 +341,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
   {
     id: 'boss_inspector',
     name: '본사 직원',
-    hp: 1700,
+    hp: 3100,
     speed: 45,
     bounty: 800,
     storeDamage: 30,
@@ -359,7 +359,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
   {
     id: 'boss_closing',
     name: '월말 매출 마감',
-    hp: 2400,
+    hp: 4400,
     speed: 35,
     bounty: 1500,
     storeDamage: 45, // 즉사 대신 치명상: 체력이 넉넉하면 버틸 수 있게

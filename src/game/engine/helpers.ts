@@ -1,7 +1,7 @@
 import type { Enemy, GameState, Unit, UnitDef, Tier, Rarity, Floater } from '../types';
 import { UNIT_BY_ID } from '../data/units';
 import { ENEMY_BY_ID } from '../data/enemies';
-import { tierDmgMult, tierIntervalMult, tierRangeBonus } from '../config';
+import { tierDmgMult, tierIntervalMult, tierRangeBonus, AISLE_BONUS } from '../config';
 
 export function unitDef(u: Unit): UnitDef {
   return UNIT_BY_ID[u.defId];
@@ -18,34 +18,50 @@ export function dist2(ax: number, ay: number, bx: number, by: number): number {
   return dx * dx + dy * dy;
 }
 
+// 코너(줄) 배치 보너스. 슬롯의 row 로 결정된다.
+export function aisleBonus(state: GameState, u: Unit) {
+  return AISLE_BONUS[state.slots[u.slot].row] ?? AISLE_BONUS[0];
+}
+
 // 오라 값의 티어 스케일: 티어당 +40% (냉장고 t3 = 0.3 × 1.8 = 0.54 감속)
-export function auraValue(def: UnitDef, tier: Tier): number {
+export function auraValue(state: GameState, def: UnitDef, tier: Tier): number {
   if (!def.aura) return 0;
-  const v = def.aura.value * (1 + 0.4 * (tier - 1));
-  return def.aura.kind === 'enemySlow' ? Math.min(0.75, v) : v;
+  const v = def.aura.value * (1 + 0.4 * (tier - 1)) * state.perma.auraMult;
+  return def.aura.kind === 'enemySlow' ? Math.min(0.8, v) : v;
 }
 export function auraRadius(def: UnitDef, tier: Tier): number {
   if (!def.aura) return 0;
   return def.aura.radius + tierRangeBonus(tier);
 }
 
-// 최종 피해량 (티어, 이벤트 배율, 오라 버프 반영)
+// 최종 피해량 (티어 · 코너 보너스 · 보상 강화 · 이벤트 배율 · 오라 버프)
 export function unitDamage(state: GameState, u: Unit): number {
   const def = unitDef(u);
   const m = state.modifiers;
+  const p = state.perma;
   const byId = m.unitDmgById[def.id] ?? 1;
-  return def.dmg * tierDmgMult(u.tier) * m.unitDmg * byId * (1 + u.buffs.dmg);
+  return (
+    def.dmg *
+    tierDmgMult(u.tier) *
+    aisleBonus(state, u).dmg *
+    p.dmg *
+    (p.roleDmg[def.role] ?? 1) *
+    m.unitDmg *
+    byId *
+    (1 + u.buffs.dmg)
+  );
 }
 
 export function unitInterval(state: GameState, u: Unit): number {
   const def = unitDef(u);
   const base = def.interval * tierIntervalMult(u.tier);
-  return base / (state.modifiers.unitAtkSpeed * (1 + u.buffs.atkSpeed));
+  return base / (state.modifiers.unitAtkSpeed * state.perma.atkSpeed * aisleBonus(state, u).atkSpeed * (1 + u.buffs.atkSpeed));
 }
 
-export function unitRange(u: Unit): number {
+export function unitRange(state: GameState, u: Unit): number {
   const def = unitDef(u);
-  return def.range + tierRangeBonus(u.tier);
+  if (def.range === 0) return 0;
+  return def.range + tierRangeBonus(u.tier) + aisleBonus(state, u).range + state.perma.range;
 }
 
 export function isTargetable(e: Enemy): boolean {

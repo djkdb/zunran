@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { Engine } from '../engine/Engine';
 import { spawnEnemy, damageEnemy } from '../engine/enemySystem';
+import { REWARD_CARDS } from '../data/rewards';
+import { unitDamage, unitInterval, unitRange } from '../engine/helpers';
 import { createUnit } from '../engine/unitFactory';
 import { PATH_LENGTH } from '../config';
 import { UNIT_BY_ID } from '../data/units';
@@ -8,6 +10,14 @@ import { UNIT_BY_ID } from '../data/units';
 function step(engine: Engine, n = 1) {
   for (let i = 0; i < n; i++) {
     engine.tick(1 / 60);
+    engine.drainFx();
+  }
+}
+
+// 초 단위로 진행. tick 은 한 번에 최대 8 고정스텝(≈0.13초)만 처리하므로 0.1초씩 잘라 부른다.
+function run(engine: Engine, seconds: number) {
+  for (let i = 0; i < Math.round(seconds * 10); i++) {
+    engine.tick(0.1);
     engine.drainFx();
   }
 }
@@ -94,5 +104,107 @@ describe('리뷰 회귀 테스트', () => {
     const basic = spawnEnemy(s, 'basic', { dist: 148 + (slot.x - 52) - 30 })!;
     step(engine, 30);
     expect(basic.stun > 0 || basic.dead).toBe(true);
+  });
+});
+
+describe('보상 · 긴급 스킬 · 콤보', () => {
+  it('보상 웨이브에 3택이 열리고, 고르면 효과가 적용되며 게임이 재개된다', () => {
+    const engine = new Engine({ seed: 21 });
+    const s = engine.state;
+    // 보상 웨이브(4)로 넘어갈 때까지 진행
+    let guard = 0;
+    while (s.phase === 'playing' && guard++ < 400) run(engine, 1);
+    expect(s.phase).toBe('reward');
+    expect(s.rewardOffers.length).toBe(3);
+    expect(new Set(s.rewardOffers.map((o) => o.defId)).size).toBe(3);
+    // 보상 중에는 시간이 멈춘다
+    const t = s.time;
+    run(engine, 5);
+    expect(s.time).toBe(t);
+    const r = engine.dispatch({ type: 'CHOOSE_REWARD', defId: s.rewardOffers[0].defId });
+    expect(r.ok).toBe(true);
+    expect(s.phase).toBe('playing');
+    expect(s.rewardsTaken.length).toBe(1);
+    step(engine, 5);
+    expect(s.time).toBeGreaterThan(t);
+  });
+
+  it('보상 카드 19종이 모두 효과를 적용하고 상태를 깨뜨리지 않는다', () => {
+    for (const card of REWARD_CARDS) {
+      const engine = new Engine({ seed: 5 });
+      const s = engine.state;
+      s.wave = 12;
+      for (let i = 0; i < 4; i++) {
+        const u = createUnit(s, i % 2 ? 'onigiri' : 'coffee', 2, i);
+        s.units.push(u);
+        s.slots[i].unitId = u.id;
+      }
+      s.hp = 60;
+      s.skills = { shutter: 10, dump: 20 };
+      s.phase = 'reward';
+      s.rewardOffers = [{ defId: card.id, name: card.name, desc: card.desc, icon: card.icon, tone: card.tone }];
+      expect(engine.dispatch({ type: 'CHOOSE_REWARD', defId: card.id }).ok).toBe(true);
+      expect(s.phase).toBe('playing');
+      expect(Number.isFinite(s.hp)).toBe(true);
+      expect(s.hp).toBeLessThanOrEqual(s.maxHp);
+      expect(s.coins).toBeGreaterThanOrEqual(0);
+      for (const u of s.units) expect(u.tier).toBeLessThanOrEqual(5);
+      step(engine, 3); // 적용 후에도 정상 진행
+    }
+  });
+
+  it('긴급 스킬은 손님이 있을 때만 쓰이고 쿨다운을 돈다', () => {
+    const engine = new Engine({ seed: 31 });
+    const s = engine.state;
+    s.spawnQueue = [];
+    expect(engine.dispatch({ type: 'USE_SKILL', skill: 'shutter' }).ok).toBe(false);
+    const e = spawnEnemy(s, 'basic', { dist: 400 })!;
+    const before = e.dist;
+    expect(engine.dispatch({ type: 'USE_SKILL', skill: 'shutter' }).ok).toBe(true);
+    expect(e.stun).toBeGreaterThan(0);
+    expect(e.dist).toBeLessThan(before);
+    expect(s.skills.shutter).toBeGreaterThan(0);
+    expect(engine.dispatch({ type: 'USE_SKILL', skill: 'shutter' }).ok).toBe(false);
+    // 폐기 처리는 전체 피해
+    const hp = e.hp;
+    expect(engine.dispatch({ type: 'USE_SKILL', skill: 'dump' }).ok).toBe(true);
+    expect(e.hp < hp || e.dead).toBe(true);
+    run(engine, 50);
+    expect(s.skills.shutter).toBe(0);
+  });
+
+  it('연속 처치가 콤보로 쌓이고 보너스 코인이 나온다', () => {
+    const engine = new Engine({ seed: 41 });
+    const s = engine.state;
+    s.spawnQueue = [];
+    const coinsBefore = s.coins;
+    for (let i = 0; i < 6; i++) {
+      const e = spawnEnemy(s, 'basic', { dist: 300, silent: true })!;
+      damageEnemy(s, e, 99999, null, undefined);
+    }
+    expect(s.combo.count).toBe(6);
+    expect(s.stats.bestCombo).toBe(6);
+    expect(s.coins).toBeGreaterThan(coinsBefore);
+    // 시간이 지나면 콤보가 끊긴다
+    s.time += 5;
+    step(engine, 1);
+    expect(s.combo.count).toBe(0);
+  });
+
+  it('코너마다 배치 보너스가 다르게 적용된다', () => {
+    const engine = new Engine({ seed: 51 });
+    const s = engine.state;
+    const rows = [0, 7, 14]; // 각 줄의 첫 슬롯
+    const units = rows.map((slot) => {
+      const u = createUnit(s, 'pos', 1, slot);
+      s.units.push(u);
+      s.slots[slot].unitId = u.id;
+      return u;
+    });
+    const dmg = units.map((u) => unitDamage(s, u));
+    const range = units.map((u) => unitRange(s, u));
+    expect(range[0]).toBeGreaterThan(range[1]); // 음료 코너는 사거리
+    expect(dmg[2]).toBeGreaterThan(dmg[0]); // 라면 코너는 공격력
+    expect(unitInterval(s, units[1])).toBeLessThan(unitInterval(s, units[0])); // 과자 코너는 공속
   });
 });

@@ -1,11 +1,14 @@
 import type { Enemy, GameState, Projectile, Unit, UnitDef } from '../types';
-import { PROJECTILE_SPEED } from '../config';
+import { PROJECTILE_SPEED, COMBO_WINDOW } from '../config';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { addFloater, sfx, unitDef, unitDamage, unitInterval, unitRange, auraRadius, auraValue, dist2, isTargetable } from './helpers';
 import { damageEnemy, applySlow } from './enemySystem';
 
 // 매 틱: 오라 버프 재계산 → 타겟팅/공격 → 스킬 → 투사체 이동
 export function updateUnits(state: GameState, dt: number): void {
+  // 콤보는 시간이 지나면 끊긴다
+  if (state.combo.count > 0 && state.time > state.combo.until) state.combo.count = 0;
+  void COMBO_WINDOW;
   computeBuffs(state);
   const targetable = state.enemies.filter(isTargetable);
 
@@ -44,7 +47,7 @@ function computeBuffs(state: GameState): void {
     if (d.aura.kind !== 'atkSpeed' && d.aura.kind !== 'dmg') continue;
     const s = state.slots[u.slot];
     const r = auraRadius(d, u.tier);
-    auras.push({ x: s.x, y: s.y, r2: r * r, kind: d.aura.kind, v: auraValue(d, u.tier) * (d.id === 'cctv' ? cctvBoost : 1), id: u.id });
+    auras.push({ x: s.x, y: s.y, r2: r * r, kind: d.aura.kind, v: auraValue(state, d, u.tier) * (d.id === 'cctv' ? cctvBoost : 1), id: u.id });
   }
   for (const u of state.units) {
     let atk = 0;
@@ -63,7 +66,7 @@ function computeBuffs(state: GameState): void {
 
 function pickTarget(state: GameState, u: Unit, def: UnitDef, targetable: Enemy[]): Enemy | null {
   const s = state.slots[u.slot];
-  const r = unitRange(u);
+  const r = unitRange(state, u);
   const r2 = r * r;
   let best: Enemy | null = null;
   let bestScore = -Infinity;
@@ -133,7 +136,7 @@ function attack(state: GameState, u: Unit, def: UnitDef, target: Enemy): void {
 function castSkill(state: GameState, u: Unit, def: UnitDef, targetable: Enemy[]): void {
   const sk = def.skill!;
   const s = state.slots[u.slot];
-  const radius = (sk.radius ?? unitRange(u)) + (u.tier - 1) * 8;
+  const radius = (sk.radius ?? unitRange(state, u)) + (u.tier - 1) * 8;
   const r2 = radius * radius;
   const inRange = targetable.filter((e) => dist2(s.x, s.y, e.x, e.y) <= r2);
   if (inRange.length === 0) return;

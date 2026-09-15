@@ -1,6 +1,8 @@
 import type { FxEvent, GameAction, GameState, MetaEffects, Rarity, Tier, UISnapshot, UnitGroup, Unit } from '../types';
-import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, MAX_TIER, drawCost, formatClock, EVENT_INTERVAL, isBossWave } from '../config';
+import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, MAX_TIER, drawCost, formatClock, EVENT_INTERVAL, isBossWave, AISLE_NAMES, AISLE_BONUS } from '../config';
 import { UNIT_BY_ID, unitsOfRarity } from '../data/units';
+import { basePerma, chooseReward } from './rewardSystem';
+import { useSkill, tickSkills } from './skillSystem';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { DRAW_LINES } from '../data/dialogue';
 import { createRng, randomSeed } from './rng';
@@ -60,7 +62,9 @@ export class Engine {
   private step(dt: number): void {
     const s = this.state;
     s.time += dt;
+    tickSkills(s, dt);
     updateWave(s, dt);
+    if (s.phase !== 'playing') return; // 보상 선택 중이면 이번 틱은 여기서 멈춘다
     updateEvents(s);
     updateEnemies(s, dt);
     updateUnits(s, dt);
@@ -116,6 +120,12 @@ export class Engine {
         return this.tapSlot(action.slot);
       case 'SELL_JUNK':
         return this.sellJunk();
+      case 'CHOOSE_REWARD': {
+        const ok = chooseReward(s, action.defId);
+        return { ok, reason: ok ? undefined : '이미 고른 보상이에요.' };
+      }
+      case 'USE_SKILL':
+        return useSkill(s, action.skill);
       case 'TOGGLE_PAUSE':
         if (s.phase !== 'playing') return { ok: false };
         s.paused = !s.paused;
@@ -133,12 +143,12 @@ export class Engine {
     const m = this.state.meta;
     const rare = BASE_RARITY_ODDS.rare + m.rareBonus;
     const epic = BASE_RARITY_ODDS.epic + m.epicBonus;
-    const legendary = BASE_RARITY_ODDS.legendary + m.legendaryBonus;
+    const legendary = BASE_RARITY_ODDS.legendary + m.legendaryBonus + this.state.perma.legendaryOdds;
     return { common: Math.max(0, 1 - rare - epic - legendary), rare, epic, legendary };
   }
 
   currentDrawCost(): number {
-    return drawCost(this.state.drawCount, this.state.meta.drawCostReduce);
+    return drawCost(this.state.drawCount, this.state.meta.drawCostReduce + this.state.perma.drawDiscount);
   }
 
   private draw(): { ok: boolean; reason?: string } {
@@ -309,13 +319,31 @@ export class Engine {
       bossName: boss ? ENEMY_BY_ID[boss.defId].name : '',
       groups,
       selected: sel
-        ? { unitId: sel.id, defId: sel.defId, tier: sel.tier, kills: sel.kills, damage: Math.round(sel.damage), sellPrice: sellPrice(sel) }
+        ? {
+            unitId: sel.id,
+            defId: sel.defId,
+            tier: sel.tier,
+            kills: sel.kills,
+            damage: Math.round(sel.damage),
+            sellPrice: sellPrice(sel),
+            aisle: AISLE_NAMES[s.slots[sel.slot].row],
+            aisleBonus: AISLE_BONUS[s.slots[sel.slot].row].label,
+          }
         : null,
       activeEvents: s.activeEvents.map((ae) => ({ title: ae.title, remain: Math.max(0, ae.until - s.time), mood: ae.mood })),
       stats: s.stats,
       unitCount: s.units.length,
       rarityOdds: this.rarityOdds(),
       disabledUnits: s.units.filter((u) => u.disabledUntil > s.time).length,
+      rewardOffers: s.rewardOffers,
+      rewardsTaken: s.rewardsTaken.length,
+      perma: s.perma,
+      shutterCd: s.skills.shutter,
+      dumpCd: s.skills.dump,
+      skillReady: { shutter: s.skills.shutter <= 0, dump: s.skills.dump <= 0 },
+      combo: s.time <= s.combo.until ? s.combo.count : 0,
+      bestCombo: s.combo.best,
+      riskWave: s.riskWave === s.wave,
       nextIsBoss: isBossWave(s.wave + 1),
       junkCount: junk.length,
       junkValue: junk.reduce((a, u) => a + sellPrice(u), 0),
@@ -392,6 +420,12 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number): 
     recordAnnounced: false,
     units: [],
     slots: SLOT_POSITIONS.map((p, i) => ({ index: i, x: p.x, y: p.y, row: p.row, unitId: null })),
+    perma: basePerma(),
+    rewardOffers: [],
+    rewardsTaken: [],
+    riskWave: -1,
+    skills: { shutter: 0, dump: 0 },
+    combo: { count: 0, until: 0, best: 0 },
     enemies: [],
     projectiles: [],
     activeEvents: [],
@@ -410,6 +444,8 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number): 
       unitKills: {},
       maxTierReached: 1,
       eventsSeen: 0,
+      bestCombo: 0,
+      skillsUsed: 0,
       bestWave: 0,
       drawsByRarity: { common: 0, rare: 0, epic: 0, legendary: 0, special: 0 },
       seenUnits: [],

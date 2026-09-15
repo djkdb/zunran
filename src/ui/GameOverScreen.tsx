@@ -59,6 +59,14 @@ export function GameOverScreen({ result, onRestart, onMenu }: { result: RunResul
               <span>보스 처치</span>
               <b>{result.bossKills}</b>
             </div>
+            <div>
+              <span>최고 연속</span>
+              <b>{result.bestCombo}</b>
+            </div>
+            <div>
+              <span>받은 보상</span>
+              <b>{result.rewards}</b>
+            </div>
           </div>
           {mvp && (
             <div className="mvp">

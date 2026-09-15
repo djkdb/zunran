@@ -311,6 +311,8 @@ export interface RunStats {
   unitKills: Record<string, number>;
   maxTierReached: number;
   eventsSeen: number;
+  bestCombo: number;
+  skillsUsed: number;
   bestWave: number;
   drawsByRarity: Record<Rarity, number>;
   seenUnits: string[];
@@ -338,7 +340,52 @@ export interface MetaEffects {
 
 // ───────────────────────── 게임 상태 ─────────────────────────
 
-export type GamePhase = 'playing' | 'gameover';
+export type GamePhase = 'playing' | 'reward' | 'gameover';
+
+// 웨이브 보상으로 쌓이는 영구 강화 (한 판 한정)
+export interface PermaBuffs {
+  dmg: number; // 배율
+  atkSpeed: number;
+  range: number; // 더하는 px
+  coin: number; // 배율
+  drawDiscount: number; // 원
+  roleDmg: Record<UnitRole, number>; // 역할별 배율
+  critChance: number; // 모든 유닛에 더해지는 치명타 확률
+  auraMult: number; // 지원 유닛 오라 배율
+  legendaryOdds: number; // 뽑기 전설 확률에 더해지는 값
+}
+
+export type RewardTone = 'normal' | 'good' | 'best';
+
+export interface RewardContext {
+  state: GameState;
+  rng: RNG;
+  addCoins(n: number): void;
+  grantUnit(rarity: Rarity): string | null;
+  upgradeRandomUnit(): string | null;
+  banner(text: string, sub: string): void;
+}
+
+export interface RewardCardDef {
+  id: string;
+  name: string;
+  desc: string;
+  icon: string; // ui/Icon 의 IconName
+  tone: RewardTone;
+  weight: number;
+  minWave?: number;
+  /** 지금 이 판에서 고를 수 있는 카드인지 (예: 유닛이 있어야 하는 카드) */
+  available?: (state: GameState) => boolean;
+  apply: (ctx: RewardContext) => void;
+}
+
+export interface RewardOffer {
+  defId: string;
+  name: string;
+  desc: string;
+  icon: string;
+  tone: RewardTone;
+}
 
 export interface GameState {
   phase: GamePhase;
@@ -371,6 +418,12 @@ export interface GameState {
 
   units: Unit[];
   slots: Slot[];
+  perma: PermaBuffs;
+  rewardOffers: RewardOffer[];
+  rewardsTaken: string[];
+  riskWave: number; // 이 웨이브 번호에는 손님이 더 많이 나오고 보상이 2배
+  skills: { shutter: number; dump: number }; // 남은 쿨다운(초)
+  combo: { count: number; until: number; best: number };
   enemies: Enemy[];
   projectiles: Projectile[];
 
@@ -405,6 +458,8 @@ export type GameAction =
   | { type: 'MOVE'; unitId: number; slot: number }
   | { type: 'TAP_SLOT'; slot: number } // UI 편의: 선택 상태에 따라 선택/이동/교환
   | { type: 'SELL_JUNK' } // 합성 짝이 없는 티어1 일반 유닛 일괄 판매
+  | { type: 'CHOOSE_REWARD'; defId: string }
+  | { type: 'USE_SKILL'; skill: 'shutter' | 'dump' }
   | { type: 'TOGGLE_PAUSE' }
   | { type: 'SET_SPEED'; speed: 1 | 2 }
   | { type: 'GIVE_UP' };
@@ -442,7 +497,7 @@ export interface UISnapshot {
   bossMaxHp: number;
   bossName: string;
   groups: UnitGroup[];
-  selected: { unitId: number; defId: string; tier: Tier; kills: number; damage: number; sellPrice: number } | null;
+  selected: { unitId: number; defId: string; tier: Tier; kills: number; damage: number; sellPrice: number; aisle: string; aisleBonus: string } | null;
   activeEvents: { title: string; remain: number; mood: EventMood }[];
   stats: RunStats;
   unitCount: number;
@@ -451,4 +506,13 @@ export interface UISnapshot {
   nextIsBoss: boolean;
   junkCount: number; // 정리 판매 대상 수
   junkValue: number;
+  rewardOffers: RewardOffer[];
+  rewardsTaken: number;
+  perma: PermaBuffs;
+  shutterCd: number;
+  dumpCd: number;
+  skillReady: { shutter: boolean; dump: boolean };
+  combo: number;
+  bestCombo: number;
+  riskWave: boolean;
 }

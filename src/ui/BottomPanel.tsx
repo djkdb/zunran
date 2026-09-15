@@ -63,6 +63,33 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
         </span>
       </div>
 
+      <div className="skill-row">
+        <button
+          className={`skill-btn shutter ${snap.skillReady.shutter ? 'ready' : ''}`}
+          disabled={!snap.skillReady.shutter || snap.phase !== 'playing'}
+          onClick={() => act({ type: 'USE_SKILL', skill: 'shutter' })}
+        >
+          <span className="skill-cd" style={{ width: `${snap.skillReady.shutter ? 0 : (snap.shutterCd / 45) * 100}%` }} />
+          <Icon name="store" size={18} strokeWidth={2.4} />
+          <span className="skill-text">
+            <b>셔터 내려</b>
+            <i>{snap.skillReady.shutter ? '전원 정지' : `${Math.ceil(snap.shutterCd)}초`}</i>
+          </span>
+        </button>
+        <button
+          className={`skill-btn dump ${snap.skillReady.dump ? 'ready' : ''}`}
+          disabled={!snap.skillReady.dump || snap.phase !== 'playing'}
+          onClick={() => act({ type: 'USE_SKILL', skill: 'dump' })}
+        >
+          <span className="skill-cd" style={{ width: `${snap.skillReady.dump ? 0 : (snap.dumpCd / 70) * 100}%` }} />
+          <Icon name="boss" size={18} strokeWidth={2.4} />
+          <span className="skill-text">
+            <b>폐기 처리</b>
+            <i>{snap.skillReady.dump ? '전체 피해' : `${Math.ceil(snap.dumpCd)}초`}</i>
+          </span>
+        </button>
+      </div>
+
       <div className="quick-row">
         <button className={`quick-btn ${autoMerge ? 'active' : ''}`} onClick={onToggleAutoMerge} aria-pressed={autoMerge}>
           <Icon name="merge" size={17} strokeWidth={2.4} />
@@ -122,6 +149,9 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
                 {sel.skill && <span>{sel.skill.name}</span>}
                 <span>처치 {snap.selected.kills}</span>
                 <span>누적 {snap.selected.damage.toLocaleString()}</span>
+              </div>
+              <div className="selected-aisle">
+                {snap.selected.aisle} 배치 · <b>{snap.selected.aisleBonus}</b>
               </div>
               <div className="selected-hint">빈 칸을 탭하면 이동 · 다른 유닛을 탭하면 교환</div>
             </div>

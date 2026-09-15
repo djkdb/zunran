@@ -4,6 +4,7 @@ import { useGame } from './useGame';
 import { Hud } from './Hud';
 import { BottomPanel } from './BottomPanel';
 import { BannerLayer } from './Banner';
+import { RewardOverlay } from './RewardOverlay';
 
 interface Props {
   meta: MetaEffects;
@@ -43,7 +44,8 @@ export function GameScreen({ meta, bestWave, muted, autoMerge, showHints, onTogg
           <BannerLayer banners={banners} />
           {toast && <div className="toast">{toast}</div>}
           {hint && !toast && <div className="hint">{hint}</div>}
-          {snap?.paused && (
+          {snap && <RewardOverlay snap={snap} act={act} />}
+          {snap?.paused && snap.phase === 'playing' && (
             <div className="pause-overlay" onClick={() => act({ type: 'TOGGLE_PAUSE' })}>
               <div className="pause-text">일시정지</div>
               <div className="pause-sub">탭해서 계속</div>
