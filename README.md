@@ -135,6 +135,8 @@ scripts/
   playtest.ts                  Playwright 자동 플레이테스트
   playtest-expansion.mjs       확장 기능 종단 테스트 19항목
   playdebug.mjs                플레이어 관점 회귀 테스트 (레이아웃 넘침·잘림·터치 타깃)
+  walkthrough.mjs              신규 유저 첫 판을 장면별로 촬영 (문서·소개용 18컷)
+  titles.ts                    런 제목 분포 + 종합 밸런스 지표
   checkSprites.ts / renderSprites.ts   스프라이트 검증/렌더
 docs/DESIGN.md                 아키텍처·데이터 구조·시스템 설계 문서
 ```
