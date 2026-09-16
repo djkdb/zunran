@@ -74,6 +74,7 @@ export interface SaveData {
   metaLevels: Record<MetaUpgradeId, number>;
   muted: boolean;
   autoMerge: boolean;
+  autoSell: boolean; // 칸이 꽉 찼을 때 합성 짝 없는 1티어 일반 유닛 자동 정리
   hintsSeen: boolean;
   lastRun?: LastRun;
   // ── v2 ──
@@ -104,6 +105,7 @@ export function defaultSave(): SaveData {
     metaLevels: { ...DEFAULT_META_LEVELS },
     muted: false,
     autoMerge: false,
+    autoSell: true,
     hintsSeen: false,
     achievements: [],
     achievementsAt: {},
@@ -140,6 +142,7 @@ export function migrate(parsed: Partial<SaveData>): SaveData {
     daily: rec<DailyRecord>(parsed.daily),
     secretsSeen: arr(parsed.secretsSeen),
     eventCounts: rec<number>(parsed.eventCounts),
+    autoSell: typeof parsed.autoSell === 'boolean' ? parsed.autoSell : true,
     catVisits: typeof parsed.catVisits === 'number' ? parsed.catVisits : 0,
     totalMerges: typeof parsed.totalMerges === 'number' ? parsed.totalMerges : 0,
     totalBossKills: typeof parsed.totalBossKills === 'number' ? parsed.totalBossKills : 0,

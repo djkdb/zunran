@@ -31,7 +31,7 @@ export const MISSIONS: MissionDef[] = [
   { id: 'mvpMicrowave', goal: '전자레인지를 MVP로 만들기', reward: 130, check: (c) => c.mvpDefId === 'microwave' },
   { id: 'noManager10', goal: '점장 없이 웨이브 10 달성', reward: 140, check: (c) => c.wave >= 10 && !c.stats.seenUnits.includes('manager') },
   { id: 'ramen12', goal: '라면 진열대를 쓰고 웨이브 12 달성', reward: 130, check: (c) => c.wave >= 12 && c.stats.seenUnits.includes('ramenShelf') },
-  { id: 'clean10', goal: '손님을 한 명도 들여보내지 않고 웨이브 8 도달', reward: 170, check: (c) => c.wave >= 8 && c.stats.reached === 0 },
+  { id: 'clean10', goal: '계산대를 3번 이하로 내주고 웨이브 10 도달', reward: 160, check: (c) => c.wave >= 10 && c.stats.reached <= 3 },
   { id: 'survive8min', goal: '8분 이상 버티기', reward: 130, check: (c) => c.time >= 480 },
 ];
 

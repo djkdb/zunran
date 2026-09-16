@@ -42,7 +42,10 @@ export function metaEffects(levels: Record<MetaUpgradeId, number>): MetaEffects 
   };
 }
 
-// 한 판 결과 → 야간 수당(메타 화폐)
+// 한 판 결과 → 야간 수당(메타 화폐).
+// 코인 비중을 크게 낮췄다. 예전엔 수당의 95%가 획득 코인에서 나와 두 판이면 상점을
+// 다 사버렸고(전체 8800), 코인은 후반에 어차피 남아돌아서 "더 멀리 갔다"를 보상하지 못했다.
+// 지금은 웨이브와 처치 수가 주도한다: 좋은 판 한 번 ≈ 800점 → 상점 전부 약 11판.
 export function metaPointsForRun(coinsEarned: number, wave: number, kills: number): number {
-  return Math.round(coinsEarned * 0.1 + wave * 5 + kills * 0.2);
+  return Math.round(wave * 14 + kills * 0.25 + coinsEarned * 0.004);
 }

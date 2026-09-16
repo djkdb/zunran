@@ -12,9 +12,11 @@ interface Props {
   onToggleMute: () => void;
   autoMerge: boolean;
   onToggleAutoMerge: () => void;
+  autoSell: boolean;
+  onToggleAutoSell: () => void;
 }
 
-export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggleAutoMerge }: Props) {
+export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggleAutoMerge, autoSell, onToggleAutoSell }: Props) {
   const mergeables = snap.groups.filter((g) => g.mergeable);
   const sel = snap.selected ? UNIT_BY_ID[snap.selected.defId] : null;
   // 값나가는 유닛은 실수로 팔리지 않게 한 번 더 묻는다
@@ -59,8 +61,8 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
           <Icon name="draw" size={26} strokeWidth={2.2} />
           <span className="draw-body">
             <span className="draw-title">유닛 뽑기</span>
-            <span className="draw-slots">
-              SLOT {snap.emptySlots}/{snap.totalSlots} FREE
+            <span className={`draw-slots ${snap.emptySlots === 0 ? 'full' : ''}`}>
+              {snap.emptySlots === 0 ? 'SLOT FULL · 정리하세요' : `SLOT ${snap.emptySlots}/${snap.totalSlots} FREE`}
             </span>
           </span>
           <span className="draw-cost">{free ? `무료 ×${snap.freeDraws}` : snap.drawCost}</span>
@@ -122,16 +124,24 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
           <Icon name="merge" size={17} strokeWidth={2.4} />
           자동 합성 {autoMerge ? 'ON' : 'OFF'}
         </button>
+        <button className={`quick-btn ${autoSell ? 'active' : ''}`} onClick={onToggleAutoSell} aria-pressed={autoSell} title="칸이 다 찼을 때만 합성 짝 없는 1티어 일반 유닛을 자동 판매">
+          <Icon name="broom" size={17} strokeWidth={2.4} />
+          자동 정리 {autoSell ? 'ON' : 'OFF'}
+        </button>
+      </div>
+      {snap.junkCount > 0 && (
         <button
-          className={`quick-btn ${snap.junkCount > 0 ? '' : 'disabled'}`}
-          disabled={snap.junkCount === 0}
+          className={`clean-btn ${snap.emptySlots === 0 ? 'urgent' : ''}`}
           onClick={() => act({ type: 'SELL_JUNK' })}
           title="짝이 없는 1티어 일반 유닛을 전부 판매"
         >
-          <Icon name="broom" size={17} strokeWidth={2.4} />
-          정리 {snap.junkCount > 0 ? `${snap.junkCount}개 +${snap.junkValue}` : ''}
+          <Icon name="broom" size={16} strokeWidth={2.4} />
+          {snap.emptySlots === 0 ? '칸이 다 찼어요 · 정리하고 뽑기' : '정리'}
+          <span className="px">
+            {snap.junkCount}개 +{snap.junkValue}
+          </span>
         </button>
-      </div>
+      )}
 
       {mergeables.length > 0 && (
         <div className="merge-row">

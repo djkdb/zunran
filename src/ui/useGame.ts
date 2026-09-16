@@ -3,6 +3,7 @@ import type React from 'react';
 import { Engine } from '../game/engine/Engine';
 import { Renderer } from '../game/render/Renderer';
 import { audio } from '../game/audio/sfx';
+import { UNIT_BY_ID } from '../game/data/units';
 import type { ChallengeSpec, GameAction, MetaEffects, UISnapshot } from '../game/types';
 import { SLOT_HIT_RADIUS, THREE_AM_WAVE } from '../game/config';
 import type { BannerItem } from './Banner';
@@ -12,6 +13,7 @@ export interface UseGameOptions {
   bestWave: number;
   muted: boolean;
   autoMerge: boolean;
+  autoSell: boolean;
   challenge?: ChallengeSpec | null;
   onGameOver: (engine: Engine) => void;
 }
@@ -33,7 +35,10 @@ export function useGame(opts: UseGameOptions) {
   onGameOverRef.current = opts.onGameOver;
   const autoMergeRef = useRef(opts.autoMerge);
   autoMergeRef.current = opts.autoMerge;
+  const autoSellRef = useRef(opts.autoSell);
+  autoSellRef.current = opts.autoSell;
   const lastAutoMerge = useRef(0);
+  const lastAutoSell = useRef(0);
   const timers = useRef(new Set<number>());
 
   const showToast = useCallback((msg: string) => {
@@ -114,6 +119,24 @@ export function useGame(opts: UseGameOptions) {
         if (g) {
           engine.dispatch({ type: 'MERGE', defId: g.defId, tier: g.tier });
           lastAutoMerge.current = now;
+        }
+      }
+      // 자동 정리: 칸이 다 찼고 합성할 것도 없을 때, 짝이 없는 1티어 유닛을 하나만 판다.
+      // 칸이 남아 있으면 나중에 짝이 생길 수 있으므로 건드리지 않는다.
+      // 한 번에 하나씩만 파는 이유: 몰아서 팔면 그 순간 화력이 꺼진다.
+      if (autoSellRef.current && engine.state.phase === 'playing' && now - lastAutoSell.current > 900) {
+        const sn = engine.snapshot();
+        // 합성 가능한 묶음이 있어도 판다. 파는 대상은 항상 짝이 없는(count === 1) 유닛이라
+        // 합성 재료를 없앨 일이 없고, 자동 합성이 꺼져 있으면 여기서 막혀 칸이 영영 안 빈다.
+        if (sn.emptySlots === 0) {
+          const rank: Record<string, number> = { common: 0, rare: 1 };
+          const target = sn.groups
+            .filter((g) => g.tier === 1 && g.count === 1 && UNIT_BY_ID[g.defId] && rank[UNIT_BY_ID[g.defId].rarity] !== undefined)
+            .sort((a, b) => rank[UNIT_BY_ID[a.defId].rarity] - rank[UNIT_BY_ID[b.defId].rarity])[0];
+          if (target) {
+            engine.dispatch({ type: 'SELL', unitId: target.unitIds[0] });
+            lastAutoSell.current = now;
+          }
         }
       }
       if (now - lastSnap > 100) {

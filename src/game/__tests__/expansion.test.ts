@@ -9,6 +9,7 @@ import { DAILY_CHALLENGES, CHALLENGE_BY_ID } from '../data/dailyChallenges';
 import { getDaily, dailySeed, dateKey } from '../daily';
 import { pickRunTitle } from '../data/runTitles';
 import { EVENT_DEFS, RARE_EVENT_IDS } from '../data/events';
+import { UNIT_BY_ID } from '../data/units';
 import { PATH_LENGTH } from '../config';
 
 function run(engine: Engine, seconds: number) {
@@ -212,12 +213,15 @@ describe('보고서', () => {
 
   it('런 제목은 기록을 반영하고 seed 로 재현된다', () => {
     const engine = new Engine({ seed: 12 });
-    engine.state.stats.merges = 25;
+    engine.state.stats.merges = 35; // 문턱(30) 위
     const ctx = { wave: 12, stats: engine.state.stats, mvpName: null, mvpDefId: null, eventCount: () => 0, topEnemy: null };
     const a = pickRunTitle(ctx, () => 0.3);
     const b = pickRunTitle(ctx, () => 0.3);
     expect(a).toBe(b);
     expect(a).toBe('합성 중독');
+    // 문턱 아래면 그 제목이 나오지 않는다 (흔한 판이 전부 같은 제목이 되는 걸 막는다)
+    engine.state.stats.merges = 12;
+    expect(pickRunTitle(ctx, () => 0.3)).not.toBe('합성 중독');
   });
 
   it('발생한 사건 id 가 순서대로 쌓인다', () => {
@@ -225,6 +229,28 @@ describe('보고서', () => {
     run(engine, 180);
     expect(engine.state.stats.eventIds.length).toBe(engine.state.stats.eventsSeen);
     for (const id of engine.state.stats.eventIds) expect(EVENT_DEFS.some((e) => e.id === id)).toBe(true);
+  });
+});
+
+describe('자동 정리', () => {
+  it('짝이 없는 1티어 유닛만 대상이 되고, 합성 재료는 건드리지 않는다', () => {
+    const engine = new Engine({ seed: 71 });
+    const s = engine.state;
+    s.coins = 999999;
+    for (let i = 0; i < 40 && engine.snapshot().emptySlots > 0; i++) engine.dispatch({ type: 'DRAW' });
+    const sn = engine.snapshot();
+    expect(sn.emptySlots).toBe(0);
+    const rank: Record<string, number> = { common: 0, rare: 1 };
+    const targets = sn.groups.filter((g) => g.tier === 1 && g.count === 1 && rank[UNIT_BY_ID[g.defId]?.rarity] !== undefined);
+    // 대상은 전부 짝이 없다 = 어떤 합성도 깨지 않는다
+    for (const t of targets) expect(t.count).toBe(1);
+    if (targets.length > 0) {
+      const mergeableBefore = sn.groups.filter((g) => g.mergeable).length;
+      engine.dispatch({ type: 'SELL', unitId: targets[0].unitIds[0] });
+      const after = engine.snapshot();
+      expect(after.emptySlots).toBe(1);
+      expect(after.groups.filter((g) => g.mergeable).length).toBe(mergeableBefore);
+    }
   });
 });
 

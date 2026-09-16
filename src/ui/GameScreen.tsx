@@ -11,10 +11,12 @@ interface Props {
   bestWave: number;
   muted: boolean;
   autoMerge: boolean;
+  autoSell: boolean;
   showHints: boolean;
   challenge: ChallengeSpec | null;
   onToggleMute: () => void;
   onToggleAutoMerge: () => void;
+  onToggleAutoSell: () => void;
   onGameOver: (engine: Engine) => void;
 }
 
@@ -29,8 +31,8 @@ function hintFor(snap: UISnapshot): string | null {
   return null;
 }
 
-export function GameScreen({ meta, bestWave, muted, autoMerge, showHints, challenge, onToggleMute, onToggleAutoMerge, onGameOver }: Props) {
-  const { canvasRef, snap, banners, act, toast, onPointerDown, onPointerMove, endDrag } = useGame({ meta, bestWave, muted, autoMerge, challenge, onGameOver });
+export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHints, challenge, onToggleMute, onToggleAutoMerge, onToggleAutoSell, onGameOver }: Props) {
+  const { canvasRef, snap, banners, act, toast, onPointerDown, onPointerMove, endDrag } = useGame({ meta, bestWave, muted, autoMerge, autoSell, challenge, onGameOver });
   const hint = showHints && snap && snap.phase === 'playing' && snap.wave <= 8 ? hintFor(snap) : null;
   return (
     <div className="game">
@@ -64,7 +66,7 @@ export function GameScreen({ meta, bestWave, muted, autoMerge, showHints, challe
           )}
         </div>
       </div>
-      {snap && <BottomPanel snap={snap} act={act} muted={muted} onToggleMute={onToggleMute} autoMerge={autoMerge} onToggleAutoMerge={onToggleAutoMerge} />}
+      {snap && <BottomPanel snap={snap} act={act} muted={muted} onToggleMute={onToggleMute} autoMerge={autoMerge} onToggleAutoMerge={onToggleAutoMerge} autoSell={autoSell} onToggleAutoSell={onToggleAutoSell} />}
       {snap && <RewardOverlay snap={snap} act={act} />}
     </div>
   );

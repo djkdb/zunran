@@ -13,9 +13,9 @@ export const DAILY_CHALLENGES: ChallengeSpec[] = [
   {
     id: 'blackoutNight',
     name: '정전',
-    desc: ['모든 유닛 공격속도 -30%', '코인 획득량 +100%'],
-    goalWave: 14,
-    modifiers: { unitAtkSpeed: 0.7, coinGain: 2, darkness: 0.45 },
+    desc: ['모든 유닛 공격속도 -35%', '코인 획득량 +50%'],
+    goalWave: 16,
+    modifiers: { unitAtkSpeed: 0.65, coinGain: 1.5, darkness: 0.45 },
   },
   {
     id: 'expiredNight',
@@ -28,10 +28,10 @@ export const DAILY_CHALLENGES: ChallengeSpec[] = [
   {
     id: 'crowdNight',
     name: '손님 폭주',
-    desc: ['손님 수 +50%', '손님 체력 -35%'],
-    goalWave: 16,
-    enemyCountMult: 1.5,
-    enemyHpMult: 0.65,
+    desc: ['손님 수 +55%', '손님 체력 -15%'],
+    goalWave: 18,
+    enemyCountMult: 1.55,
+    enemyHpMult: 0.85,
   },
   {
     id: 'noManager',

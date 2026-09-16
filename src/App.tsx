@@ -205,6 +205,7 @@ export function App() {
   );
 
   const toggleAutoMerge = useCallback(() => persist({ ...save, autoMerge: !save.autoMerge }), [save, persist]);
+  const toggleAutoSell = useCallback(() => persist({ ...save, autoSell: !save.autoSell }), [save, persist]);
 
   const toggleMute = useCallback(() => {
     audio.unlock();
@@ -238,10 +239,12 @@ export function App() {
         bestWave={save.bestWave}
         muted={save.muted}
         autoMerge={save.autoMerge}
+        autoSell={save.autoSell}
         showHints={!save.hintsSeen}
         challenge={dailyMode ? today.challenge : null}
         onToggleMute={toggleMute}
         onToggleAutoMerge={toggleAutoMerge}
+        onToggleAutoSell={toggleAutoSell}
         onGameOver={onGameOver}
       />
       {result && <GameOverScreen result={result} save={save} onRestart={() => startGame(dailyMode)} onMenu={() => setScreen('start')} />}

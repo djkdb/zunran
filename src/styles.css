@@ -102,6 +102,7 @@ button:disabled {
 .skill-btn,
 .quick-btn,
 .merge-btn,
+.clean-btn,
 .inv-chip,
 .inventory-empty,
 .selected-card,
@@ -658,6 +659,38 @@ button:disabled {
 }
 .quick-btn.disabled {
   color: var(--off);
+}
+
+/* 칸이 다 찼을 때 정리를 유도하는 줄 */
+.clean-btn {
+  --fc: var(--edge);
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--dim);
+}
+.clean-btn .px {
+  font-size: 10px;
+  color: var(--off);
+}
+.clean-btn.urgent {
+  --fc: var(--gold);
+  background-color: var(--panel);
+  color: var(--gold);
+  animation: blink 1.3s infinite;
+}
+.clean-btn.urgent .px {
+  color: var(--gold);
+}
+.draw-slots.full {
+  color: var(--gold);
+}
+.draw-btn.disabled .draw-slots.full {
+  color: var(--gold);
 }
 
 .merge-row {
