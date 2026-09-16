@@ -22,6 +22,17 @@ function run(engine: Engine, seconds: number) {
   }
 }
 
+// 보상 선택이 열리면 엔진이 멈추므로, 시간만 흐르게 하고 싶을 때는 첫 카드를 자동으로 고른다.
+function runPastRewards(engine: Engine, seconds: number) {
+  for (let i = 0; i < Math.round(seconds * 10); i++) {
+    if (engine.state.phase === 'reward' && engine.state.rewardOffers.length > 0) {
+      engine.dispatch({ type: 'CHOOSE_REWARD', defId: engine.state.rewardOffers[0].defId });
+    }
+    engine.tick(0.1);
+    engine.drainFx();
+  }
+}
+
 describe('리뷰 회귀 테스트', () => {
   it('손님이 계산대에 도달한 웨이브는 클리어 보너스를 주지 않는다', () => {
     const engine = new Engine({ seed: 1 });
@@ -169,7 +180,7 @@ describe('보상 · 긴급 스킬 · 콤보', () => {
     const hp = e.hp;
     expect(engine.dispatch({ type: 'USE_SKILL', skill: 'dump' }).ok).toBe(true);
     expect(e.hp < hp || e.dead).toBe(true);
-    run(engine, 50);
+    runPastRewards(engine, 50);
     expect(s.skills.shutter).toBe(0);
   });
 

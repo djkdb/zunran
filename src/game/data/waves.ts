@@ -18,17 +18,17 @@ export function buildWave(wave: number, rng: RNG): WavePlan {
 
   // 초반 3웨이브는 학습용: 아주 쉽게.
   if (wave === 1) {
-    for (let i = 0; i < 4; i++) entries.push({ at: 2 + i * 3.5, defId: 'basic', count: 1 });
+    for (let i = 0; i < 4; i++) entries.push({ at: 1.5 + i * 2.4, defId: 'basic', count: 1 });
     return { entries, duration };
   }
   if (wave === 2) {
-    for (let i = 0; i < 6; i++) entries.push({ at: 1 + i * 2.8, defId: 'basic', count: 1 });
+    for (let i = 0; i < 6; i++) entries.push({ at: 1 + i * 2, defId: 'basic', count: 1 });
     return { entries, duration };
   }
   if (wave === 3) {
-    for (let i = 0; i < 6; i++) entries.push({ at: 1 + i * 2.6, defId: 'basic', count: 1 });
-    entries.push({ at: 6, defId: 'cig', count: 1 });
-    entries.push({ at: 14, defId: 'cig', count: 1 });
+    for (let i = 0; i < 6; i++) entries.push({ at: 1 + i * 1.9, defId: 'basic', count: 1 });
+    entries.push({ at: 5, defId: 'cig', count: 1 });
+    entries.push({ at: 11, defId: 'cig', count: 1 });
     return { entries, duration };
   }
 

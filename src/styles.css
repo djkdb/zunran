@@ -692,6 +692,9 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 6px;
+  /* 목록을 패널 아래쪽에 붙여 둔다. 위에 합성 줄이나 선택 카드가 생겨도
+     남는 공간부터 먹으므로 목록이 손가락 밑에서 밀려나지 않는다. */
+  margin-top: auto;
 }
 .inventory-empty {
   grid-column: 1 / -1;
@@ -807,7 +810,7 @@ button:disabled {
   font-weight: 500;
   color: var(--dim);
   margin-top: 3px;
-  line-height: 1.4;
+  line-height: 1.35;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -819,7 +822,7 @@ button:disabled {
   gap: 4px;
   font-size: 10px;
   font-weight: 800;
-  margin-top: 5px;
+  margin-top: 4px;
 }
 .selected-stats span {
   background: var(--sunk);
@@ -1337,6 +1340,9 @@ button:disabled {
   color: var(--off);
   text-decoration: underline;
   align-self: center;
+  /* 되돌릴 수 없는 동작이라 작게 두되, 손가락으로 누를 만한 크기는 준다 */
+  min-height: 44px;
+  padding: 0 16px;
 }
 
 .shop {
@@ -1802,6 +1808,30 @@ button:disabled {
 }
 
 /* ───────── 좁은 화면 (기본 규칙 뒤에 두어 우선한다) ───────── */
+/* ───────── 낮은 화면 (구형 폰): 필드를 줄여 조작 패널에 자리를 준다 ───────── */
+@media (max-height: 700px) and (max-width: 699px) {
+  .field {
+    width: min(100%, 100vh, 44dvh);
+  }
+  .field-wrap {
+    padding: 5px;
+  }
+  .hud {
+    padding: calc(4px + env(safe-area-inset-top)) 6px 0;
+  }
+  .hud-card {
+    padding: 6px 9px 7px;
+    gap: 5px;
+  }
+  .panel {
+    padding: 5px 6px 8px;
+    gap: 5px;
+  }
+  .odds {
+    display: none; /* 확률표는 뽑기 버튼 옆 정보. 자리가 없으면 접는다 */
+  }
+}
+
 @media (max-width: 480px) {
   .hud-card {
     padding: 7px 9px 8px;

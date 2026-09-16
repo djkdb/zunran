@@ -143,8 +143,12 @@ export const MERGE_ODDS = { upgrade: 0.7, promote: 0.25, special: 0.05 };
 export const WAVE_DURATION = 22;
 export const BOSS_WAVE_DURATION = 36;
 // 밤이 깊어질수록 손님이 몰아친다: 웨이브 간격이 22초에서 14초까지 줄어든다.
+// 다만 초반 10웨이브는 아직 위협이 없어 기다리는 시간이 되므로 짧게 끊는다.
+// (1웨이브 -6초에서 시작해 10웨이브에 0이 된다. 손님 수는 그대로라 밀도만 조금 올라간다)
 export function waveDuration(wave: number): number {
-  return Math.max(14, WAVE_DURATION - (wave - 1) * 0.22);
+  const base = Math.max(14, WAVE_DURATION - (wave - 1) * 0.22);
+  const earlyCut = Math.max(0, 6 - (wave - 1) * 0.7);
+  return base - earlyCut;
 }
 export const BOSS_WAVES = [10, 20, 30, 40];
 export const THREE_AM_WAVE = 13; // 00:00 시작, 웨이브당 15분 → 웨이브 13 시작 시각 = 03:00

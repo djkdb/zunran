@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { GameAction, UISnapshot } from '../game/types';
 import { UNIT_BY_ID } from '../game/data/units';
 import { RARITY_COLOR, RARITY_LABEL, tierDmgMult } from '../game/config';
@@ -28,11 +28,28 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
     const t = window.setTimeout(() => setConfirmSell(null), 2500);
     return () => clearTimeout(t);
   }, [confirmSell]);
+  // 합성 줄이나 선택 카드가 나타나면 그 아래 보유 목록이 통째로 밀려서
+  // 방금 누르려던 칩이 손가락 밑에서 사라진다. 목록의 화면상 위치를 고정한다.
+  const panelRef = useRef<HTMLElement>(null);
+  const invRef = useRef<HTMLDivElement>(null);
+  const prevInvTop = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const panel = panelRef.current;
+    const inv = invRef.current;
+    if (!panel || !inv) return;
+    const top = inv.offsetTop;
+    if (prevInvTop.current !== null && top !== prevInvTop.current) {
+      const max = Math.max(0, panel.scrollHeight - panel.clientHeight);
+      panel.scrollTop = Math.min(max, Math.max(0, panel.scrollTop + (top - prevInvTop.current)));
+    }
+    prevInvTop.current = top;
+  });
+
   const needsConfirm = !!sel && (sel.rarity !== 'common' || (snap.selected?.tier ?? 1) > 1);
   const odds = snap.rarityOdds;
   const free = snap.freeDraws > 0;
   return (
-    <section className="panel">
+    <section className="panel" ref={panelRef}>
       <div className="panel-top">
         <button
           className={`draw-btn ${snap.canDraw ? '' : 'disabled'} ${free ? 'free' : ''}`}
@@ -164,7 +181,7 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
                 {snap.selected.aisle} 배치 · <b>{snap.selected.aisleBonus}</b>
                 {snap.selected.groupCount >= 2 && <span className="selected-group">같은 유닛 {snap.selected.groupCount}개 (합성 {3 - snap.selected.groupCount > 0 ? `${3 - snap.selected.groupCount}개 남음` : '가능'})</span>}
               </div>
-              <div className="selected-hint">끌어서 옮기거나, 빈 칸을 탭해 배치하세요</div>
+              {snap.wave <= 6 && <div className="selected-hint">끌어서 옮기거나, 빈 칸을 탭해 배치하세요</div>}
             </div>
           </div>
           <div className="selected-actions">
@@ -188,7 +205,7 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
         </div>
       )}
 
-      <div className="inventory">
+      <div className="inventory" ref={invRef}>
         {snap.groups.length === 0 && <div className="inventory-empty">유닛을 뽑아서 편의점을 지키세요. 같은 유닛 3개 = 합성!</div>}
         {snap.groups.map((g) => {
             const def = UNIT_BY_ID[g.defId];

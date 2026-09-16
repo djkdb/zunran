@@ -118,8 +118,15 @@ describe('엔진', () => {
     expect(a.slot).toBe(5);
     expect(s.slots[0].unitId).toBeNull();
     expect(s.selectedUnitId).toBeNull();
+    // 유닛이 있는 칸을 탭하면 교환이 아니라 그 유닛을 선택한다 (실수 교환 방지)
     engine.dispatch({ type: 'TAP_SLOT', slot: 5 });
-    engine.dispatch({ type: 'TAP_SLOT', slot: 1 }); // 교환
+    expect(s.selectedUnitId).toBe(a.id);
+    engine.dispatch({ type: 'TAP_SLOT', slot: 1 });
+    expect(s.selectedUnitId).toBe(b.id);
+    expect(a.slot).toBe(5);
+    expect(b.slot).toBe(1);
+    // 교환은 드래그(MOVE)로만
+    engine.dispatch({ type: 'MOVE', unitId: a.id, slot: 1 });
     expect(a.slot).toBe(1);
     expect(b.slot).toBe(5);
     const coins = s.coins;

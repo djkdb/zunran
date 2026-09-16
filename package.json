@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "sim": "tsx scripts/sim.ts",
-    "deploy:cf": "npm run build && npx wrangler pages deploy dist --project-name=cvs-night-shift"
+    "deploy:cf": "npm run build && npx wrangler pages deploy dist --project-name=cvs-night-shift",
+    "pacing": "tsx scripts/pacing.ts"
   },
   "dependencies": {
     "react": "^18.3.1",

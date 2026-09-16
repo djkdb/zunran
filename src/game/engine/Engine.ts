@@ -261,24 +261,26 @@ export class Engine {
     return { ok: true };
   }
 
+  // 탭 규칙 (화면 안내와 동일하게):
+  //  - 유닛이 있는 칸을 탭하면 그 유닛을 본다. 같은 유닛을 다시 탭하면 선택 해제.
+  //  - 빈 칸을 탭하면 선택한 유닛이 그 자리로 간다.
+  //  - 자리 교환은 드래그로만. (탭으로 교환하면 다른 유닛을 보려다 실수로 바뀐다)
   private tapSlot(slotIdx: number): { ok: boolean } {
     const s = this.state;
     const slot = s.slots[slotIdx];
     if (!slot) return { ok: false };
+    if (slot.unitId !== null) {
+      s.selectedUnitId = slot.unitId === s.selectedUnitId ? null : slot.unitId;
+      sfx(s, 'click');
+      return { ok: true };
+    }
     if (s.selectedUnitId !== null) {
       const sel = s.units.find((x) => x.id === s.selectedUnitId);
       if (!sel) {
         s.selectedUnitId = null;
-      } else if (slot.unitId === sel.id) {
-        s.selectedUnitId = null; // 같은 유닛 다시 탭 → 선택 해제
         return { ok: true };
-      } else {
-        return this.move(sel.id, slotIdx);
       }
-    }
-    if (slot.unitId !== null) {
-      s.selectedUnitId = slot.unitId;
-      sfx(s, 'click');
+      return this.move(sel.id, slotIdx);
     }
     return { ok: true };
   }
