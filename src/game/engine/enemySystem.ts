@@ -180,6 +180,26 @@ export function updateEnemies(state: GameState, dt: number): void {
     }
   }
   const buffers = state.enemies.filter((e) => !e.dead && !e.reached && ENEMY_BY_ID[e.defId].behavior.kind === 'buffer');
+  // 커플 손님: 주변 손님을 초당 일정 비율 회복시킨다 (뭉치면 잘 안 죽는다)
+  // (엔진은 결정론적이어야 하므로 연출에도 Math.random 을 쓰지 않는다)
+  const healers = state.enemies.filter((e) => !e.dead && !e.reached && ENEMY_BY_ID[e.defId].behavior.kind === 'healer');
+  for (const h of healers) {
+    const hb = ENEMY_BY_ID[h.defId].behavior;
+    if (hb.kind !== 'healer') continue;
+    const r2 = hb.radius * hb.radius;
+    let healed = false;
+    for (const t of state.enemies) {
+      if (t.dead || t.reached || t.isBoss || t === h) continue;
+      if (t.hp >= t.maxHp) continue;
+      if (dist2(h.x, h.y, t.x, t.y) > r2) continue;
+      t.hp = Math.min(t.maxHp, t.hp + t.maxHp * hb.healPerSec * dt);
+      healed = true;
+    }
+    if (healed && (!h.bubble || h.bubble.until < state.time)) {
+      h.bubble = { text: '♥ 챙겨줄게', until: state.time + 1.2 };
+      addFloater(state, { x: h.x, y: h.y - 30, text: '♥', color: '#fda4af', size: 12, life: 0.8 });
+    }
+  }
   const blockers = state.enemies.filter((e) => !e.dead && !e.reached && ENEMY_BY_ID[e.defId].behavior.kind === 'askPrice' && e.stateFlag === 1);
   // 술 취한 친구들: 그룹 선두 dist
   const groupLead = new Map<number, number>();
@@ -331,6 +351,47 @@ export function updateEnemies(state: GameState, dt: number): void {
       }
       case 'buffer':
         break;
+      case 'steal': {
+        // 도중에 멈춰 현금을 뽑는다. 멈춰 있는 동안은 좋은 표적.
+        e.stateTimer -= dt;
+        if (e.stateFlag === 0 && e.stateTimer <= 0) {
+          e.stateFlag = 1;
+          e.stateTimer = b.stopDur;
+          const take = Math.min(state.coins, Math.round(b.amount * (1 + state.wave * 0.12)));
+          if (take > 0) {
+            state.coins -= take;
+            addFloater(state, { x: e.x, y: e.y - 30, text: `-${take}원`, color: '#f87171', size: 13, life: 1.2 });
+          }
+          e.bubble = { text: take > 0 ? `${take}원 인출` : '잔액 부족', until: state.time + b.stopDur };
+        } else if (e.stateFlag === 1) {
+          move = false;
+          if (e.stateTimer <= 0) {
+            e.stateFlag = 0;
+            e.stateTimer = b.every;
+          }
+        }
+        break;
+      }
+      case 'healer':
+        // 회복은 위 루프에서 일괄 처리 (자기 자신은 회복하지 않는다)
+        break;
+      case 'shielder': {
+        e.stateTimer -= dt;
+        if (e.stateTimer <= 0) {
+          e.stateTimer = b.every;
+          const r2 = b.radius * b.radius;
+          const targets = state.enemies
+            .filter((t) => !t.dead && !t.reached && !t.isBoss && t !== e && t.shield <= 0 && dist2(e.x, e.y, t.x, t.y) <= r2)
+            .sort((a, c) => c.dist - a.dist)
+            .slice(0, b.targets);
+          for (const t of targets) {
+            t.shield = t.maxHp * b.shieldPct;
+            addFloater(state, { x: t.x, y: t.y - 28, text: '방어', color: '#c084fc', size: 11, life: 0.9 });
+          }
+          if (targets.length > 0) e.bubble = { text: '여러분 힘내세요!', until: state.time + 1.5 };
+        }
+        break;
+      }
       case 'blink': {
         e.stateTimer += dt;
         if (!e.hidden && e.stateTimer >= b.visibleFor) {

@@ -73,7 +73,7 @@ export const TOTAL_SLOTS = SLOT_POSITIONS.length;
 export const SLOT_HIT_RADIUS = 34;
 
 // ───────────── 경제 ─────────────
-export const START_COINS = 300;
+export const START_COINS = 200;
 export const START_HP = 100;
 export const DRAW_BASE_COST = 100;
 export const DRAW_COST_STEP = 10; // 뽑기마다 +10

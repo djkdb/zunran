@@ -61,7 +61,7 @@ src/
     config.ts              상수: 필드 크기, 경로, 슬롯, 확률, 비용, 스케일 공식
     data/
       units.ts             유닛 정의 테이블 (UnitDef)
-      enemies.ts           손님 정의 테이블 (EnemyDef) + 보스
+      enemies.ts           손님 정의 테이블 (EnemyDef) 22종 + 보스 4종
       waves.ts             웨이브 생성기 (웨이브 번호 → 스폰 목록)
       events.ts            랜덤 이벤트 정의 (EventDef)
       dialogue.ts          손님 대사, 밈 텍스트, 뽑기 멘트

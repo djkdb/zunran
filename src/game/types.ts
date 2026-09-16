@@ -124,6 +124,12 @@ export type EnemyBehavior =
   | { kind: 'panic'; speedUp: number; dur: number }
   | { kind: 'buffer'; radius: number; speedBuff: number }
   | { kind: 'blink'; visibleFor: number; hiddenFor: number }
+  // ATM 손님: 도중에 멈춰 서서 현금을 뽑는다 (플레이어 코인을 훔침)
+  | { kind: 'steal'; every: number; stopDur: number; amount: number }
+  // 커플 손님: 주변 손님을 서로 회복시킨다
+  | { kind: 'healer'; radius: number; healPerSec: number }
+  // 라이브 켠 손님: 주변 손님에게 주기적으로 보호막을 씌운다
+  | { kind: 'shielder'; every: number; radius: number; shieldPct: number; targets: number }
   | { kind: 'boss'; pattern: BossPatternKind };
 
 export interface EnemyDef {

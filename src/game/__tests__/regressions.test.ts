@@ -219,3 +219,80 @@ describe('보상 · 긴급 스킬 · 콤보', () => {
     expect(unitInterval(s, units[1])).toBeLessThan(unitInterval(s, units[0])); // 과자 코너는 공속
   });
 });
+
+describe('새 손님 행동', () => {
+  it('ATM 손님은 멈춰 서서 코인을 훔친다', () => {
+    const engine = new Engine({ seed: 61 });
+    const s = engine.state;
+    s.spawnQueue = [];
+    s.coins = 500;
+    const e = spawnEnemy(s, 'atm', { dist: 100 })!;
+    let stopped = false;
+    for (let i = 0; i < 600; i++) {
+      const before = e.dist;
+      step(engine, 1);
+      if (e.dist === before && e.stun <= 0) stopped = true;
+    }
+    expect(s.coins).toBeLessThan(500);
+    expect(s.coins).toBeGreaterThanOrEqual(0);
+    expect(stopped).toBe(true);
+  });
+
+  it('커플 손님은 옆 손님을 회복시키되 자기 자신은 회복하지 않는다', () => {
+    const engine = new Engine({ seed: 62 });
+    const s = engine.state;
+    s.spawnQueue = [];
+    const healer = spawnEnemy(s, 'couple', { dist: 300 })!;
+    const target = spawnEnemy(s, 'basic', { dist: 300 })!;
+    target.hp = target.maxHp * 0.3;
+    healer.hp = healer.maxHp * 0.3;
+    const t0 = target.hp;
+    const h0 = healer.hp;
+    step(engine, 120);
+    expect(target.hp).toBeGreaterThan(t0);
+    expect(target.hp).toBeLessThanOrEqual(target.maxHp);
+    expect(healer.hp).toBe(h0);
+  });
+
+  it('라이브 켠 손님은 주변 손님에게 보호막을 씌우고, 보호막이 피해를 먼저 흡수한다', () => {
+    const engine = new Engine({ seed: 63 });
+    const s = engine.state;
+    s.spawnQueue = [];
+    spawnEnemy(s, 'influencer', { dist: 400 });
+    const t = spawnEnemy(s, 'basic', { dist: 420 })!;
+    let shielded = 0;
+    for (let i = 0; i < 600 && shielded === 0; i++) {
+      step(engine, 1);
+      shielded = t.shield;
+    }
+    expect(shielded).toBeGreaterThan(0);
+    const hp = t.hp;
+    damageEnemy(s, t, shielded * 0.5, null);
+    expect(t.hp).toBe(hp); // 보호막이 전부 흡수
+    expect(t.shield).toBeLessThan(shielded);
+  });
+
+  it('배달 오토바이는 감속과 넉백에 면역이다', () => {
+    const engine = new Engine({ seed: 64 });
+    const s = engine.state;
+    s.spawnQueue = [];
+    const e = spawnEnemy(s, 'bikeCourier', { dist: 200 })!;
+    e.slow = { pct: 0.8, until: s.time + 999 };
+    const d0 = e.dist;
+    step(engine, 60);
+    expect(e.dist - d0).toBeGreaterThan(150); // 감속을 무시하고 제 속도로 달린다
+  });
+
+  it('뛰는 손님은 초반에 실제로 계산대까지 닿을 수 있다', () => {
+    const engine = new Engine({ seed: 65 });
+    const s = engine.state;
+    s.spawnQueue = [];
+    const hp0 = s.hp;
+    spawnEnemy(s, 'runner', { dist: 0 });
+    // 경로 2473px / 속도 215 ≈ 11.5초. 웨이브가 넘어가기 전에 도착한다.
+    run(engine, 14);
+    expect(s.wave).toBe(1);
+    expect(s.hp).toBeLessThan(hp0); // 유닛이 없으면 반드시 통과한다
+    expect(s.waveReached).toBe(true);
+  });
+});

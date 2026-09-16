@@ -23,11 +23,15 @@ export function buildWave(wave: number, rng: RNG): WavePlan {
   }
   if (wave === 2) {
     for (let i = 0; i < 6; i++) entries.push({ at: 1 + i * 2, defId: 'basic', count: 1 });
+    // 뛰는 손님 등장: 여기서 한두 대 맞아 보는 게 "계산대에 닿으면 깎인다"를 가르친다
+    entries.push({ at: 4, defId: 'runner', count: 1 });
+    entries.push({ at: 9.5, defId: 'runner', count: 1 });
     return { entries, duration };
   }
   if (wave === 3) {
     for (let i = 0; i < 6; i++) entries.push({ at: 1 + i * 1.9, defId: 'basic', count: 1 });
     entries.push({ at: 5, defId: 'cig', count: 1 });
+    entries.push({ at: 8, defId: 'runner', count: 2 });
     entries.push({ at: 11, defId: 'cig', count: 1 });
     return { entries, duration };
   }
