@@ -5,6 +5,7 @@ import { Hud } from './Hud';
 import { BottomPanel } from './BottomPanel';
 import { BannerLayer } from './Banner';
 import { RewardOverlay } from './RewardOverlay';
+import { Icon } from './Icon';
 
 interface Props {
   meta: MetaEffects;
@@ -47,6 +48,24 @@ export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHin
             onPointerUp={endDrag}
             onPointerCancel={endDrag}
           />
+          {snap && (
+            <div className="field-controls">
+              <button onClick={() => act({ type: 'TOGGLE_PAUSE' })} aria-label={snap.paused ? '계속하기' : '일시정지'}>
+                <Icon name={snap.paused ? 'play' : 'pause'} size={15} />
+              </button>
+              <button
+                className={snap.speed === 2 ? 'active' : ''}
+                onClick={() => act({ type: 'SET_SPEED', speed: snap.speed === 1 ? 2 : 1 })}
+                aria-label="2배속"
+                aria-pressed={snap.speed === 2}
+              >
+                <span className="px">×{snap.speed}</span>
+              </button>
+              <button onClick={onToggleMute} aria-label={muted ? '소리 켜기' : '소리 끄기'} aria-pressed={muted}>
+                <Icon name={muted ? 'mute' : 'sound'} size={15} strokeWidth={2.2} />
+              </button>
+            </div>
+          )}
           <BannerLayer banners={banners} />
           {toast && (
             <div className="toast" role="status" aria-live="polite">
@@ -61,12 +80,22 @@ export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHin
           {snap?.paused && snap.phase === 'playing' && (
             <div className="pause-overlay" onClick={() => act({ type: 'TOGGLE_PAUSE' })}>
               <div className="pause-text">일시정지</div>
+              <div className="pause-settings" onClick={(e) => e.stopPropagation()}>
+                <button className={`quick-btn ${autoMerge ? 'active' : ''}`} onClick={onToggleAutoMerge} aria-pressed={autoMerge}>
+                  <Icon name="merge" size={16} strokeWidth={2.4} />
+                  자동 합성 {autoMerge ? 'ON' : 'OFF'}
+                </button>
+                <button className={`quick-btn ${autoSell ? 'active' : ''}`} onClick={onToggleAutoSell} aria-pressed={autoSell}>
+                  <Icon name="broom" size={16} strokeWidth={2.4} />
+                  자동 정리 {autoSell ? 'ON' : 'OFF'}
+                </button>
+              </div>
               <div className="pause-sub">탭해서 계속</div>
             </div>
           )}
         </div>
       </div>
-      {snap && <BottomPanel snap={snap} act={act} muted={muted} onToggleMute={onToggleMute} autoMerge={autoMerge} onToggleAutoMerge={onToggleAutoMerge} autoSell={autoSell} onToggleAutoSell={onToggleAutoSell} />}
+      {snap && <BottomPanel snap={snap} act={act} />}
       {snap && <RewardOverlay snap={snap} act={act} />}
     </div>
   );

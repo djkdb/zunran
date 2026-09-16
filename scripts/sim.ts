@@ -5,6 +5,7 @@ import { UNIT_BY_ID } from '../src/game/data/units';
 import { metaEffects, DEFAULT_META_LEVELS } from '../src/game/save/meta';
 import type { MetaUpgradeId } from '../src/game/types';
 import { CHALLENGE_BY_ID } from '../src/game/data/dailyChallenges';
+import { sellCandidate } from '../src/ui/useGame';
 
 type Strategy = 'greedy' | 'saver' | 'noMerge' | 'sellCommons' | 'autoClean';
 
@@ -30,11 +31,8 @@ function autoPlay(engine: Engine, strategy: Strategy): void {
   }
   // autoClean: 게임 기본값과 같은 동작 — 칸이 다 찼고 합성할 게 없으면 짝 없는 1티어를 하나 정리
   if (strategy === 'autoClean' && snap.emptySlots === 0) {
-    const rank: Record<string, number> = { common: 0, rare: 1 };
-    const target = snap.groups
-      .filter((g) => g.tier === 1 && g.count === 1 && rank[UNIT_BY_ID[g.defId]?.rarity] !== undefined)
-      .sort((a, b) => rank[UNIT_BY_ID[a.defId].rarity] - rank[UNIT_BY_ID[b.defId].rarity])[0];
-    if (target) engine.dispatch({ type: 'SELL', unitId: target.unitIds[0] });
+    const target = sellCandidate(snap.groups);
+    if (target !== null) engine.dispatch({ type: 'SELL', unitId: target });
   }
   // 슬롯이 꽉 찼고 합성 불가면 가장 약한 일반 유닛 판매
   if (strategy === 'sellCommons' && snap.emptySlots === 0 && snap.coins >= snap.drawCost) {

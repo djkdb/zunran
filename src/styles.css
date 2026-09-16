@@ -203,6 +203,40 @@ button:disabled {
   width: 100%;
   height: 100%;
 }
+/* 일시정지·배속·음소거는 필드 오른쪽 위에 얹는다.
+   패널에 두면 세로로 3칸을 잡아 뽑기 버튼까지 같이 늘어난다 (카톡 인앱 브라우저에서 98px). */
+.field-controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.field-controls button {
+  --fc: var(--edge);
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dim);
+  background-color: rgba(18, 14, 36, 0.78);
+  background-image: linear-gradient(var(--fc), var(--fc)), linear-gradient(var(--fc), var(--fc)),
+    linear-gradient(var(--fc), var(--fc)), linear-gradient(var(--fc), var(--fc));
+  background-repeat: no-repeat;
+  background-size: calc(100% - 6px) 3px, calc(100% - 6px) 3px, 3px calc(100% - 6px), 3px calc(100% - 6px);
+  background-position: 3px 0, 3px 100%, 0 3px, 100% 3px;
+}
+.field-controls button.active {
+  --fc: var(--mint);
+  color: var(--mint);
+}
+.field-controls .px {
+  font-size: 11px;
+}
+
 .panel {
   grid-area: panel;
   background: var(--bg);
@@ -428,6 +462,13 @@ button:disabled {
   display: flex;
   gap: 7px;
   align-items: stretch;
+}
+/* 뽑기 버튼은 내용만큼만. (예전엔 옆 조작열 높이에 끌려 98px 까지 늘어났다) */
+.draw-btn {
+  flex: none;
+  width: 100%;
+  min-height: 0;
+  height: 58px;
 }
 .draw-btn {
   --fc: var(--pink);
@@ -1220,6 +1261,17 @@ button:disabled {
   gap: 5px;
   background: rgba(18, 14, 36, 0.78);
   cursor: pointer;
+}
+.pause-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(260px, 86%);
+  margin: 14px 0 10px;
+  cursor: default;
+}
+.pause-settings .quick-btn {
+  background-color: rgba(18, 14, 36, 0.9);
 }
 .pause-text {
   font-family: var(--font-display);
@@ -2448,9 +2500,21 @@ button:disabled {
 
 /* ───────── 좁은 화면 (기본 규칙 뒤에 두어 우선한다) ───────── */
 /* ───────── 낮은 화면 (구형 폰): 필드를 줄여 조작 패널에 자리를 준다 ───────── */
-@media (max-height: 700px) and (max-width: 699px) {
+@media (max-height: 760px) and (max-width: 699px) {
   .field {
-    width: min(100%, 100vh, 44dvh);
+    /* 조작 버튼을 필드 위로 올리고 토글을 일시정지로 뺀 만큼 필드에 돌려준다 */
+    width: min(100%, 100vh, 50dvh);
+  }
+  /* 유닛 상세는 낮은 화면에서 핵심만. 설명과 배치 안내는 접는다 */
+  .selected-desc,
+  .selected-hint {
+    display: none;
+  }
+  .selected-stats {
+    margin-top: 3px;
+  }
+  .selected-main {
+    padding: 5px 7px 6px;
   }
   .field-wrap {
     padding: 5px;

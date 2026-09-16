@@ -1,6 +1,6 @@
 // 런 제목 분포 + 밸런스 지표 측정: npx tsx scripts/titles.ts [판수]
 import { Engine } from '../src/game/engine/Engine';
-import { UNIT_BY_ID } from '../src/game/data/units';
+import { sellCandidate } from '../src/ui/useGame';
 import { pickRunTitle } from '../src/game/data/runTitles';
 import { createRng } from '../src/game/engine/rng';
 import { metaEffects, DEFAULT_META_LEVELS, metaPointsForRun } from '../src/game/save/meta';
@@ -19,10 +19,8 @@ for (let i = 0; i < N; i++) {
       const sn = e.snapshot();
       for (const g of sn.groups) if (g.mergeable) e.dispatch({ type: 'MERGE', defId: g.defId, tier: g.tier });
       if (sn.emptySlots === 0) {
-        const rank: Record<string, number> = { common: 0, rare: 1 };
-        const tg = sn.groups.filter((g) => g.tier === 1 && g.count === 1 && rank[UNIT_BY_ID[g.defId]?.rarity] !== undefined)
-          .sort((a, b) => rank[UNIT_BY_ID[a.defId].rarity] - rank[UNIT_BY_ID[b.defId].rarity])[0];
-        if (tg) e.dispatch({ type: 'SELL', unitId: tg.unitIds[0] });
+        const tg = sellCandidate(sn.groups);
+        if (tg !== null) e.dispatch({ type: 'SELL', unitId: tg });
       }
       let guard = 0;
       while (guard++ < 8 && e.snapshot().canDraw) e.dispatch({ type: 'DRAW' });

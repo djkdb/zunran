@@ -4,8 +4,8 @@ import { Engine } from '../game/engine/Engine';
 import { Renderer } from '../game/render/Renderer';
 import { audio } from '../game/audio/sfx';
 import { UNIT_BY_ID } from '../game/data/units';
-import type { ChallengeSpec, GameAction, MetaEffects, UISnapshot } from '../game/types';
-import { SLOT_HIT_RADIUS, THREE_AM_WAVE } from '../game/config';
+import type { ChallengeSpec, GameAction, MetaEffects, UISnapshot, UnitGroup } from '../game/types';
+import { SLOT_HIT_RADIUS, THREE_AM_WAVE, SELL_REFUND } from '../game/config';
 import type { BannerItem } from './Banner';
 
 export interface UseGameOptions {
@@ -22,6 +22,24 @@ export interface UseGameOptions {
 // - rAF 루프에서 engine.tick + renderer.render
 // - UI 스냅샷은 10Hz 로만 setState (React 리렌더 최소화)
 // - FX 큐를 배너/사운드/파티클로 분배
+// 칸이 다 찼을 때 팔 유닛 하나를 고른다.
+//  - 짝이 있는(count >= 2) 유닛은 절대 건드리지 않는다. 한두 개만 더 모으면 합성되기 때문.
+//  - 전설·특수는 어렵게 얻은 것이라 자동으로 팔지 않는다.
+//  - 남은 후보 중 게임이 매긴 판매가가 가장 낮은 것 = 가장 아깝지 않은 것을 판다.
+// (예전에는 "1티어 일반·희귀"만 봤는데, 중반 보드는 합성으로 생긴 T2 단독과 T1 짝뿐이라
+//  조건에 맞는 게 하나도 없어 칸이 영영 안 비었다.)
+export function sellCandidate(groups: UnitGroup[]): number | null {
+  let best: { id: number; price: number } | null = null;
+  for (const g of groups) {
+    if (g.count !== 1) continue;
+    const def = UNIT_BY_ID[g.defId];
+    if (!def || def.rarity === 'legendary' || def.rarity === 'special') continue;
+    const price = SELL_REFUND[def.rarity] * Math.pow(2.2, g.tier - 1);
+    if (!best || price < best.price) best = { id: g.unitIds[0], price };
+  }
+  return best?.id ?? null;
+}
+
 export function useGame(opts: UseGameOptions) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Engine | null>(null);
@@ -129,12 +147,9 @@ export function useGame(opts: UseGameOptions) {
         // 합성 가능한 묶음이 있어도 판다. 파는 대상은 항상 짝이 없는(count === 1) 유닛이라
         // 합성 재료를 없앨 일이 없고, 자동 합성이 꺼져 있으면 여기서 막혀 칸이 영영 안 빈다.
         if (sn.emptySlots === 0) {
-          const rank: Record<string, number> = { common: 0, rare: 1 };
-          const target = sn.groups
-            .filter((g) => g.tier === 1 && g.count === 1 && UNIT_BY_ID[g.defId] && rank[UNIT_BY_ID[g.defId].rarity] !== undefined)
-            .sort((a, b) => rank[UNIT_BY_ID[a.defId].rarity] - rank[UNIT_BY_ID[b.defId].rarity])[0];
+          const target = sellCandidate(sn.groups);
           if (target) {
-            engine.dispatch({ type: 'SELL', unitId: target.unitIds[0] });
+            engine.dispatch({ type: 'SELL', unitId: target });
             lastAutoSell.current = now;
           }
         }
@@ -192,7 +207,7 @@ export function useGame(opts: UseGameOptions) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 논리 좌표에서 가장 가까운 슬롯
+// 논리 좌표에서 가장 가까운 슬롯
   const slotAt = useCallback((clientX: number, clientY: number): number => {
     const engine = engineRef.current;
     const renderer = rendererRef.current;

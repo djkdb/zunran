@@ -8,15 +8,9 @@ import { Icon, TierTicks } from './Icon';
 interface Props {
   snap: UISnapshot;
   act: (a: GameAction) => void;
-  muted: boolean;
-  onToggleMute: () => void;
-  autoMerge: boolean;
-  onToggleAutoMerge: () => void;
-  autoSell: boolean;
-  onToggleAutoSell: () => void;
 }
 
-export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggleAutoMerge, autoSell, onToggleAutoSell }: Props) {
+export function BottomPanel({ snap, act }: Props) {
   const mergeables = snap.groups.filter((g) => g.mergeable);
   const sel = snap.selected ? UNIT_BY_ID[snap.selected.defId] : null;
   // 값나가는 유닛은 실수로 팔리지 않게 한 번 더 묻는다
@@ -32,6 +26,10 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
   }, [confirmSell]);
   // 합성 줄이나 선택 카드가 나타나면 그 아래 보유 목록이 통째로 밀려서
   // 방금 누르려던 칩이 손가락 밑에서 사라진다. 목록의 화면상 위치를 고정한다.
+  //
+  // 단, 맨 위(스크롤 0)를 보고 있을 때는 절대 건드리지 않는다.
+  // 뽑기 버튼이 맨 위에 있어서, 뽑을 때마다 선택 카드가 생기며 화면이 내려가면
+  // 버튼이 손가락 밑에서 사라져 연속으로 못 뽑는다. 그때의 기준점은 목록이 아니라 위쪽이다.
   const panelRef = useRef<HTMLElement>(null);
   const invRef = useRef<HTMLDivElement>(null);
   const prevInvTop = useRef<number | null>(null);
@@ -40,7 +38,7 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
     const inv = invRef.current;
     if (!panel || !inv) return;
     const top = inv.offsetTop;
-    if (prevInvTop.current !== null && top !== prevInvTop.current) {
+    if (prevInvTop.current !== null && top !== prevInvTop.current && panel.scrollTop > 0) {
       const max = Math.max(0, panel.scrollHeight - panel.clientHeight);
       panel.scrollTop = Math.min(max, Math.max(0, panel.scrollTop + (top - prevInvTop.current)));
     }
@@ -67,22 +65,6 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
           </span>
           <span className="draw-cost">{free ? `무료 ×${snap.freeDraws}` : snap.drawCost}</span>
         </button>
-        <div className="controls">
-          <button className="ctrl" onClick={() => act({ type: 'TOGGLE_PAUSE' })} aria-label={snap.paused ? '계속하기' : '일시정지'}>
-            <Icon name={snap.paused ? 'play' : 'pause'} size={15} />
-          </button>
-          <button
-            className={`ctrl ${snap.speed === 2 ? 'active' : ''}`}
-            onClick={() => act({ type: 'SET_SPEED', speed: snap.speed === 1 ? 2 : 1 })}
-            aria-label="2배속"
-            aria-pressed={snap.speed === 2}
-          >
-            ×{snap.speed}
-          </button>
-          <button className="ctrl" onClick={onToggleMute} aria-label={muted ? '소리 켜기' : '소리 끄기'} aria-pressed={muted}>
-            <Icon name={muted ? 'mute' : 'sound'} size={16} strokeWidth={2.2} />
-          </button>
-        </div>
       </div>
 
       <div className="odds" aria-label="뽑기 확률">
@@ -119,24 +101,14 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
         </button>
       </div>
 
-      <div className="quick-row">
-        <button className={`quick-btn ${autoMerge ? 'active' : ''}`} onClick={onToggleAutoMerge} aria-pressed={autoMerge}>
-          <Icon name="merge" size={17} strokeWidth={2.4} />
-          자동 합성 {autoMerge ? 'ON' : 'OFF'}
-        </button>
-        <button className={`quick-btn ${autoSell ? 'active' : ''}`} onClick={onToggleAutoSell} aria-pressed={autoSell} title="칸이 다 찼을 때만 합성 짝 없는 1티어 일반 유닛을 자동 판매">
-          <Icon name="broom" size={17} strokeWidth={2.4} />
-          자동 정리 {autoSell ? 'ON' : 'OFF'}
-        </button>
-      </div>
-      {snap.junkCount > 0 && (
+      {snap.junkCount > 0 && snap.emptySlots === 0 && (
         <button
-          className={`clean-btn ${snap.emptySlots === 0 ? 'urgent' : ''}`}
+          className="clean-btn urgent"
           onClick={() => act({ type: 'SELL_JUNK' })}
           title="짝이 없는 1티어 일반 유닛을 전부 판매"
         >
           <Icon name="broom" size={16} strokeWidth={2.4} />
-          {snap.emptySlots === 0 ? '칸이 다 찼어요 · 정리하고 뽑기' : '정리'}
+          칸이 다 찼어요 · 정리하고 뽑기
           <span className="px">
             {snap.junkCount}개 +{snap.junkValue}
           </span>
