@@ -74,6 +74,19 @@ npm run deploy:cf                  # build 후 dist/ 를 Pages 프로젝트 cvs-
 
 처음 실행하면 프로젝트를 새로 만들지 물어보니 Enter. 출력되는 `https://cvs-night-shift.pages.dev` 가 배포 주소다.
 
+### 4-2. 글로벌 랭킹 서버 붙이기 (선택)
+
+랭킹판은 Cloudflare Pages Functions + KV 로 동작한다. KV 를 바인딩하지 않아도 게임은 그대로
+돌아가고, 랭킹 탭만 "서버 미연결"로 표시된다.
+
+1. 대시보드 → **Storage & Databases → KV → Create namespace** (이름 아무거나)
+2. Pages 프로젝트 → **Settings → Bindings → Add → KV namespace**
+   - Variable name: `RANK_KV` (이 이름이어야 한다)
+   - Production / Preview 양쪽에 건다
+3. 재배포. `functions/` 는 저장소 루트에 있어 Pages 가 자동으로 잡는다.
+
+자세한 구조·검증 규칙·개인정보 범위는 `docs/RANKING.md` 참고.
+
 **커스텀 도메인**: Pages 프로젝트 → **Custom domains** → 도메인 입력. Cloudflare 에서 관리하는 도메인이면 DNS 가 자동으로 잡힌다.
 
 **확인 사항**: `vite.config.ts` 의 `base: './'` 덕분에 추가 설정 없이 동작한다. SPA 라우팅이 없으므로 `_redirects` 도 필요 없다. HTTPS 는 기본 제공되어 클립보드 복사(결과 공유) 기능도 정상 동작한다.
@@ -114,7 +127,12 @@ src/
     render/sprites/*.ts        16x16 픽셀 스프라이트 데이터 (문자열 그리드)
     render/sprites.ts          스프라이트 레지스트리 + 래스터 캐시
     audio/sfx.ts               WebAudio 합성 효과음 20종 + 루프 BGM (긴장 모드)
-    save/storage.ts            localStorage 저장/로드 + v1 → v2 마이그레이션, 용량 정리
+    save/storage.ts            localStorage 저장/로드 + v1 → v3 마이그레이션, 용량 정리
+    rank/types.ts              랭킹 기록 타입 + 정렬 기준 (클라이언트·서버 공용)
+    rank/validate.ts           기록 검증 (서버가 쓰는 순수 함수, 게임 상수 기반)
+    rank/board.ts              보드 정렬·삽입·순위 계산 (서버·테스트 공용)
+    rank/api.ts                랭킹 API 호출 (실패해도 게임을 막지 않는다)
+    rank/payload.ts            한 판 결과 → 전송 payload
     save/meta.ts               메타 업그레이드 6종 정의, 야간 수당 계산
     save/stats.ts              한 판 기록 → 누적 도감 통계 병합, 패배 원인 분석
   ui/
@@ -122,13 +140,18 @@ src/
     useGame.ts                 Engine ↔ React 브리지 (rAF 루프, 10Hz 스냅샷, FX → 배너/사운드)
     GameScreen.tsx / Hud.tsx / BottomPanel.tsx / Banner.tsx
     RewardOverlay.tsx          웨이브 보상 3택 화면
-    StartScreen.tsx            시작 화면 + ZUNRAN DAILY 카드 + 탭 6종
+    StartScreen.tsx            시작 화면 + ZUNRAN DAILY 카드 + 탭 7종
     CodexScreen.tsx            도감 (유닛/손님별 누적 통계, 특징, 관련 사건)
     AchievementsScreen.tsx     업적 (달성률, 그룹 필터, 숨겨진 업적)
     HistoryScreen.tsx          최근 근무 기록 30판
     GameOverScreen.tsx         영업 종료 화면 + 업적 토스트
     RunReport.tsx              근무 보고서 (런 제목, MVP, 패배 원인, 사건, 미션 결과)
     Certificate.tsx            근무 인증서 (Canvas 렌더 → Web Share / 클립보드 / 이미지 저장)
+    RankScreen.tsx             랭킹판 (오늘의 근무 / 전체 최고 / 내 기록)
+functions/
+  api/rank/[board].ts          GET 랭킹 조회 (Cloudflare Pages Function)
+  api/rank/submit.ts           POST 기록 제출 (검증 후 KV 저장)
+  api/rank/_shared.ts          KV 접근 + 응답 헬퍼
 scripts/
   sim.ts                       헤드리스 밸런스 시뮬레이터 (전략 4종, 데일리 규칙 지정 가능)
   pacing.ts                    초반 긴장감·템포 측정 (첫 피해 웨이브, 한 판 길이)
@@ -139,6 +162,7 @@ scripts/
   titles.ts                    런 제목 분포 + 종합 밸런스 지표
   checkSprites.ts / renderSprites.ts   스프라이트 검증/렌더
 docs/DESIGN.md                 아키텍처·데이터 구조·시스템 설계 문서
+docs/RANKING.md                랭킹 서버 구조·설치·검증 범위·개인정보
 ```
 
 ## 6. 게임 시스템 설명
@@ -170,7 +194,8 @@ docs/DESIGN.md                 아키텍처·데이터 구조·시스템 설계 
 - **밤의 단계**: 22시 → 자정 → 새벽 2시 → 새벽 3시로 화면 색조가 단계적으로 어두워지고, 3시 이후에는 형광등이 가끔 깜빡인다. 02:00 에 전조 배너가 먼저 뜬다.
 - **자동 정리**: 칸 21개가 다 차면 뽑기가 막히고 → 같은 유닛 3개가 안 모이고 → 합성이 멈춘다. 그래서 칸이 다 찼을 때만, 짝이 없는 1티어 유닛을 **한 번에 하나씩** 판다(기본 켜짐, 끌 수 있음). 짝이 있는 유닛은 절대 건드리지 않으므로 합성 재료가 사라질 일이 없다. 칸이 찼는데 자동 정리를 꺼 뒀다면 뽑기 버튼이 `SLOT FULL · 정리하세요` 로 바뀌고 정리 줄이 깜빡인다.
 - **메타**: 한 판 종료 시 야간 수당(`웨이브×14 + 처치×0.25 + 코인×0.004`). 시작 코인/초기 체력/뽑기 할인/희귀 확률/에픽·전설 확률/코인 획득량 각 5레벨, 전부 사는 데 약 11판. 다 사면 사망 웨이브 중앙값이 29 → 33 으로 오르고 하한이 15 → 25 로 올라간다.
-- **저장**: `localStorage["cvs-night-shift:v1"]` 에 최고 웨이브/최장 생존/총 플레이/도감/메타/음소거.
+- **글로벌 랭킹**: 판이 끝나면 기록이 자동으로 올라간다. 보드는 둘 — **오늘의 근무**(ZUNRAN DAILY 규칙, 그날 모두가 같은 조건)와 **전체 최고**(일반 근무). 순위는 웨이브 → 소요 시간 → 처치 수 순이고, 한 사람당 최고 기록 하나만 남는다. **내 기록** 탭은 서버 없이도 기기 기록으로 동작한다. 서버에는 표시 이름·기록 숫자·기기 식별자 앞 8자만 올라가고, 랭킹 등록을 끄면 아무것도 보내지 않는다. 기록은 서버에서 검증한다 — 웨이브 대비 최소 소요 시간, 등장 가능한 손님 수, 콤보 ≤ 처치, 보스 처치 상한, 뽑기 대비 합성 수, 제출 간격. 다만 게임을 실제로 재생해 보는 검증은 아니라서 "그럴듯한 범위 안의 조작"까지는 막지 못한다.
+- **저장**: `localStorage["cvs-night-shift:v1"]` 에 최고 웨이브/최장 생존/총 플레이/도감/메타/음소거/랭킹 이름.
 - **비주얼 방향 (아케이드 스타일)**: 셸도 픽셀로 만든 네온 아케이드. 짙은 보라 바탕(`#120e24`) 위에 민트·핑크·골드 세 네온만 쓰고, 테두리는 항상 3px에 모서리를 3px 깎아 계단으로 만든다(배경 이미지 링 기법). 상태는 테두리 색으로만 말한다 — 기본 EDGE / 준비됨 MINT / 행동·위험 PINK / 돈·보상 GOLD. 라운드 0, 그라데이션·블러·글로우·이모지 없음. 막대는 칸으로 끊는다(웨이브 5칸·체력 10칸·보스 20칸). 글꼴은 Do Hyeon(제목·유닛 이름) + Silkscreen(숫자·영문 상태 라벨) + Gothic A1(본문). 필드 바탕도 같은 보랏빛 야간 톤으로 맞춰 껍데기와 픽셀 매장이 한 화면으로 읽힌다. 시안과 구성 요소 규격은 `design/` 참고.
 - **조작**: 
   - 유닛을 **끌어서** 다른 칸에 놓거나 교환할 수 있고, **탭-탭**(유닛 탭 → 빈 칸 탭)으로도 옮길 수 있다.
@@ -184,7 +209,6 @@ docs/DESIGN.md                 아키텍처·데이터 구조·시스템 설계 
 
 ## 7. 추후 추가하면 좋은 기능
 
-- 온라인 리더보드 (Supabase 등) + 공유용 결과 카드 이미지 생성
 - 유닛 도감에서 상세 능력치/스킬 열람, 손님 도감 대사 모음
 - 데일리 시드 모드 ("오늘의 야간근무" — 모두 같은 랜덤 시드로 경쟁)
 - 도전 모드: "전설 금지", "일반 유닛만", "냉장고 챌린지" 등 릴스용 제약 모드

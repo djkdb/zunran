@@ -1,0 +1,17 @@
+# 랭킹 서버(Cloudflare Pages Functions + KV)를 CLI 로 배포할 때만 필요한 파일이다.
+# 대시보드에서 KV 를 바인딩하면 이 파일 없이도 동작한다. docs/RANKING.md 참고.
+#
+#   cp wrangler.toml.example wrangler.toml
+#   npx wrangler kv namespace create RANK_KV          # 출력된 id 를 아래에 붙여넣는다
+#   npx wrangler kv namespace create RANK_KV --preview # 미리보기용 (선택)
+#
+# wrangler.toml 자체는 KV 네임스페이스 id 를 담으므로 커밋하지 않는다(.gitignore 처리됨).
+
+name = "cvs-night-shift"
+compatibility_date = "2026-01-01"
+pages_build_output_dir = "dist"
+
+[[kv_namespaces]]
+binding = "RANK_KV"
+id = "여기에_wrangler_가_출력한_id"
+preview_id = "여기에_preview_id"

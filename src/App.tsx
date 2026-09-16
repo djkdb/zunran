@@ -10,6 +10,8 @@ import { getDaily, dateKey } from './game/daily';
 import { createRng } from './game/engine/rng';
 import { GAMEOVER_QUIPS } from './game/data/dialogue';
 import { audio } from './game/audio/sfx';
+import { submitScore, type SubmitResult } from './game/rank/api';
+import { buildPayload } from './game/rank/payload';
 import { StartScreen } from './ui/StartScreen';
 import { GameScreen } from './ui/GameScreen';
 import { GameOverScreen } from './ui/GameOverScreen';
@@ -49,6 +51,8 @@ export function App() {
   const [screen, setScreen] = useState<'start' | 'game'>('start');
   const [runKey, setRunKey] = useState(0);
   const [result, setResult] = useState<RunResult | null>(null);
+  // 랭킹 전송 결과. 서버가 없거나 네트워크가 끊겨도 게임 흐름은 막지 않는다.
+  const [rank, setRank] = useState<SubmitResult | null>(null);
   // 오늘의 규칙으로 플레이할지 (시작 화면에서 고른다)
   const [dailyMode, setDailyMode] = useState(false);
 
@@ -60,6 +64,7 @@ export function App() {
   const startGame = useCallback((daily: boolean) => {
     audio.unlock();
     setResult(null);
+    setRank(null);
     setDailyMode(daily);
     setRunKey((k) => k + 1);
     setScreen('game');
@@ -186,6 +191,29 @@ export function App() {
       persist(next);
       setResult(res);
       if (newRecord) audio.play('record');
+
+      // ── 글로벌 랭킹 전송 (실패해도 조용히 넘어간다) ──
+      if (next.rankOptIn) {
+        submitScore(
+          buildPayload(
+            {
+              wave: s.wave,
+              time: s.realTime,
+              kills: s.stats.kills,
+              bestCombo: s.stats.bestCombo,
+              merges: s.stats.merges,
+              draws: s.stats.draws,
+              bossKills: s.stats.bossKills,
+              coins: s.stats.coinsEarned,
+              mvp: mvpId,
+              runTitle,
+              challengeId: s.challenge?.id ?? null,
+            },
+            next,
+            today.date,
+          ),
+        ).then(setRank);
+      }
     },
     [save, persist],
   );
@@ -203,6 +231,9 @@ export function App() {
     },
     [save, persist],
   );
+
+  const setNickname = useCallback((nickname: string) => persist({ ...save, nickname }), [save, persist]);
+  const toggleRankOptIn = useCallback(() => persist({ ...save, rankOptIn: !save.rankOptIn }), [save, persist]);
 
   const toggleAutoMerge = useCallback(() => persist({ ...save, autoMerge: !save.autoMerge }), [save, persist]);
   const toggleAutoSell = useCallback(() => persist({ ...save, autoSell: !save.autoSell }), [save, persist]);
@@ -227,6 +258,8 @@ export function App() {
         onStart={startGame}
         onBuy={buy}
         onToggleMute={toggleMute}
+        onSetNickname={setNickname}
+        onToggleRankOptIn={toggleRankOptIn}
         onReset={() => setSave(resetSave())}
       />
     );
@@ -247,7 +280,15 @@ export function App() {
         onToggleAutoSell={toggleAutoSell}
         onGameOver={onGameOver}
       />
-      {result && <GameOverScreen result={result} save={save} onRestart={() => startGame(dailyMode)} onMenu={() => setScreen('start')} />}
+      {result && (
+        <GameOverScreen
+          result={result}
+          save={save}
+          rank={rank}
+          onRestart={() => startGame(dailyMode)}
+          onMenu={() => setScreen('start')}
+        />
+      )}
     </div>
   );
 }

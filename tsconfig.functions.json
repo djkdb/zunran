@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": [
+      "@cloudflare/workers-types"
+    ],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "functions/**/*.ts",
+    "src/game/rank/types.ts",
+    "src/game/rank/validate.ts",
+    "src/game/rank/board.ts",
+    "src/game/config.ts",
+    "src/game/types.ts"
+  ]
+}

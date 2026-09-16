@@ -6,3 +6,7 @@ test-results
 
 # 디자인 캔버스 결과물(2.5MB, seed-canvas 로 재생성 가능)
 design/cvs-night-shift-ui-directions.html
+
+# KV 네임스페이스 id 가 들어가므로 커밋하지 않는다
+wrangler.toml
+.wrangler/

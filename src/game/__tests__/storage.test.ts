@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { loadSave, writeSave, SAVE_KEY, defaultSave } from '../save/storage';
+import { loadSave, writeSave, SAVE_KEY, defaultSave, type SaveData } from '../save/storage';
 import { metaEffects, DEFAULT_META_LEVELS, META_UPGRADES } from '../save/meta';
 
 // localStorage 폴리필 (node 환경)
@@ -13,10 +13,15 @@ const store = new Map<string, string>();
   length: 0,
 } as Storage;
 
+// playerId 는 기기마다 새로 만들어지므로 비교에서 빼고 본다.
+const withoutId = (s: SaveData) => ({ ...s, playerId: '' });
+
 describe('저장', () => {
   beforeEach(() => store.clear());
   it('기본값 로드', () => {
-    expect(loadSave()).toEqual(defaultSave());
+    const loaded = loadSave();
+    expect(withoutId(loaded)).toEqual(withoutId(defaultSave()));
+    expect(loaded.playerId.length).toBeGreaterThanOrEqual(8);
   });
   it('저장 후 로드', () => {
     const d = defaultSave();
@@ -34,7 +39,7 @@ describe('저장', () => {
     expect(loaded.metaLevels).toEqual(DEFAULT_META_LEVELS);
     expect(loaded.unlockedUnits).toEqual([]);
     store.set(SAVE_KEY, '{not json');
-    expect(loadSave()).toEqual(defaultSave());
+    expect(withoutId(loadSave())).toEqual(withoutId(defaultSave()));
   });
   it('메타 효과 계산', () => {
     const base = metaEffects(DEFAULT_META_LEVELS);

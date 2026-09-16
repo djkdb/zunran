@@ -3,12 +3,12 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "편의점 야간근무 — 새벽 3시, 혼자 남았다. 웹 랜덤 디펜스 게임",
+  "description": "\ud3b8\uc758\uc810 \uc57c\uac04\uadfc\ubb34 \u2014 \uc0c8\ubcbd 3\uc2dc, \ud63c\uc790 \ub0a8\uc558\ub2e4. \uc6f9 \ub79c\ub364 \ub514\ud39c\uc2a4 \uac8c\uc784",
   "scripts": {
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.functions.json",
     "test": "vitest run",
     "sim": "tsx scripts/sim.ts",
     "deploy:cf": "npm run build && npx wrangler pages deploy dist --project-name=cvs-night-shift",
@@ -19,6 +19,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260702.1",
     "@types/node": "^22.20.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

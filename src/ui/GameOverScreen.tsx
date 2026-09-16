@@ -6,9 +6,38 @@ import type { SaveData } from '../game/save/storage';
 import { RunReport } from './RunReport';
 import { Certificate } from './Certificate';
 import { Icon } from './Icon';
+import type { SubmitResult } from '../game/rank/api';
 import type { RunResult } from '../App';
 
-export function GameOverScreen({ result, save, onRestart, onMenu }: { result: RunResult; save: SaveData; onRestart: () => void; onMenu: () => void }) {
+interface Props {
+  result: RunResult;
+  save: SaveData;
+  rank: SubmitResult | null;
+  onRestart: () => void;
+  onMenu: () => void;
+}
+
+// 랭킹 전송 결과를 한 줄로. 실패해도 "실패"라고만 말하지 않고 왜인지 알려 준다.
+function rankLine(rank: SubmitResult | null, optIn: boolean): string | null {
+  if (!optIn) return '랭킹 등록이 꺼져 있어 기록을 올리지 않았습니다.';
+  if (!rank) return null; // 아직 전송 중
+  switch (rank.status) {
+    case 'ok':
+      return rank.myRank ? `글로벌 랭킹 ${rank.myRank}위` : '랭킹에 기록을 올렸습니다';
+    case 'unconfigured':
+      return null; // 서버 미연결은 조용히 넘어간다
+    case 'offline':
+      return '네트워크가 끊겨 랭킹에 올리지 못했습니다';
+    case 'rate-limited':
+      return '잠시 뒤에 다시 올라갑니다';
+    case 'rejected':
+      return '기록 검증에 걸려 랭킹에 올리지 않았습니다';
+    default:
+      return '랭킹 전송에 실패했습니다';
+  }
+}
+
+export function GameOverScreen({ result, save, rank, onRestart, onMenu }: Props) {
   const [copied, setCopied] = useState(false);
   const [cert, setCert] = useState(false);
   // 업적을 하나씩 띄운다 (한꺼번에 쏟아지면 안 읽힌다)
@@ -40,6 +69,7 @@ export function GameOverScreen({ result, save, onRestart, onMenu }: { result: Ru
     }
   };
 
+  const rankMsg = rankLine(rank, save.rankOptIn);
   const current = result.unlocked[toastIdx] ? ACHIEVEMENT_BY_ID[result.unlocked[toastIdx]] : null;
 
   return (
@@ -76,6 +106,13 @@ export function GameOverScreen({ result, save, onRestart, onMenu }: { result: Ru
             <Icon name="cash" size={18} strokeWidth={2.4} />
             야간 수당 +{result.metaPoints}
           </div>
+
+          {rankMsg && (
+            <div className={`gameover-rank ${rank?.status === 'ok' ? 'ok' : ''}`}>
+              <Icon name="trophy" size={15} strokeWidth={2.4} />
+              {rankMsg}
+            </div>
+          )}
 
           <div className="gameover-actions">
             <button className="start-btn" onClick={onRestart}>

@@ -9,6 +9,7 @@ import { Icon } from './Icon';
 import { AchievementsScreen } from './AchievementsScreen';
 import { CodexScreen } from './CodexScreen';
 import { HistoryScreen } from './HistoryScreen';
+import { RankScreen } from './RankScreen';
 import type { MetaUpgradeId } from '../game/types';
 
 interface Props {
@@ -18,12 +19,14 @@ interface Props {
   onStart: (daily: boolean) => void;
   onBuy: (id: MetaUpgradeId) => void;
   onToggleMute: () => void;
+  onSetNickname: (name: string) => void;
+  onToggleRankOptIn: () => void;
   onReset: () => void;
 }
 
-type Tab = 'main' | 'shop' | 'codex' | 'ach' | 'history';
+type Tab = 'main' | 'shop' | 'codex' | 'ach' | 'history' | 'rank';
 
-export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggleMute, onReset }: Props) {
+export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggleMute, onSetNickname, onToggleRankOptIn, onReset }: Props) {
   const [tab, setTab] = useState<Tab>('main');
   const tip = TIPS[save.totalPlays % TIPS.length];
   const achCount = save.achievements.length;
@@ -170,6 +173,7 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
         {tab === 'codex' && <CodexScreen save={save} />}
         {tab === 'ach' && <AchievementsScreen save={save} />}
         {tab === 'history' && <HistoryScreen save={save} />}
+        {tab === 'rank' && <RankScreen save={save} onSetNickname={onSetNickname} onToggleOptIn={onToggleRankOptIn} />}
 
         <nav className="tabs">
           <button className={tab === 'main' ? 'active' : ''} onClick={() => setTab('main')} aria-label="시작">
@@ -186,6 +190,9 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
             <span className="px">
               {achCount}/{ACHIEVEMENTS.length}
             </span>
+          </button>
+          <button className={tab === 'rank' ? 'active' : ''} onClick={() => setTab('rank')} aria-label="랭킹">
+            랭킹
           </button>
           <button className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')} aria-label="근무 기록">
             <Icon name="chart" size={15} strokeWidth={2.4} />

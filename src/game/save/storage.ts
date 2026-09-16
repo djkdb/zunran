@@ -2,7 +2,7 @@ import type { MetaUpgradeId } from '../types';
 import { DEFAULT_META_LEVELS } from './meta';
 
 export const SAVE_KEY = 'cvs-night-shift:v1'; // 키는 유지 (기존 유저 데이터 보존)
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export interface LastRun {
   wave: number;
@@ -89,6 +89,22 @@ export interface SaveData {
   eventCounts: Record<string, number>; // 사건별 누적 발생 횟수 (밈 업적용)
   totalMerges: number;
   totalBossKills: number;
+  // ── v3: 글로벌 랭킹 ──
+  playerId: string; // 익명 고유 ID. 기기에만 저장되고, 서버에는 앞 8자만 올라간다.
+  nickname: string; // 랭킹판에 표시할 이름
+  rankOptIn: boolean; // 랭킹 등록 동의 (끄면 기록을 전송하지 않는다)
+}
+
+// crypto.randomUUID 가 없는 구형 웹뷰(카톡 인앱 등)도 있어서 폴백을 둔다.
+export function newPlayerId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID().replace(/-/g, '');
+  } catch {
+    // 아래 폴백으로
+  }
+  let out = '';
+  for (let i = 0; i < 32; i++) out += Math.floor(Math.random() * 16).toString(16);
+  return out;
 }
 
 export function defaultSave(): SaveData {
@@ -118,13 +134,16 @@ export function defaultSave(): SaveData {
     eventCounts: {},
     totalMerges: 0,
     totalBossKills: 0,
+    playerId: newPlayerId(),
+    nickname: '',
+    rankOptIn: true,
   };
 }
 
 const arr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
 const rec = <T>(v: unknown): Record<string, T> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, T>) : {});
 
-// v1(필드 없음) → v2. 없는 필드는 기본값으로 채우고, 있던 값은 절대 건드리지 않는다.
+// v1/v2 → v3. 없는 필드는 기본값으로 채우고, 있던 값은 절대 건드리지 않는다.
 export function migrate(parsed: Partial<SaveData>): SaveData {
   const base = defaultSave();
   const out: SaveData = {
@@ -146,6 +165,9 @@ export function migrate(parsed: Partial<SaveData>): SaveData {
     catVisits: typeof parsed.catVisits === 'number' ? parsed.catVisits : 0,
     totalMerges: typeof parsed.totalMerges === 'number' ? parsed.totalMerges : 0,
     totalBossKills: typeof parsed.totalBossKills === 'number' ? parsed.totalBossKills : 0,
+    playerId: typeof parsed.playerId === 'string' && parsed.playerId.length >= 8 ? parsed.playerId : newPlayerId(),
+    nickname: typeof parsed.nickname === 'string' ? parsed.nickname : '',
+    rankOptIn: typeof parsed.rankOptIn === 'boolean' ? parsed.rankOptIn : true,
   };
   // 예전 저장에는 손님/유닛 통계가 없다. 도감에 이미 "봤다"고 기록된 것만 최소치로 살려 둔다.
   for (const id of out.seenEnemies) {

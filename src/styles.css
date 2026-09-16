@@ -141,6 +141,11 @@ button:disabled {
 .mission-result,
 .unlocked,
 .ach-toast,
+.rank-tabs button,
+.rank-list li,
+.rank-me,
+.rank-empty,
+.gameover-rank,
 .cert-panel {
   --fc: var(--edge);
   background-color: var(--panel);
@@ -2565,4 +2570,195 @@ button:disabled {
   .odds span {
     font-size: 8px;
   }
+}
+
+/* ───────── 랭킹판 ───────── */
+.rank {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rank-tabs {
+  display: flex;
+  gap: 5px;
+}
+.rank-tabs button {
+  flex: 1;
+  padding: 8px 4px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--dim);
+  background-color: var(--sunk);
+  cursor: pointer;
+}
+.rank-tabs button.active {
+  --fc: var(--mint);
+  color: var(--mint);
+  background-color: var(--panel);
+}
+.rank-note {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--off);
+  padding: 0 2px;
+}
+.rank-empty {
+  padding: 22px 14px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--dim);
+}
+.rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rank-list li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+}
+.rank-list li.me {
+  --fc: var(--mint);
+  background-color: var(--sunk);
+}
+.rank-no {
+  flex: none;
+  width: 22px;
+  text-align: center;
+  font-family: var(--font-px);
+  font-size: 11px;
+  color: var(--off);
+}
+.rank-no.r1 {
+  color: var(--gold);
+}
+.rank-no.r2 {
+  color: var(--text);
+}
+.rank-no.r3 {
+  color: var(--pink);
+}
+.rank-name {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rank-title {
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--off);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rank-score {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.rank-score b {
+  font-family: var(--font-px);
+  font-size: 12px;
+  color: var(--mint);
+}
+.rank-score .px {
+  font-size: 9px;
+  color: var(--off);
+}
+.rank-mine {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--mint);
+}
+.rank-me {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 10px;
+}
+.rank-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 100%;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--dim);
+}
+.rank-field input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 0;
+  background: var(--sunk);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 800;
+}
+.rank-field input:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: -2px;
+}
+.rank-optin,
+.rank-share {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 6px;
+  border: 0;
+  background: var(--sunk);
+  color: var(--dim);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.rank-optin[aria-pressed='true'] {
+  color: var(--green);
+}
+.rank-share:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.rank-legal {
+  font-size: 9px;
+  line-height: 1.6;
+  color: var(--off);
+  padding: 0 2px 2px;
+}
+.gameover-rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--dim);
+}
+.gameover-rank.ok {
+  --fc: var(--gold);
+  color: var(--gold);
 }

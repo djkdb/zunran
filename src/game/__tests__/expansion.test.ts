@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Engine } from '../engine/Engine';
 import { spawnEnemy } from '../engine/enemySystem';
-import { migrate, defaultSave, type SaveData } from '../save/storage';
+import { migrate, defaultSave, type SaveData, SAVE_VERSION } from '../save/storage';
 import { mergeRunStats, analyzeDefeat } from '../save/stats';
 import { ACHIEVEMENTS, evaluateAchievements, type AchievementContext } from '../data/achievements';
 import { MISSIONS, MISSION_EXTRAS } from '../data/missions';
@@ -49,7 +49,7 @@ describe('저장 마이그레이션', () => {
     expect(out.muted).toBe(true);
     expect(out.lastRun?.mvp).toBe('pos');
     // 새 필드는 기본값
-    expect(out.version).toBe(2);
+    expect(out.version).toBe(SAVE_VERSION);
     expect(out.achievements).toEqual([]);
     expect(out.runHistory).toEqual([]);
     expect(out.catVisits).toBe(0);
