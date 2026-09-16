@@ -43,7 +43,7 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
           <span className="draw-body">
             <span className="draw-title">유닛 뽑기</span>
             <span className="draw-slots">
-              빈 칸 {snap.emptySlots}/{snap.totalSlots} · 랜덤
+              SLOT {snap.emptySlots}/{snap.totalSlots} FREE
             </span>
           </span>
           <span className="draw-cost">{free ? `무료 ×${snap.freeDraws}` : snap.drawCost}</span>
@@ -66,14 +66,11 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
         </div>
       </div>
 
-      <div className="odds">
-        <span className="odds-label">확률</span>
-        <span className="odds-list">
-          <span style={{ color: '#6b655b' }}>일반 {Math.round(odds.common * 100)}</span>
-          <span style={{ color: '#1c6fb0' }}>희귀 {Math.round(odds.rare * 100)}</span>
-          <span style={{ color: '#7b3fa0' }}>에픽 {(odds.epic * 100).toFixed(1)}</span>
-          <span style={{ color: '#b08800' }}>전설 {(odds.legendary * 100).toFixed(1)}</span>
-        </span>
+      <div className="odds" aria-label="뽑기 확률">
+        <span className="odds-n">N {Math.round(odds.common * 100)}</span>
+        <span className="odds-r">R {Math.round(odds.rare * 100)}</span>
+        <span className="odds-e">E {(odds.epic * 100).toFixed(1)}</span>
+        <span className="odds-l">L {(odds.legendary * 100).toFixed(1)}</span>
       </div>
 
       <div className="skill-row">
@@ -86,7 +83,7 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
           <Icon name="store" size={18} strokeWidth={2.4} />
           <span className="skill-text">
             <b>셔터 내려</b>
-            <i>{snap.skillReady.shutter ? '전원 정지' : `${Math.ceil(snap.shutterCd)}초`}</i>
+            <i>{snap.skillReady.shutter ? 'READY' : `${Math.ceil(snap.shutterCd)} SEC`}</i>
           </span>
         </button>
         <button
@@ -98,7 +95,7 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
           <Icon name="boss" size={18} strokeWidth={2.4} />
           <span className="skill-text">
             <b>폐기 처리</b>
-            <i>{snap.skillReady.dump ? '전체 피해' : `${Math.ceil(snap.dumpCd)}초`}</i>
+            <i>{snap.skillReady.dump ? 'READY' : `${Math.ceil(snap.dumpCd)} SEC`}</i>
           </span>
         </button>
       </div>
@@ -130,10 +127,10 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
                   <span>
                     {def.name} ×{g.count}
                   </span>
-                  <TierTicks tier={g.tier} color="#14120f" />
+                  <TierTicks tier={g.tier} color="var(--pink)" />
                 </span>
                 <span className="merge-arrow">
-                  합성
+                  MERGE
                   <Icon name="merge" size={14} strokeWidth={2.4} />
                 </span>
               </button>
@@ -149,11 +146,11 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
             <UnitIcon defId={sel.id} size={36} />
             <div className="selected-info">
               <div className="selected-name">
-                <span className="selected-rank" style={{ background: RARITY_COLOR[sel.rarity], color: sel.rarity === 'legendary' ? '#14120f' : '#fff' }}>
+                <span className="selected-rank" style={{ background: RARITY_COLOR[sel.rarity] }}>
                   {RARITY_LABEL[sel.rarity]}
                 </span>
                 {sel.name}
-                <TierTicks tier={snap.selected.tier} color="#14120f" />
+                <TierTicks tier={snap.selected.tier} color={RARITY_COLOR[sel.rarity]} />
               </div>
               <div className="selected-desc">{sel.desc}</div>
               <div className="selected-stats">
@@ -207,7 +204,7 @@ export function BottomPanel({ snap, act, muted, onToggleMute, autoMerge, onToggl
                   <UnitIcon defId={g.defId} size={26} />
                   <span className="inv-text">
                     <span className="inv-name">{def.name}</span>
-                    {g.mergeable ? <span className="inv-merge-hint">합성 가능</span> : <TierTicks tier={g.tier} color="#14120f" />}
+                    {g.mergeable ? <span className="inv-merge-hint">MERGE!</span> : <TierTicks tier={g.tier} color={RARITY_COLOR[def.rarity]} />}
                   </span>
                   <span className="inv-count">×{g.count}</span>
                 </span>

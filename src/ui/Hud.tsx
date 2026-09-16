@@ -2,47 +2,45 @@ import type { UISnapshot } from '../game/types';
 import { formatTime } from '../game/config';
 import { Icon } from './Icon';
 
+// 아케이드 HUD: 한 장의 픽셀 프레임 안에 세 줄.
+// 1줄 시계·생존·코인 / 2줄 웨이브 / 3줄 매장 체력.
+// 칸을 나누지 않고 막대를 늘려서 320px 에서도 눌리지 않는다.
 export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) {
   const hpPct = Math.round((snap.hp / snap.maxHp) * 100);
   const hpClass = hpPct <= 25 ? 'danger' : hpPct <= 50 ? 'warn' : '';
   const waveProgress = 1 - snap.waveTimer / snap.waveDuration;
   return (
     <header className="hud">
-      <div className="hud-row">
-        <div className="hud-clock">
-          <span className="hud-time">{snap.clock}</span>
-          <span className="hud-survive">
+      <div className="hud-card">
+        <div className="hud-row">
+          <span className="hud-time px">{snap.clock}</span>
+          <span className="hud-meta px">
             <Icon name="clock" size={10} strokeWidth={2.6} />
             {formatTime(snap.survivedSec)}
-            <span className="hud-best">
-              <Icon name="trophy" size={10} strokeWidth={2.6} />W{Math.max(bestWave, snap.wave)}
-            </span>
           </span>
+          <span className="hud-best px">
+            <Icon name="trophy" size={10} strokeWidth={2.6} />W{Math.max(bestWave, snap.wave)}
+          </span>
+          <span className="hud-spacer" />
+          <span className="hud-coin-label px">COIN</span>
+          <b className="hud-coin">{formatCoins(snap.coins)}</b>
         </div>
 
-        <div className="hud-wave">
-          <div className="hud-wave-label">
-            WAVE <b>{snap.wave}</b>
-            <span className="hud-wave-timer">{Math.ceil(snap.waveTimer)}s</span>
-          </div>
+        <div className="hud-row">
+          <span className="hud-key">웨이브</span>
+          <b className="hud-wave-num">{snap.wave}</b>
           <div className="bar bar-wave">
             <div className="bar-fill" style={{ width: `${waveProgress * 100}%` }} />
           </div>
+          <span className="hud-wave-timer px">{Math.ceil(snap.waveTimer)}s</span>
         </div>
 
-        <div className="hud-hp">
-          <div className={`hud-hp-label ${hpClass}`}>
-            <span>체력</span>
-            <b>{hpPct}%</b>
-          </div>
+        <div className="hud-row">
+          <span className="hud-key">체력</span>
           <div className={`bar bar-hp ${hpClass}`}>
             <div className="bar-fill" style={{ width: `${hpPct}%` }} />
           </div>
-        </div>
-
-        <div className="hud-coins">
-          <span>보유 금액</span>
-          <b>{formatCoins(snap.coins)}원</b>
+          <b className={`hud-hp-num ${hpClass}`}>{hpPct}</b>
         </div>
       </div>
 
@@ -50,15 +48,10 @@ export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) 
         <div className="hud-row hud-sub">
           {snap.nextIsBoss && !snap.bossAlive && (
             <span className="hud-next-boss">
-              <Icon name="boss" size={12} strokeWidth={2.4} />
-              다음 웨이브 보스
+              <Icon name="boss" size={11} strokeWidth={2.4} />! BOSS NEXT
             </span>
           )}
-          {snap.combo >= 3 && (
-            <span className="combo-chip">
-              {snap.combo} 연속
-            </span>
-          )}
+          {snap.combo >= 3 && <span className="combo-chip">{snap.combo} COMBO</span>}
           {snap.riskWave && <span className="event-chip event-bad">새벽 장사 · 코인 2배</span>}
           {snap.bossAlive && (
             <div className="boss-bar">

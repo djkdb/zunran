@@ -116,11 +116,11 @@ export const RARITY_LABEL: Record<Rarity, string> = {
 
 // 간판 팔레트: 납작한 원색. 어두운 필드 위에서도 서로 확실히 구분된다.
 export const RARITY_COLOR: Record<Rarity, string> = {
-  common: '#b0a99c',
-  rare: '#3d93d8',
-  epic: '#9a5cc6',
-  legendary: '#ffd23f',
-  special: '#e8497c',
+  common: '#8a7fb8',
+  rare: '#4fe3d0',
+  epic: '#c77dff',
+  legendary: '#ffd84d',
+  special: '#ff4d8d',
 };
 
 // ───────────── 티어 스케일 ─────────────

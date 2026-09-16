@@ -209,7 +209,7 @@ export function TierTicks({ tier, color = 'currentColor' }: { tier: number; colo
   return (
     <span className="tier-ticks" aria-label={`티어 ${tier}`}>
       {Array.from({ length: slots }, (_, i) => (
-        <i key={i} style={{ background: i < tier ? color : 'var(--line)' }} />
+        <i key={i} style={{ background: i < tier ? color : 'var(--slot)' }} />
       ))}
     </span>
   );

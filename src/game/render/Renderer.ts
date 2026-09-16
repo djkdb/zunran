@@ -72,7 +72,7 @@ export class Renderer {
           break;
         case 'death':
           this.burst(f.x, f.y, f.color, f.boss ? 40 : 8, f.boss ? 220 : 90, 'puff');
-          if (f.boss) this.ring(f.x, f.y, 120, '#ffd23f');
+          if (f.boss) this.ring(f.x, f.y, 120, '#ffd84d');
           break;
         case 'explode':
           this.ring(f.x, f.y, f.radius, f.color);
@@ -186,46 +186,46 @@ export class Renderer {
     ctx.scale(dpr, dpr);
 
     // 바닥 타일
-    ctx.fillStyle = '#1b2230';
+    ctx.fillStyle = '#1d1836';
     ctx.fillRect(0, 0, FIELD_W, FIELD_H);
-    ctx.fillStyle = '#202a3a';
+    ctx.fillStyle = '#231c40';
     for (let y = 0; y < FIELD_H; y += 32) for (let x = (y / 32) % 2 === 0 ? 0 : 32; x < FIELD_W; x += 64) ctx.fillRect(x, y, 32, 32);
 
     // 벽 (상단)
-    ctx.fillStyle = '#2b3a52';
+    ctx.fillStyle = '#2e2552';
     ctx.fillRect(0, 0, FIELD_W, 44);
-    ctx.fillStyle = '#354a68';
+    ctx.fillStyle = '#3a2f63';
     ctx.fillRect(0, 40, FIELD_W, 4);
     // 창문 (밤)
     for (let i = 0; i < 4; i++) {
       const x = 150 + i * 120;
-      ctx.fillStyle = '#0b1020';
+      ctx.fillStyle = '#0d0a1c';
       ctx.fillRect(x, 6, 80, 30);
-      ctx.fillStyle = '#1e2a44';
+      ctx.fillStyle = '#1a1434';
       ctx.fillRect(x + 4, 10, 30, 22);
       ctx.fillRect(x + 46, 10, 30, 22);
       // 별
-      ctx.fillStyle = '#e2e8f0';
+      ctx.fillStyle = '#efeaff';
       ctx.fillRect(x + 12, 16, 2, 2);
       ctx.fillRect(x + 60, 22, 2, 2);
     }
     // 입구 문 + 24H 간판
-    ctx.fillStyle = '#0f172a';
+    ctx.fillStyle = '#120e24';
     ctx.fillRect(22, 0, 60, 44);
-    ctx.fillStyle = '#7dd3fc';
+    ctx.fillStyle = '#4fe3d0';
     ctx.fillRect(26, 4, 52, 36);
-    ctx.fillStyle = '#0ea5e9';
+    ctx.fillStyle = '#2f9e91';
     ctx.fillRect(50, 4, 3, 36);
-    ctx.fillStyle = '#ffd23f';
+    ctx.fillStyle = '#ffd84d';
     ctx.font = 'bold 11px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('24H', 52, 30);
-    ctx.fillStyle = '#e2e8f0';
+    ctx.fillStyle = '#efeaff';
     ctx.font = 'bold 10px sans-serif';
     ctx.fillText('입구', 52, 58);
 
     // 통로 (손님이 걷는 길): 밝은 바닥
-    ctx.strokeStyle = '#2f3b52';
+    ctx.strokeStyle = '#332a5c';
     ctx.lineWidth = 46;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
@@ -233,14 +233,14 @@ export class Renderer {
     ctx.moveTo(PATH[1].x, 44);
     for (let i = 1; i < PATH.length; i++) ctx.lineTo(PATH[i].x, PATH[i].y);
     ctx.stroke();
-    ctx.strokeStyle = '#3a4862';
+    ctx.strokeStyle = '#3f3470';
     ctx.lineWidth = 40;
     ctx.beginPath();
     ctx.moveTo(PATH[1].x, 44);
     for (let i = 1; i < PATH.length; i++) ctx.lineTo(PATH[i].x, PATH[i].y);
     ctx.stroke();
     // 통로 화살표
-    ctx.fillStyle = '#4b5b78';
+    ctx.fillStyle = '#574a8f';
     const arrows: [number, number, number][] = [
       [200, 118, 0],
       [400, 118, 0],
@@ -269,17 +269,17 @@ export class Renderer {
     // 진열대 (슬롯 줄): 통로 사이 블록
     const shelfColors = [
       ['#3b82f6', '#22d3ee', '#a78bfa', '#f472b6'],
-      ['#f59e0b', '#ef4444', '#84cc16', '#f97316'],
-      ['#ef4444', '#f97316', '#facc15', '#dc2626'],
+      ['#f59e0b', '#ff4d8d', '#84cc16', '#f97316'],
+      ['#ff4d8d', '#f97316', '#facc15', '#dc2626'],
     ];
     SLOT_ROWS.forEach((y, row) => {
       const top = y - 40;
       const h = 70;
-      ctx.fillStyle = '#334155';
+      ctx.fillStyle = '#372f5e';
       ctx.fillRect(84, top, FIELD_W - 168, h);
-      ctx.fillStyle = '#1e293b';
+      ctx.fillStyle = '#241c45';
       ctx.fillRect(84, top + h - 6, FIELD_W - 168, 6);
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = '#4b4080';
       ctx.fillRect(84, top, FIELD_W - 168, 3);
       // 상품 (작은 색 블록) — 슬롯 사이 빈 공간에만
       const cols = shelfColors[row];
@@ -300,15 +300,15 @@ export class Renderer {
       const bonusW = ctx.measureText(bonus).width + 12;
       const totalW = nameW + bonusW;
       const tagX = FIELD_W / 2 - totalW / 2;
-      ctx.fillStyle = '#14120f';
+      ctx.fillStyle = '#120e24';
       ctx.fillRect(tagX, top - 16, nameW, 15);
-      ctx.fillStyle = '#ffd23f';
+      ctx.fillStyle = '#ffd84d';
       ctx.fillRect(tagX + nameW, top - 16, bonusW, 15);
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#f4f1ea';
+      ctx.fillStyle = '#efeaff';
       ctx.font = 'bold 10px sans-serif';
       ctx.fillText(name, tagX + nameW / 2, top - 5);
-      ctx.fillStyle = '#14120f';
+      ctx.fillStyle = '#120e24';
       ctx.font = 'bold 9px sans-serif';
       ctx.fillText(bonus, tagX + nameW + bonusW / 2, top - 5);
     });
@@ -318,14 +318,14 @@ export class Renderer {
     ctx.fillRect(CHECKOUT_POS.x - 70, 560, 140, 50);
     ctx.fillStyle = '#7c4a24';
     ctx.fillRect(CHECKOUT_POS.x - 70, 556, 140, 8);
-    ctx.fillStyle = '#0f172a';
+    ctx.fillStyle = '#120e24';
     ctx.fillRect(CHECKOUT_POS.x - 60, 566, 40, 26);
-    ctx.fillStyle = '#38bdf8';
+    ctx.fillStyle = '#4fe3d0';
     ctx.fillRect(CHECKOUT_POS.x - 56, 570, 32, 18);
-    ctx.fillStyle = '#e2e8f0';
+    ctx.fillStyle = '#efeaff';
     ctx.font = 'bold 11px sans-serif';
     ctx.fillText('계산대', CHECKOUT_POS.x + 20, 585);
-    ctx.fillStyle = '#ffd23f';
+    ctx.fillStyle = '#ffd84d';
     ctx.font = 'bold 9px sans-serif';
     ctx.fillText('여기 도달하면 피해!', CHECKOUT_POS.x + 20, 600);
 
@@ -353,20 +353,20 @@ export class Renderer {
       ctx.save();
       ctx.translate(s.x, s.y);
       if (empty) {
-        ctx.strokeStyle = hovered ? '#ffd23f' : placing ? 'rgba(255,210,63,0.95)' : 'rgba(244,241,234,0.32)';
+        ctx.strokeStyle = hovered ? '#ffd84d' : placing ? 'rgba(255,216,77,0.95)' : 'rgba(239,234,255,0.32)';
         ctx.setLineDash(placing ? [] : [4, 4]);
         ctx.lineWidth = hovered ? 3.5 : placing ? 2 : 1;
         ctx.beginPath();
         ctx.rect(-22, -36, 44, 44);
         ctx.stroke();
         if (placing) {
-          ctx.fillStyle = hovered ? 'rgba(255,210,63,0.34)' : 'rgba(255,210,63,0.14)';
+          ctx.fillStyle = hovered ? 'rgba(255,216,77,0.34)' : 'rgba(255,216,77,0.14)';
           ctx.fill();
         }
       } else {
         if (hovered) {
           // 교환 대상임을 알린다
-          ctx.strokeStyle = '#3d93d8';
+          ctx.strokeStyle = '#4fe3d0';
           ctx.lineWidth = 3.5;
           ctx.beginPath();
           ctx.rect(-24, -38, 48, 48);
@@ -422,7 +422,7 @@ export class Renderer {
     ctx.save();
     ctx.translate(s.x, s.y);
     if (inGroup) {
-      ctx.strokeStyle = '#d93a2b';
+      ctx.strokeStyle = '#ff4d8d';
       ctx.setLineDash([5, 3]);
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -432,7 +432,7 @@ export class Renderer {
     }
     // 사거리 (선택 시)
     if (selected && def.attack !== 'none') {
-      ctx.strokeStyle = 'rgba(255,210,63,0.8)';
+      ctx.strokeStyle = 'rgba(255,216,77,0.8)';
       ctx.setLineDash([6, 4]);
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -473,9 +473,9 @@ export class Renderer {
     if (u.tier > 1) {
       ctx.font = 'bold 11px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#0f172a';
+      ctx.fillStyle = '#120e24';
       ctx.fillText('★'.repeat(u.tier), 0, -w + 4);
-      ctx.fillStyle = u.tier >= 4 ? '#e8497c' : '#ffd23f';
+      ctx.fillStyle = u.tier >= 4 ? '#ff4d8d' : '#ffd84d';
       ctx.fillText('★'.repeat(u.tier), 0, -w + 3);
     }
     if (disabled) {
@@ -484,7 +484,7 @@ export class Renderer {
       ctx.fillText('🔧', 0, -w / 2);
     }
     if (selected) {
-      ctx.strokeStyle = '#ffd23f';
+      ctx.strokeStyle = '#ffd84d';
       ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.rect(-26, -w + 2, 52, w + 8); // 간판 스타일: 각진 선택 틀
@@ -565,7 +565,7 @@ export class Renderer {
       ctx.restore();
       if (e.slow.until > state.time && e.hitFlash <= 0) {
         // 감속: 파란 틴트 오버레이
-        const tinted = rasterize(sprite, '#67e8f9');
+        const tinted = rasterize(sprite, '#4fe3d0');
         if (tinted) {
           ctx.save();
           ctx.scale(e.facing, 1);
@@ -600,7 +600,7 @@ export class Renderer {
       const ratio = Math.max(0, e.hp / e.maxHp);
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
       ctx.fillRect(-bw / 2 - 1, -w - 8, bw + 2, 5);
-      ctx.fillStyle = ratio > 0.5 ? '#4ade80' : ratio > 0.25 ? '#fbbf24' : '#ef4444';
+      ctx.fillStyle = ratio > 0.5 ? '#7bf06a' : ratio > 0.25 ? '#ffd84d' : '#ff4d8d';
       ctx.fillRect(-bw / 2, -w - 7, bw * ratio, 3);
       if (e.shield > 0) {
         ctx.fillStyle = '#c4b5fd';
@@ -610,9 +610,9 @@ export class Renderer {
     if (e.isBoss) {
       ctx.font = 'bold 11px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#0f172a';
+      ctx.fillStyle = '#120e24';
       ctx.fillText(def.name, 1, -w - 13);
-      ctx.fillStyle = '#fca5a5';
+      ctx.fillStyle = '#ff9cc0';
       ctx.fillText(def.name, 0, -w - 14);
     }
     ctx.restore();
@@ -678,7 +678,7 @@ export class Renderer {
       ctx.beginPath();
       ctx.rect(x - w / 2, y - 9, w, 18);
       ctx.fill();
-      ctx.strokeStyle = '#14120f';
+      ctx.strokeStyle = '#120e24';
       ctx.lineWidth = 1.5;
       ctx.stroke();
       ctx.beginPath();
@@ -686,7 +686,7 @@ export class Renderer {
       ctx.lineTo(x + 4, y + 9);
       ctx.lineTo(x, y + 14);
       ctx.fill();
-      ctx.fillStyle = '#0f172a';
+      ctx.fillStyle = '#120e24';
       ctx.fillText(text, x, y);
     }
     ctx.textBaseline = 'alphabetic';

@@ -16,7 +16,7 @@
 | `Monitor.dc.html` | C · 심야 모니터 — 호박색 인광, 스캔라인, 타임스탬프, REC |
 | `Spec.dc.html` | A안 구성 요소 규격 (색·글자·버튼·막대·칩·배너·아이콘) |
 
-**2차 (간판이 전단지처럼 싸구려로 읽힌다는 피드백)** — 셸을 어둡게 가져가는 3안
+**2차 (간판이 전단지처럼 싸구려로 읽힌다는 피드백)** — 셸을 어둡게 가져가는 3안, **E 아케이드 채택**
 
 | 파일 | 내용 |
 | --- | --- |
@@ -24,11 +24,13 @@
 | `Midnight.dc.html` | D · 심야 — 잉크 블랙, 얇은 선, 넉넉한 여백, 민트 한 점. IBM Plex Sans KR |
 | `Arcade.dc.html` | E · 아케이드 — 계단형 픽셀 테두리, 짙은 보라 위 네온. Do Hyeon + Silkscreen |
 | `Sleek.dc.html` | F · 슬릭 — 차콜 위 반투명 카드, 앰버 한 점, 세리프 이름. Hahmlet + Noto Sans KR |
+| `ArcadeSpec.dc.html` | E안 구성 요소 규격 (색·글자·막대·테두리 상태·버튼·칩·카드·여백) |
+| `ShippedE.dc.html` | E안을 코드에 적용한 실제 화면 |
 
 | 파일 | 내용 |
 | --- | --- |
 | `canvas.json` | 캔버스 배치·페이지·메모 (page-1 새 방향, page-2 지난 시안) |
-| `field.jpg`, `now.jpg`, `shipped.jpg` | 실제 게임 캡처 (시안에 삽입) |
+| `field.jpg`, `now.jpg`, `shipped.jpg`, `shipped-e.jpg` | 실제 게임 캡처 (시안에 삽입) |
 
 퍼블리시된 캔버스: https://claude.ai/artifact/KAJ84mSTweixbbftpVFyQy
 
@@ -42,11 +44,11 @@ node "<design 스킬 경로>/seed-canvas.mjs" \
   --template "<design 스킬 경로>/payload.template.html" \
   --out cvs-night-shift-ui-directions.html \
   --title "편의점 야간근무 UI 방향" \
-  --artboard Main.dc.html --artboard Current.dc.html --artboard Midnight.dc.html \
-  --artboard Arcade.dc.html --artboard Sleek.dc.html --artboard Now.dc.html \
-  --artboard Receipt.dc.html --artboard Monitor.dc.html --artboard Shipped.dc.html \
-  --artboard Spec.dc.html \
-  --image field.jpg --image now.jpg --image shipped.jpg --canvas canvas.json
+  --artboard Arcade.dc.html --artboard ShippedE.dc.html --artboard ArcadeSpec.dc.html \
+  --artboard Current.dc.html --artboard Midnight.dc.html --artboard Sleek.dc.html \
+  --artboard Now.dc.html --artboard Main.dc.html --artboard Receipt.dc.html \
+  --artboard Monitor.dc.html --artboard Shipped.dc.html --artboard Spec.dc.html \
+  --image field.jpg --image now.jpg --image shipped.jpg --image shipped-e.jpg --canvas canvas.json
 ```
 
 캡처 이미지는 `npm run preview` 를 띄운 상태에서 Playwright 로 만들었다.
@@ -55,5 +57,6 @@ node "<design 스킬 경로>/seed-canvas.mjs" \
 
 **1차**: A(간판)로 확정해 코드에 반영했다. 구현 규격은 `Spec.dc.html` 과 `src/styles.css` 상단 주석 참고.
 
-**2차**: 간판이 전단지처럼 싸구려로 읽힌다는 피드백을 받아 D·E·F 세 방향을 새로 그렸다. 선택 대기 중.
-셋 다 셸을 어둡게 가져가 필드와 한 화면으로 묶는 것이 공통 전제다.
+**2차**: 간판이 전단지처럼 싸구려로 읽힌다는 피드백을 받아 D·E·F 세 방향을 새로 그렸고, **E(아케이드)로 확정해 코드에 반영했다.**
+구현 규격은 `ArcadeSpec.dc.html` 과 `src/styles.css` 상단 주석 참고. 필드 바탕(`src/game/render/Renderer.ts`)도
+청회색에서 같은 보랏빛 야간 톤으로 옮겨 껍데기와 픽셀 매장이 한 화면으로 읽히게 했다.

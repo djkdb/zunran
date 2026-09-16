@@ -123,11 +123,11 @@ export function StartScreen({ save, onStart, onBuy, onToggleMute, onReset }: Pro
                 const known = save.unlockedUnits.includes(u.id);
                 return (
                   <div key={u.id} className={`codex-item ${known ? '' : 'locked'}`} title={known ? u.desc : '???'}>
-                    <span className="codex-rarity" style={{ background: known ? RARITY_COLOR[u.rarity] : '#8a8378' }} />
+                    <span className="codex-rarity" style={{ background: known ? RARITY_COLOR[u.rarity] : '#3a2f63' }} />
                     <span className="codex-body">
                       <UnitIcon defId={u.id} size={38} dim={!known} />
                       <span className="codex-name">{known ? u.name : '???'}</span>
-                      <span className="codex-name" style={{ color: known ? '#6b655b' : '#8a8378', fontSize: 9 }}>
+                      <span className="codex-name" style={{ color: known ? 'var(--off)' : 'var(--off)', fontSize: 9 }}>
                         {RARITY_LABEL[u.rarity]}
                       </span>
                     </span>
@@ -143,7 +143,7 @@ export function StartScreen({ save, onStart, onBuy, onToggleMute, onReset }: Pro
                 const known = save.seenEnemies.includes(e.id);
                 return (
                   <div key={e.id} className={`codex-item ${known ? '' : 'locked'}`} title={known ? e.lines[0] : '???'}>
-                    <span className="codex-rarity" style={{ background: known ? e.color : '#8a8378' }} />
+                    <span className="codex-rarity" style={{ background: known ? e.color : '#3a2f63' }} />
                     <span className="codex-body">
                       <UnitIcon defId={e.id} size={38} enemy dim={!known} />
                       <span className="codex-name">{known ? e.name : '???'}</span>
