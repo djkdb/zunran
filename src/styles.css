@@ -142,6 +142,7 @@ button:disabled {
 .unlocked,
 .ach-toast,
 .rank-tabs button,
+.nick-card,
 .rank-list li,
 .rank-me,
 .rank-empty,
@@ -2695,30 +2696,6 @@ button:disabled {
   gap: 6px;
   padding: 9px 10px;
 }
-.rank-field {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 1 1 100%;
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--dim);
-}
-.rank-field input {
-  flex: 1;
-  min-width: 0;
-  padding: 6px 8px;
-  border: 0;
-  background: var(--sunk);
-  color: var(--text);
-  font-family: var(--font-ui);
-  font-size: 13px;
-  font-weight: 800;
-}
-.rank-field input:focus-visible {
-  outline: 2px solid var(--mint);
-  outline-offset: -2px;
-}
 .rank-optin,
 .rank-share {
   flex: 1;
@@ -2761,4 +2738,73 @@ button:disabled {
 .gameover-rank.ok {
   --fc: var(--gold);
   color: var(--gold);
+}
+
+/* ───────── 랭킹 표시 이름 입력 (시작 화면 · 게임오버 · 랭킹 탭 공용) ───────── */
+.nick {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+}
+.nick-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--dim);
+}
+.nick-row {
+  display: flex;
+  gap: 5px;
+}
+.nick-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 0;
+  background: var(--sunk);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 800;
+}
+.nick-row input::placeholder {
+  color: var(--off);
+  font-weight: 700;
+}
+.nick-row input:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: -2px;
+}
+.nick-save {
+  flex: none;
+  padding: 8px 14px;
+  border: 0;
+  background: var(--mint);
+  color: var(--bg);
+  font-family: var(--font-display);
+  font-size: 14px;
+  cursor: pointer;
+}
+.nick-save:disabled {
+  background: var(--slot);
+  color: var(--off);
+  cursor: default;
+}
+.nick-card {
+  --fc: var(--mint);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 11px;
+}
+.nick-hint {
+  font-size: 9px;
+  line-height: 1.6;
+  color: var(--off);
+}
+.gameover-rank.ask {
+  --fc: var(--mint);
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
 }

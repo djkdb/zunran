@@ -7,12 +7,15 @@ import { RunReport } from './RunReport';
 import { Certificate } from './Certificate';
 import { Icon } from './Icon';
 import type { SubmitResult } from '../game/rank/api';
+import { NicknameField } from './NicknameField';
 import type { RunResult } from '../App';
 
 interface Props {
   result: RunResult;
   save: SaveData;
   rank: SubmitResult | null;
+  needName: boolean; // 이름을 아직 안 정해서 전송을 보류 중
+  onSubmitName: (name: string) => void;
   onRestart: () => void;
   onMenu: () => void;
 }
@@ -37,7 +40,7 @@ function rankLine(rank: SubmitResult | null, optIn: boolean): string | null {
   }
 }
 
-export function GameOverScreen({ result, save, rank, onRestart, onMenu }: Props) {
+export function GameOverScreen({ result, save, rank, needName, onSubmitName, onRestart, onMenu }: Props) {
   const [copied, setCopied] = useState(false);
   const [cert, setCert] = useState(false);
   // 업적을 하나씩 띄운다 (한꺼번에 쏟아지면 안 읽힌다)
@@ -107,11 +110,23 @@ export function GameOverScreen({ result, save, rank, onRestart, onMenu }: Props)
             야간 수당 +{result.metaPoints}
           </div>
 
-          {rankMsg && (
-            <div className={`gameover-rank ${rank?.status === 'ok' ? 'ok' : ''}`}>
-              <Icon name="trophy" size={15} strokeWidth={2.4} />
-              {rankMsg}
+          {needName ? (
+            <div className="gameover-rank ask">
+              <NicknameField
+                value=""
+                onSave={onSubmitName}
+                label="랭킹에 올릴 이름을 정해 주세요"
+                cta="올리기"
+                required
+              />
             </div>
+          ) : (
+            rankMsg && (
+              <div className={`gameover-rank ${rank?.status === 'ok' ? 'ok' : ''}`}>
+                <Icon name="trophy" size={15} strokeWidth={2.4} />
+                {rankMsg}
+              </div>
+            )
           )}
 
           <div className="gameover-actions">

@@ -73,6 +73,16 @@ export async function submitScore(payload: ScorePayload): Promise<SubmitResult> 
   return { status: 'ok', myRank: body.myRank ?? null };
 }
 
+// 이미 올라간 기록의 표시 이름을 바꾼다. 실패해도 조용히 넘어간다 (다음 판에 어차피 갱신된다).
+export async function renameScore(playerId: string, name: string, date: string): Promise<boolean> {
+  const res = await req('/api/rank/rename', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ playerId, name, date }),
+  });
+  return !!res && res.ok && isJson(res);
+}
+
 // 랭킹판에 쓰는 시간 표기 (12:34)
 export function formatTime(sec: number): string {
   const s = Math.max(0, Math.round(sec));

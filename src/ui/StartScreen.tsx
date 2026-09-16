@@ -10,6 +10,7 @@ import { AchievementsScreen } from './AchievementsScreen';
 import { CodexScreen } from './CodexScreen';
 import { HistoryScreen } from './HistoryScreen';
 import { RankScreen } from './RankScreen';
+import { NicknameField } from './NicknameField';
 import type { MetaUpgradeId } from '../game/types';
 
 interface Props {
@@ -42,6 +43,14 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
 
         {tab === 'main' && (
           <>
+            {/* 이름을 아직 안 정했으면 먼저 받는다. 기록이 '익명 알바'로 올라가 버리면 되돌리기 번거롭다. */}
+            {save.rankOptIn && !save.nickname && (
+              <div className="nick-card">
+                <NicknameField value="" onSave={onSetNickname} label="랭킹에 올릴 이름" cta="저장" />
+                <div className="nick-hint">판이 끝나면 이 이름으로 랭킹에 올라갑니다. 나중에 바꿔도 됩니다.</div>
+              </div>
+            )}
+
             <button className="start-btn" onClick={() => onStart(false)}>
               <Icon name="store" size={26} strokeWidth={2.2} />
               야간 근무 시작

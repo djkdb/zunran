@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateScore, sanitizeName, minRunSeconds, maxKills } from '../rank/validate';
-import { insertEntry, normalizeBoard, rankOf } from '../rank/board';
+import { insertEntry, normalizeBoard, rankOf, renameEntries } from '../rank/board';
 import type { RankEntry, ScorePayload } from '../rank/types';
 import { MAX_BOARD_ENTRIES } from '../rank/types';
 import { defaultSave, migrate, SAVE_VERSION } from '../save/storage';
@@ -138,6 +138,24 @@ describe('보드 정렬·삽입', () => {
     }
     expect(entries).toHaveLength(MAX_BOARD_ENTRIES);
     expect(entries[0].wave).toBe(MAX_BOARD_ENTRIES + 30);
+  });
+
+  it('기록은 최고를 남기되 표시 이름은 최신으로 갱신한다', () => {
+    const first = insertEntry([], entry({ id: 'a', wave: 30, name: '옛이름' }));
+    const second = insertEntry(first.entries, entry({ id: 'a', wave: 10, name: '새이름' }));
+    expect(second.entries[0].wave).toBe(30); // 기록은 그대로
+    expect(second.entries[0].name).toBe('새이름'); // 이름만 갱신
+    expect(second.improved).toBe(false);
+  });
+
+  it('이름만 바꾸면 기록은 그대로다', () => {
+    const entries = [entry({ id: 'a', wave: 30, name: '옛이름' }), entry({ id: 'b', wave: 20, name: '남' })];
+    const out = renameEntries(entries, 'a', '새이름');
+    expect(out.changed).toBe(true);
+    expect(out.entries[0]).toMatchObject({ wave: 30, name: '새이름' });
+    expect(out.entries[1].name).toBe('남'); // 남의 이름은 안 건드린다
+    expect(renameEntries(out.entries, 'a', '새이름').changed).toBe(false); // 같은 이름이면 쓰기 없음
+    expect(renameEntries(entries, 'zzz', 'x').changed).toBe(false);
   });
 
   it('내 순위를 찾는다', () => {

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { SaveData } from '../game/save/storage';
 import type { RankEntry } from '../game/rank/types';
-import { MAX_NAME_LEN } from '../game/rank/types';
 import { fetchBoard, formatTime, shareLine, type RankStatus } from '../game/rank/api';
 import { sanitizeName } from '../game/rank/validate';
 import { dateKey } from '../game/daily';
 import { Icon } from './Icon';
+import { NicknameField } from './NicknameField';
 
 type Board = 'daily' | 'all' | 'mine';
 
@@ -51,7 +51,6 @@ export function RankScreen({ save, onSetNickname, onToggleOptIn }: Props) {
   const [entries, setEntries] = useState<RankEntry[]>([]);
   const [myRank, setMyRank] = useState<number | null>(null);
   const [status, setStatus] = useState<RankStatus | 'loading'>('loading');
-  const [nameDraft, setNameDraft] = useState(save.nickname);
   const [copied, setCopied] = useState(false);
   const me = save.playerId.slice(0, 8);
 
@@ -74,12 +73,6 @@ export function RankScreen({ save, onSetNickname, onToggleOptIn }: Props) {
 
   const rows = board === 'mine' ? mine : entries;
   const view: RankStatus | 'loading' = board === 'mine' ? 'ok' : status;
-
-  const saveName = useCallback(() => {
-    const clean = sanitizeName(nameDraft);
-    setNameDraft(clean === '익명 알바' && !nameDraft.trim() ? '' : clean);
-    onSetNickname(clean);
-  }, [nameDraft, onSetNickname]);
 
   const share = useCallback(async () => {
     const best = board === 'mine' ? mine[0] : entries.find((e) => e.id === me);
@@ -147,16 +140,7 @@ export function RankScreen({ save, onSetNickname, onToggleOptIn }: Props) {
       {board !== 'mine' && myRank && myRank > 50 && <div className="rank-mine">내 순위 {myRank}위</div>}
 
       <div className="rank-me">
-        <label className="rank-field">
-          <span>표시 이름</span>
-          <input
-            value={nameDraft}
-            maxLength={MAX_NAME_LEN}
-            placeholder="익명 알바"
-            onChange={(e) => setNameDraft(e.target.value)}
-            onBlur={saveName}
-          />
-        </label>
+        <NicknameField value={save.nickname} onSave={onSetNickname} label="표시 이름" cta="저장" />
         <button className="rank-optin" onClick={onToggleOptIn} aria-pressed={save.rankOptIn}>
           <Icon name={save.rankOptIn ? 'check' : 'tag'} size={13} strokeWidth={2.4} />
           랭킹 등록 {save.rankOptIn ? '켜짐' : '꺼짐'}

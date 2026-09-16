@@ -10,8 +10,8 @@ import { getDaily, dateKey } from './game/daily';
 import { createRng } from './game/engine/rng';
 import { GAMEOVER_QUIPS } from './game/data/dialogue';
 import { audio } from './game/audio/sfx';
-import { submitScore, type SubmitResult } from './game/rank/api';
-import { buildPayload } from './game/rank/payload';
+import { submitScore, renameScore, type SubmitResult } from './game/rank/api';
+import { buildPayload, type RunSummary } from './game/rank/payload';
 import { StartScreen } from './ui/StartScreen';
 import { GameScreen } from './ui/GameScreen';
 import { GameOverScreen } from './ui/GameOverScreen';
@@ -53,6 +53,8 @@ export function App() {
   const [result, setResult] = useState<RunResult | null>(null);
   // 랭킹 전송 결과. 서버가 없거나 네트워크가 끊겨도 게임 흐름은 막지 않는다.
   const [rank, setRank] = useState<SubmitResult | null>(null);
+  // 이름을 아직 안 정했으면 전송을 보류한다. 아무 이름으로나 올려 두면 되돌리기 번거롭다.
+  const [pendingRun, setPendingRun] = useState<RunSummary | null>(null);
   // 오늘의 규칙으로 플레이할지 (시작 화면에서 고른다)
   const [dailyMode, setDailyMode] = useState(false);
 
@@ -65,6 +67,7 @@ export function App() {
     audio.unlock();
     setResult(null);
     setRank(null);
+    setPendingRun(null);
     setDailyMode(daily);
     setRunKey((k) => k + 1);
     setScreen('game');
@@ -193,26 +196,23 @@ export function App() {
       if (newRecord) audio.play('record');
 
       // ── 글로벌 랭킹 전송 (실패해도 조용히 넘어간다) ──
-      if (next.rankOptIn) {
-        submitScore(
-          buildPayload(
-            {
-              wave: s.wave,
-              time: s.realTime,
-              kills: s.stats.kills,
-              bestCombo: s.stats.bestCombo,
-              merges: s.stats.merges,
-              draws: s.stats.draws,
-              bossKills: s.stats.bossKills,
-              coins: s.stats.coinsEarned,
-              mvp: mvpId,
-              runTitle,
-              challengeId: s.challenge?.id ?? null,
-            },
-            next,
-            today.date,
-          ),
-        ).then(setRank);
+      const summary: RunSummary = {
+        wave: s.wave,
+        time: s.realTime,
+        kills: s.stats.kills,
+        bestCombo: s.stats.bestCombo,
+        merges: s.stats.merges,
+        draws: s.stats.draws,
+        bossKills: s.stats.bossKills,
+        coins: s.stats.coinsEarned,
+        mvp: mvpId,
+        runTitle,
+        challengeId: s.challenge?.id ?? null,
+      };
+      if (next.rankOptIn && next.nickname) {
+        submitScore(buildPayload(summary, next, today.date)).then(setRank);
+      } else if (next.rankOptIn) {
+        setPendingRun(summary); // 게임오버 화면에서 이름을 받고 올린다
       }
     },
     [save, persist],
@@ -232,7 +232,27 @@ export function App() {
     [save, persist],
   );
 
-  const setNickname = useCallback((nickname: string) => persist({ ...save, nickname }), [save, persist]);
+  // 이름을 정하면 이번 판 기록을 그 이름으로 올린다.
+  const submitPendingRun = useCallback(
+    (nickname: string) => {
+      if (!pendingRun) return;
+      const next = { ...save, nickname };
+      persist(next);
+      setPendingRun(null);
+      submitScore(buildPayload(pendingRun, next, dateKey())).then(setRank);
+    },
+    [pendingRun, save, persist],
+  );
+
+  const setNickname = useCallback(
+    (nickname: string) => {
+      if (nickname === save.nickname) return;
+      persist({ ...save, nickname });
+      // 이미 올라간 기록의 이름도 같이 바꾼다 (옛 이름이 박혀 있으면 곤란하다)
+      if (save.rankOptIn && save.runHistory.length > 0) void renameScore(save.playerId, nickname, dateKey());
+    },
+    [save, persist],
+  );
   const toggleRankOptIn = useCallback(() => persist({ ...save, rankOptIn: !save.rankOptIn }), [save, persist]);
 
   const toggleAutoMerge = useCallback(() => persist({ ...save, autoMerge: !save.autoMerge }), [save, persist]);
@@ -285,6 +305,8 @@ export function App() {
           result={result}
           save={save}
           rank={rank}
+          needName={pendingRun !== null}
+          onSubmitName={submitPendingRun}
           onRestart={() => startGame(dailyMode)}
           onMenu={() => setScreen('start')}
         />
