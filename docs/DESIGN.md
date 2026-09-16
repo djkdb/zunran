@@ -359,3 +359,32 @@ interface SaveData {
 - 조작: 탭/클릭 하나로 전부. 유닛 탭 → 선택(정보/판매) → 빈 슬롯 탭 = 이동, 다른 유닛 탭 = 교환.
 - 배너(Banner): 중앙 대형 텍스트. LEGENDARY / WARNING / 보스 이름 / WAVE CLEAR / 새벽 3시입니다.
 - 버튼 최소 높이 48px. 뽑기 버튼은 화면에서 가장 크고 밝은 요소.
+
+
+## 확장 (업적 / 데일리 / 보고서)
+
+기존 엔진을 건드리지 않고 **데이터 → 한 판 기록 → 누적 저장**의 한 방향 흐름만 추가했다.
+
+```
+data/achievements.ts   조건은 순수 함수 (RunStats + 이번 판 반영 전 SaveData)
+data/missions.ts       오늘의 미션 (같은 판정 컨텍스트)
+data/dailyChallenges.ts ChallengeSpec — 새 시스템이 아니라 기존 Modifiers 위에 얹는 값
+data/runTitles.ts      런 제목 (플레이 기록 → 우선순위 → seed 로 하나)
+daily.ts               날짜 문자열 → FNV-1a seed → 기존 createRng 로 선택
+
+engine/  RunStats 에 추적 필드만 추가 (eventIds, reachedBy, storeDamageBy, enemyKills …)
+         ChallengeSpec 은 recomputeModifiers / spawnEnemy / buildWave / draw / rarityOdds
+         다섯 곳에서만 읽는다. 분기를 흩뿌리지 않는다.
+
+save/stats.ts          RunStats → UnitStat/EnemyStat 누적 병합 (여기 한 곳에서만)
+save/storage.ts        v1 → v2 마이그레이션. 없는 필드는 기본값, 있던 값은 건드리지 않는다.
+                       로드 시 구버전이면 즉시 새 형식으로 다시 쓴다.
+                       runHistory 30개, daily 14일치로 잘라 저장 용량을 묶어 둔다.
+```
+
+**RNG 재현성**: 새로 추가한 랜덤은 전부 기존 `createRng` 를 쓴다. 데일리는 날짜 seed,
+런 제목은 `state.seed` 파생 seed. 엔진 안에서는 연출용으로도 `Math.random` 을 쓰지 않는다
+(시뮬레이터 재현이 깨진다).
+
+**밸런스 검증**: `npm run sim -- <판수> <전략> 0 x <데일리id>` 로 규칙별 사망 웨이브를 잰다.
+기준(27) 대비 10종 전부 25~30 사이에 들어온다.

@@ -1,5 +1,5 @@
 import type { Enemy, FxEvent, GameState, Unit } from '../types';
-import { FIELD_W, FIELD_H, PATH, SLOT_ROWS, SLOT_COLS, RARITY_COLOR, CHECKOUT_POS, AISLE_NAMES, AISLE_BONUS, THREE_AM_WAVE } from '../config';
+import { FIELD_W, FIELD_H, PATH, SLOT_ROWS, SLOT_COLS, RARITY_COLOR, CHECKOUT_POS, AISLE_NAMES, AISLE_BONUS, nightPhase, NIGHT_PHASE_TINT } from '../config';
 import { UNIT_BY_ID } from '../data/units';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { rasterize, drawFallback, getSprite } from './sprites';
@@ -712,10 +712,21 @@ export class Renderer {
   private drawOverlays(state: GameState, now: number): void {
     const ctx = this.ctx;
     const m = state.modifiers;
-    // 새벽 3시 이후: 붉은 기운
-    if (state.wave >= THREE_AM_WAVE) {
-      ctx.fillStyle = 'rgba(120,20,40,0.08)';
+    // 밤이 깊어질수록 매장 색이 바뀐다 (22시 → 자정 → 새벽 2시 → 새벽 3시)
+    const phase = nightPhase(state.wave);
+    const tint = NIGHT_PHASE_TINT[phase];
+    if (tint) {
+      ctx.fillStyle = tint;
       ctx.fillRect(0, 0, FIELD_W, FIELD_H);
+    }
+    // 새벽 3시 이후: 형광등이 가끔 깜빡인다 (연산 한 줄, 성능 영향 없음)
+    if (phase === 3) {
+      const t = now * 0.001;
+      const flicker = Math.sin(t * 7.3) * Math.sin(t * 2.1) * Math.sin(t * 0.7);
+      if (flicker > 0.86) {
+        ctx.fillStyle = 'rgba(0,0,0,0.28)';
+        ctx.fillRect(0, 0, FIELD_W, FIELD_H);
+      }
     }
     if (m.darkness > 0) {
       ctx.fillStyle = `rgba(0,0,0,${m.darkness})`;

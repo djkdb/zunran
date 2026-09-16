@@ -23,6 +23,13 @@ export function aisleBonus(state: GameState, u: Unit) {
   return AISLE_BONUS[state.slots[u.slot].row] ?? AISLE_BONUS[0];
 }
 
+// ZUNRAN DAILY 의 코너별 공격력 배율 (예: "음료의 밤" = 음료 코너 ×2)
+export function aisleChallengeMult(state: GameState, u: Unit): number {
+  const a = state.challenge?.aisleDmg;
+  if (!a) return 1;
+  return a[state.slots[u.slot].row] ?? 1;
+}
+
 // 오라 값의 티어 스케일: 티어당 +40% (냉장고 t3 = 0.3 × 1.8 = 0.54 감속)
 export function auraValue(state: GameState, def: UnitDef, tier: Tier): number {
   if (!def.aura) return 0;
@@ -44,6 +51,7 @@ export function unitDamage(state: GameState, u: Unit): number {
     def.dmg *
     tierDmgMult(u.tier) *
     aisleBonus(state, u).dmg *
+    aisleChallengeMult(state, u) *
     p.dmg *
     (p.roleDmg[def.role] ?? 1) *
     m.unitDmg *

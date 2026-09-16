@@ -13,6 +13,16 @@ async function main() {
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(e.message));
   await page.goto(url, { waitUntil: 'networkidle' });
+  // 보상 3택이 뜨면 엔진이 멈추므로, 이 스크립트에서는 자동으로 첫 카드를 고른다
+  const autoReward = setInterval(() => {
+    page
+      .evaluate(() => {
+        const g = (window as any).__game;
+        const s = g?.engine?.state;
+        if (s && s.phase === 'reward' && s.rewardOffers.length > 0) g.engine.dispatch({ type: 'CHOOSE_REWARD', defId: s.rewardOffers[0].defId });
+      })
+      .catch(() => {});
+  }, 300);
   await page.getByText('야간 근무 시작').click();
   await page.waitForTimeout(400);
   // 전설 강제: rng 를 0 으로 → 전설 확률 구간
@@ -86,6 +96,7 @@ async function main() {
   await page.getByText('도감').click();
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(outdir, 'codex.png') });
+  clearInterval(autoReward);
   console.log('console errors:', errors.length, errors.slice(0, 5));
   await browser.close();
 }

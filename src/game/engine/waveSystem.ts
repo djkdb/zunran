@@ -9,7 +9,7 @@ import { sfx, addFloater } from './helpers';
 
 export function startWave(state: GameState, wave: number): void {
   state.wave = wave;
-  const plan = buildWave(wave, state.rng);
+  const plan = buildWave(wave, state.rng, state.challenge?.enemyCountMult ?? 1);
   // "새벽 장사" 도박을 골랐다면 이 웨이브만 손님이 확 늘어난다 (보상은 economy 에서 2배)
   if (state.riskWave === wave) {
     const extra = plan.entries
@@ -36,13 +36,18 @@ export function startWave(state: GameState, wave: number): void {
 
   if (plan.script === 'threeAm') {
     state.threeAmTriggered = true;
-    state.fx.push({ type: 'banner', text: '새벽 3시입니다.', sub: '…뭔가 잘못됐다', style: 'warning', dur: 3 });
-    state.fx.push({ type: 'shake', amount: 10 });
-    state.fx.push({ type: 'flash', color: '#ef4444' });
+    state.fx.push({ type: 'banner', text: '03:00', sub: '새벽 3시입니다. …뭔가 잘못됐다', style: 'warning', dur: 3.2 });
+    state.fx.push({ type: 'shake', amount: 14 });
+    state.fx.push({ type: 'flash', color: '#ff4d8d' });
     sfx(state, 'warning');
+    sfx(state, 'secret');
   } else if (plan.boss) {
     // 보스 배너는 스폰 시 출력. 여기서는 예고만.
     state.fx.push({ type: 'banner', text: `웨이브 ${wave}`, sub: '보스 접근 중', style: 'warning', dur: 1.6 });
+    sfx(state, 'warning');
+  } else if (wave === THREE_AM_WAVE - 4) {
+    // 02:00 — 새벽 3시 전조. 여기서부터 화면 색조도 한 단계 어두워진다.
+    state.fx.push({ type: 'banner', text: '02:00', sub: '손님이 이상해지기 시작한다', style: 'warning', dur: 2 });
     sfx(state, 'warning');
   } else if (wave > 1) {
     state.fx.push({ type: 'banner', text: `웨이브 ${wave}`, sub: waveHint(wave), style: 'info', dur: 1.2 });

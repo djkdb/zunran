@@ -1,6 +1,6 @@
 import type { Enemy, GameState, OnHitEffect, Unit } from '../types';
 import { ENEMY_BY_ID } from '../data/enemies';
-import { PATH_LENGTH, pathPos, enemyHpScale, enemyDamageScale, MAX_ENEMIES_ON_FIELD, LOW_HP_THRESHOLD } from '../config';
+import { PATH_LENGTH, pathPos, enemyHpScale, enemyDamageScale, MAX_ENEMIES_ON_FIELD, LOW_HP_THRESHOLD, formatClock } from '../config';
 import { addFloater, sfx, unitDef, auraRadius, auraValue, dist2, isTargetable } from './helpers';
 import { rewardKill } from './economy';
 import { BOSS_INTRO } from '../data/dialogue';
@@ -17,7 +17,7 @@ export function spawnEnemy(
   const def = ENEMY_BY_ID[defId];
   if (!def) return null;
   const wave = opts.wave ?? state.wave;
-  const hp = Math.round(def.hp * enemyHpScale(wave) * (opts.hpMult ?? 1));
+  const hp = Math.round(def.hp * enemyHpScale(wave) * (opts.hpMult ?? 1) * (state.challenge?.enemyHpMult ?? 1));
   const pos = pathPos(opts.dist ?? 0);
   const e: Enemy = {
     id: state.nextId++,
@@ -51,6 +51,7 @@ export function spawnEnemy(
   state.enemies.push(e);
   if (opts.trackWave !== false) state.waveEnemyIds.add(e.id);
   if (!state.stats.seenEnemies.includes(defId)) state.stats.seenEnemies.push(defId);
+  state.stats.enemySeen[defId] = (state.stats.enemySeen[defId] ?? 0) + 1;
   if (e.isBoss) {
     state.bossAlive = true;
     const intro = BOSS_INTRO[defId];
@@ -151,6 +152,7 @@ export function killEnemy(state: GameState, e: Enemy, killer: Unit | null, bonus
   if (e.dead) return;
   e.dead = true;
   const def = ENEMY_BY_ID[e.defId];
+  state.stats.enemyKills[e.defId] = (state.stats.enemyKills[e.defId] ?? 0) + 1;
   rewardKill(state, e, killer, bonusCoin);
   state.fx.push({ type: 'death', x: e.x, y: e.y, color: def.color, boss: e.isBoss });
   if (e.isBoss) {
@@ -440,6 +442,12 @@ function reachCheckout(state: GameState, e: Enemy): void {
   if (state.waveEnemyIds.has(e.id)) state.waveReached = true; // 이번 웨이브 클리어 보너스 무효
   const dmg = Math.max(1, Math.round(def.storeDamage * enemyDamageScale(e.spawnedWave)));
   state.hp = Math.max(0, state.hp - dmg);
+  // 패배 원인 분석용: 누가 몇 번 들어와 얼마를 깎았는지
+  const st = state.stats;
+  st.reached++;
+  st.reachedBy[e.defId] = (st.reachedBy[e.defId] ?? 0) + 1;
+  st.storeDamageBy[e.defId] = (st.storeDamageBy[e.defId] ?? 0) + dmg;
+  st.lastDamageClock = formatClock(state.wave, state.waveElapsed, state.waveDuration);
   state.fx.push({ type: 'shake', amount: e.isBoss ? 16 : 4 });
   state.fx.push({ type: 'hit', x: e.x, y: e.y, color: '#ef4444', big: e.isBoss });
   addFloater(state, { x: e.x, y: e.y - 20, text: `-${dmg}`, color: '#ef4444', size: 16, life: 1 });

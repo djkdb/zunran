@@ -1,5 +1,5 @@
 import type { Engine } from '../game/engine/Engine';
-import type { MetaEffects, UISnapshot } from '../game/types';
+import type { ChallengeSpec, MetaEffects, UISnapshot } from '../game/types';
 import { useGame } from './useGame';
 import { Hud } from './Hud';
 import { BottomPanel } from './BottomPanel';
@@ -12,6 +12,7 @@ interface Props {
   muted: boolean;
   autoMerge: boolean;
   showHints: boolean;
+  challenge: ChallengeSpec | null;
   onToggleMute: () => void;
   onToggleAutoMerge: () => void;
   onGameOver: (engine: Engine) => void;
@@ -28,8 +29,8 @@ function hintFor(snap: UISnapshot): string | null {
   return null;
 }
 
-export function GameScreen({ meta, bestWave, muted, autoMerge, showHints, onToggleMute, onToggleAutoMerge, onGameOver }: Props) {
-  const { canvasRef, snap, banners, act, toast, onPointerDown, onPointerMove, endDrag } = useGame({ meta, bestWave, muted, autoMerge, onGameOver });
+export function GameScreen({ meta, bestWave, muted, autoMerge, showHints, challenge, onToggleMute, onToggleAutoMerge, onGameOver }: Props) {
+  const { canvasRef, snap, banners, act, toast, onPointerDown, onPointerMove, endDrag } = useGame({ meta, bestWave, muted, autoMerge, challenge, onGameOver });
   const hint = showHints && snap && snap.phase === 'playing' && snap.wave <= 8 ? hintFor(snap) : null;
   return (
     <div className="game">

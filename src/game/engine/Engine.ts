@@ -1,4 +1,4 @@
-import type { FxEvent, GameAction, GameState, MetaEffects, Rarity, Tier, UISnapshot, UnitGroup, Unit } from '../types';
+import type { ChallengeSpec, FxEvent, GameAction, GameState, MetaEffects, Rarity, Tier, UISnapshot, UnitGroup, Unit } from '../types';
 import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, MAX_TIER, drawCost, formatClock, EVENT_INTERVAL, isBossWave, AISLE_NAMES, AISLE_BONUS } from '../config';
 import { UNIT_BY_ID, unitsOfRarity } from '../data/units';
 import { basePerma, chooseReward } from './rewardSystem';
@@ -21,6 +21,7 @@ export interface EngineOptions {
   seed?: number;
   meta?: MetaEffects;
   bestWave?: number;
+  challenge?: ChallengeSpec | null; // ZUNRAN DAILY 규칙
 }
 
 const FIXED_DT = 1 / 60;
@@ -38,6 +39,8 @@ export class Engine {
     const seed = opts.seed ?? randomSeed();
     const meta = opts.meta ?? metaEffects(DEFAULT_META_LEVELS);
     this.state = createInitialState(seed, meta, opts.bestWave ?? 0);
+    this.state.challenge = opts.challenge ?? null;
+    if (this.state.challenge) recomputeModifiers(this.state);
     startWave(this.state, 1);
     this.state.fx.length = 0; // 첫 웨이브 배너는 UI 가 별도로 처리
   }
@@ -77,6 +80,7 @@ export class Engine {
     if (s.floaters.some((f) => f.life <= 0)) s.floaters = s.floaters.filter((f) => f.life > 0);
     s.shake = Math.max(0, s.shake - dt * 30);
     if (s.hp <= 0) this.gameOver('편의점 체력이 0이 되었습니다');
+
   }
 
   private gameOver(reason: string): void {
@@ -141,9 +145,10 @@ export class Engine {
 
   rarityOdds(): Record<Exclude<Rarity, 'special'>, number> {
     const m = this.state.meta;
-    const rare = BASE_RARITY_ODDS.rare + m.rareBonus;
-    const epic = BASE_RARITY_ODDS.epic + m.epicBonus;
-    const legendary = BASE_RARITY_ODDS.legendary + m.legendaryBonus + this.state.perma.legendaryOdds;
+    const b = this.state.challenge?.boostRarity;
+    const rare = Math.max(0, BASE_RARITY_ODDS.rare + m.rareBonus + (b?.rare ?? 0));
+    const epic = Math.max(0, BASE_RARITY_ODDS.epic + m.epicBonus + (b?.epic ?? 0));
+    const legendary = Math.max(0, BASE_RARITY_ODDS.legendary + m.legendaryBonus + this.state.perma.legendaryOdds + (b?.legendary ?? 0));
     return { common: Math.max(0, 1 - rare - epic - legendary), rare, epic, legendary };
   }
 
@@ -172,12 +177,21 @@ export class Engine {
     if (r < acc) rarity = 'legendary';
     else if (r < (acc += odds.epic)) rarity = 'epic';
     else if (r < (acc += odds.rare)) rarity = 'rare';
-    const def = s.rng.pick(unitsOfRarity(rarity));
+    // 데일리 규칙으로 막힌 유닛은 뽑히지 않는다 (전부 막히면 규칙을 무시한다)
+    const banned = s.challenge?.banUnits;
+    let candidates = unitsOfRarity(rarity);
+    if (banned?.length) {
+      const filtered = candidates.filter((d) => !banned.includes(d.id));
+      if (filtered.length > 0) candidates = filtered;
+    }
+    const def = s.rng.pick(candidates);
     const slot = s.rng.pick(emptySlots);
     const unit = createUnit(s, def.id, 1, slot.index);
     s.units.push(unit);
     slot.unitId = unit.id;
     s.stats.drawsByRarity[rarity]++;
+    s.stats.unitDraws[def.id] = (s.stats.unitDraws[def.id] ?? 0) + 1;
+    s.stats.unitMaxTier[def.id] = Math.max(s.stats.unitMaxTier[def.id] ?? 1, 1);
     if (!s.stats.seenUnits.includes(def.id)) s.stats.seenUnits.push(def.id);
     s.lastDrawResult = { defId: def.id, rarity, at: s.time };
     // 방금 뽑은 유닛을 선택 상태로 둔다 — 빈 칸이 강조되어 한 번 탭으로 원하는 코너에 놓을 수 있다.
@@ -356,11 +370,14 @@ export class Engine {
     return this.cachedSnapshot;
   }
 
-  mvpUnit(): { defId: string; damage: number } | null {
+  mvpUnit(): { defId: string; damage: number; tier: number } | null {
     const entries = Object.entries(this.state.stats.unitDamage);
     if (entries.length === 0) return null;
     entries.sort((a, b) => b[1] - a[1]);
-    return { defId: entries[0][0], damage: Math.round(entries[0][1]) };
+    const defId = entries[0][0];
+    // 이번 판에 그 유닛이 도달한 최고 티어 (합성으로 사라졌어도 기록에 남는다)
+    const tier = Math.max(this.state.stats.unitMaxTier[defId] ?? 1, ...this.state.units.filter((u) => u.defId === defId).map((u) => u.tier), 1);
+    return { defId, damage: Math.round(entries[0][1]), tier };
   }
 }
 
@@ -455,12 +472,24 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number): 
       drawsByRarity: { common: 0, rare: 0, epic: 0, legendary: 0, special: 0 },
       seenUnits: [],
       seenEnemies: [],
+      eventIds: [],
+      reached: 0,
+      reachedBy: {},
+      storeDamageBy: {},
+      enemyKills: {},
+      enemySeen: {},
+      unitDraws: {},
+      unitMerges: {},
+      unitMaxTier: {},
+      catVisits: 0,
+      lastDamageClock: '',
     },
     fx: [],
     floaters: [],
     shake: 0,
     nextId: 1,
     meta,
+    challenge: null,
     threeAmTriggered: false,
     lowHpWarned: false,
     disabledUnitNotice: 0,

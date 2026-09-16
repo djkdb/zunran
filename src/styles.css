@@ -129,7 +129,18 @@ button:disabled {
 .gameover-points,
 .new-record,
 .mvp,
-.menu-btn {
+.menu-btn,
+.daily-card,
+.daily-btn,
+.ach-item,
+.ach-tabs button,
+.hist-item,
+.defeat,
+.events-seen,
+.mission-result,
+.unlocked,
+.ach-toast,
+.cert-panel {
   --fc: var(--edge);
   background-color: var(--panel);
   background-image: linear-gradient(var(--fc), var(--fc)), linear-gradient(var(--fc), var(--fc)),
@@ -1640,6 +1651,601 @@ button:disabled {
   align-items: center;
   justify-content: center;
   gap: 7px;
+}
+
+/* ───────── ZUNRAN DAILY (시작 화면) ───────── */
+.daily-card {
+  --fc: var(--mint);
+  padding: 11px 13px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.daily-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.daily-tag {
+  font-size: 10px;
+  color: var(--bg);
+  background: var(--mint);
+  padding: 3px 7px;
+}
+.daily-date {
+  font-size: 9px;
+  color: var(--off);
+  margin-left: auto;
+}
+.daily-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 21px;
+  color: var(--mint);
+  line-height: 1.1;
+}
+.daily-rules {
+  margin: 0;
+  padding-left: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.daily-rules li {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--dim);
+  line-height: 1.4;
+}
+.daily-mission {
+  background: var(--sunk);
+  padding: 8px 10px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.daily-mission-label {
+  font-size: 8px;
+  color: var(--gold);
+}
+.daily-goal {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+  line-height: 1.2;
+}
+.daily-extra {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dim);
+}
+.daily-reward {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--gold);
+  margin-top: 2px;
+}
+.daily-done {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--off);
+}
+.daily-record {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--off);
+}
+.daily-record b {
+  color: var(--text);
+  margin-left: 3px;
+}
+.daily-clear {
+  color: var(--gold);
+  font-weight: 800;
+}
+.daily-fail {
+  color: var(--off);
+}
+.daily-btn {
+  --fc: var(--gold);
+  min-height: 44px;
+  background-color: var(--panel);
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.daily-btn:active {
+  transform: translateY(2px);
+}
+
+/* ───────── 업적 ───────── */
+.ach {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.ach-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ach-progress-top {
+  display: flex;
+  align-items: baseline;
+}
+.ach-count {
+  font-size: 16px;
+  color: var(--mint);
+}
+.ach-pct {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--gold);
+}
+.bar-ach {
+  height: 10px;
+  --barsep: var(--bg);
+}
+.bar-ach .bar-fill {
+  background: var(--gold);
+}
+.ach-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.ach-tabs button {
+  flex: 1 1 auto;
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--dim);
+}
+.ach-tabs button.active {
+  --fc: var(--mint);
+  color: var(--mint);
+}
+.ach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.ach-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  text-align: left;
+}
+.ach-item.got {
+  --fc: var(--gold);
+}
+.ach-icon {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sunk);
+  color: var(--off);
+}
+.ach-item.got .ach-icon {
+  background: var(--gold);
+  color: var(--bg);
+}
+.ach-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ach-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--off);
+  line-height: 1.15;
+}
+.ach-item.got .ach-title {
+  color: var(--text);
+}
+.ach-desc {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--off);
+  line-height: 1.35;
+}
+.ach-item.secret .ach-title,
+.ach-item.secret .ach-desc {
+  color: #4b4370;
+}
+.ach-check {
+  flex: none;
+  color: var(--gold);
+}
+
+/* 업적 달성 토스트 */
+.ach-toast {
+  --fc: var(--gold);
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  background-color: var(--panel);
+  max-width: 92%;
+  animation: achIn 1.7s ease-out forwards;
+  pointer-events: none;
+}
+.ach-toast-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gold);
+  color: var(--bg);
+}
+.ach-toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ach-toast-label {
+  font-size: 8px;
+  color: var(--gold);
+}
+.ach-toast-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--text);
+  white-space: nowrap;
+}
+@keyframes achIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(14px) scale(0.9);
+  }
+  12% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+}
+
+/* ───────── 근무 기록 ───────── */
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hist-item {
+  padding: 9px 11px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.hist-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.hist-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hist-ago {
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--off);
+  flex: none;
+}
+.hist-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--off);
+}
+.hist-stats b {
+  color: var(--mint);
+  margin-left: 3px;
+}
+.hist-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 800;
+}
+.hist-mvp {
+  color: var(--gold);
+}
+.hist-daily {
+  color: var(--mint);
+}
+.hist-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--green);
+}
+
+/* ───────── 근무 보고서 ───────── */
+.report {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.report-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.report-label {
+  font-size: 9px;
+  color: var(--off);
+}
+.report-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--gold);
+  line-height: 1.15;
+}
+.defeat,
+.events-seen,
+.mission-result,
+.unlocked {
+  padding: 9px 11px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.defeat-head {
+  font-size: 8px;
+  color: var(--off);
+}
+.defeat-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.defeat-rows > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dim);
+}
+.defeat-rows b {
+  margin-left: auto;
+  color: var(--text);
+  font-weight: 800;
+  white-space: nowrap;
+}
+.defeat-rows i {
+  font-style: normal;
+  color: var(--pink);
+  margin-left: 4px;
+}
+.events-seen ul {
+  margin: 0;
+  padding-left: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.events-seen li {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dim);
+}
+.mission-result.clear {
+  --fc: var(--gold);
+}
+.mission-goal {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.2;
+}
+.mission-extra {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dim);
+}
+.mission-verdict {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--gold);
+  margin-top: 2px;
+}
+.mission-verdict .px {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--off);
+}
+.mission-fail {
+  color: var(--off);
+}
+.unlocked {
+  --fc: var(--gold);
+}
+.unlocked-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--dim);
+  min-width: 0;
+}
+.unlocked-row svg {
+  flex: none;
+  color: var(--gold);
+}
+.unlocked-row b {
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+}
+.unlocked-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.verdict {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--dim);
+  text-align: center;
+  line-height: 1.5;
+  padding: 4px 6px;
+  word-break: keep-all;
+}
+.gameover-daily {
+  font-size: 9px;
+  color: var(--mint);
+  margin-top: 6px;
+}
+
+/* ───────── 근무 인증서 ───────── */
+.cert-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(10, 8, 20, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  overflow-y: auto;
+  animation: fadeIn 0.2s ease-out both;
+}
+.cert-panel {
+  --fc: var(--mint);
+  margin: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  max-width: 100%;
+}
+.cert-canvas {
+  display: block;
+  max-width: 100%;
+  height: auto !important;
+  image-rendering: auto;
+}
+.cert-actions {
+  display: flex;
+  gap: 6px;
+}
+.cert-actions .menu-btn {
+  flex: 1;
+  min-height: 42px;
+  font-size: 12px;
+}
+.cert-msg {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--gold);
+}
+
+/* ───────── 도감 상세 ───────── */
+.codex-item.open {
+  --fc: var(--mint);
+  grid-column: 1 / -1;
+}
+.codex-sub {
+  font-size: 8px;
+  color: var(--off);
+}
+.codex-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  margin-top: 5px;
+  padding-top: 6px;
+  border-top: 2px solid var(--sunk);
+  text-align: left;
+}
+.codex-desc {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dim);
+  line-height: 1.45;
+}
+.codex-rows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.codex-rows i {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--dim);
+  background: var(--sunk);
+  padding: 3px 7px;
+}
+.codex-rows i.bad {
+  color: var(--pink-s);
+  background: var(--pink-bg);
+}
+.codex-event {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--mint);
+}
+.codex-quote {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--off);
 }
 
 /* ───────── 애니메이션 (blur·glow 없음) ───────── */

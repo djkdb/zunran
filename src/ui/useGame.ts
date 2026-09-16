@@ -3,7 +3,7 @@ import type React from 'react';
 import { Engine } from '../game/engine/Engine';
 import { Renderer } from '../game/render/Renderer';
 import { audio } from '../game/audio/sfx';
-import type { GameAction, MetaEffects, UISnapshot } from '../game/types';
+import type { ChallengeSpec, GameAction, MetaEffects, UISnapshot } from '../game/types';
 import { SLOT_HIT_RADIUS, THREE_AM_WAVE } from '../game/config';
 import type { BannerItem } from './Banner';
 
@@ -12,6 +12,7 @@ export interface UseGameOptions {
   bestWave: number;
   muted: boolean;
   autoMerge: boolean;
+  challenge?: ChallengeSpec | null;
   onGameOver: (engine: Engine) => void;
 }
 
@@ -56,7 +57,7 @@ export function useGame(opts: UseGameOptions) {
 
   useEffect(() => {
     const canvas = canvasRef.current!;
-    const engine = new Engine({ meta: opts.meta, bestWave: opts.bestWave });
+    const engine = new Engine({ meta: opts.meta, bestWave: opts.bestWave, challenge: opts.challenge ?? null });
     const renderer = new Renderer(canvas);
     engineRef.current = engine;
     rendererRef.current = renderer;

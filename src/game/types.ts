@@ -239,7 +239,13 @@ export type SfxId =
   | 'sell'
   | 'click'
   | 'skill'
-  | 'record';
+  | 'record'
+  | 'achievement'
+  | 'rareEvent'
+  | 'missionClear'
+  | 'certificate'
+  | 'cat'
+  | 'secret';
 
 export interface Floater {
   x: number;
@@ -323,6 +329,39 @@ export interface RunStats {
   drawsByRarity: Record<Rarity, number>;
   seenUnits: string[];
   seenEnemies: string[];
+  // ── 보고서·도감·업적용 추적 (한 판 동안만 쌓고, 게임오버 때 Save 로 합친다) ──
+  eventIds: string[]; // 이번 판에 실제로 발생한 이벤트 id (중복 포함, 순서대로)
+  reached: number; // 계산대에 도달한 손님 수
+  reachedBy: Record<string, number>; // 손님별 도달 횟수
+  storeDamageBy: Record<string, number>; // 손님별로 매장에 입힌 피해
+  enemyKills: Record<string, number>; // 손님별 처치 수
+  enemySeen: Record<string, number>; // 손님별 등장 수
+  unitDraws: Record<string, number>; // 유닛별 뽑은 횟수
+  unitMerges: Record<string, number>; // 유닛별 합성 횟수 (재료 기준)
+  unitMaxTier: Record<string, number>; // 유닛별 이번 판 최고 티어
+  catVisits: number; // 고양이를 만난 횟수
+  lastDamageClock: string; // 마지막으로 체력이 깎인 순간의 게임 내 시계
+}
+
+// ───────────────────────── 데일리 챌린지 ─────────────────────────
+
+// 하루치 특별 규칙. 새로운 시스템을 만들지 않고 기존 Modifiers 에 상시 곱해진다.
+export interface ChallengeSpec {
+  id: string;
+  name: string;
+  desc: string[]; // 화면에 줄 단위로 보여줄 규칙 설명
+  goalWave: number;
+  modifiers?: Partial<Omit<Modifiers, 'unitDmgById' | 'enemySpeedById'>> & {
+    unitDmgById?: Record<string, number>;
+    enemySpeedById?: Record<string, number>;
+  };
+  // 코너(줄)별 유닛 공격력 배율 — 0:음료 1:과자 2:라면
+  aisleDmg?: [number, number, number];
+  enemyHpMult?: number; // 손님 체력 배율
+  enemyCountMult?: number; // 손님 수 배율
+  eventWeight?: Record<string, number>; // 특정 이벤트 등장 가중치 배율
+  banUnits?: string[]; // 이 판에서 뽑히지 않는 유닛
+  boostRarity?: Partial<Record<Rarity, number>>; // 등급 확률 가산
 }
 
 export type MetaUpgradeId =
@@ -444,6 +483,8 @@ export interface GameState {
   shake: number;
   nextId: number;
   meta: MetaEffects;
+
+  challenge: ChallengeSpec | null; // ZUNRAN DAILY 규칙 (없으면 일반 근무)
 
   // 연출 플래그
   threeAmTriggered: boolean;

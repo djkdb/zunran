@@ -184,6 +184,32 @@ class AudioEngine {
         [659, 784, 988, 1318].forEach((f, i) => this.tone(f, 0.3, 'square', 0.12, i * 0.12));
         this.tone(1568, 0.8, 'triangle', 0.16, 0.5);
         break;
+      case 'achievement':
+        // 위로 올라가는 3음 + 반짝이는 꼬리
+        [523, 659, 880].forEach((f, i) => this.tone(f, 0.22, 'square', 0.13, i * 0.09));
+        this.tone(1318, 0.5, 'triangle', 0.1, 0.3);
+        break;
+      case 'rareEvent':
+        // 뭔가 이상한 일이 생겼다: 낮게 깔렸다가 확 올라간다
+        this.tone(160, 0.5, 'sawtooth', 0.09, 0, 900);
+        [880, 1174].forEach((f, i) => this.tone(f, 0.28, 'square', 0.1, 0.2 + i * 0.1));
+        break;
+      case 'missionClear':
+        [784, 784, 1047].forEach((f, i) => this.tone(f, 0.2, 'square', 0.12, i * 0.1));
+        break;
+      case 'certificate':
+        // 영수증 뽑히는 소리 느낌: 짧은 노이즈 + 띵
+        this.noise(0.22, 0.05);
+        this.tone(1047, 0.35, 'triangle', 0.12, 0.18);
+        break;
+      case 'cat':
+        // 야옹: 올라갔다 내려온다
+        this.tone(660, 0.16, 'sine', 0.13, 0, 980);
+        this.tone(880, 0.24, 'sine', 0.11, 0.14, 520);
+        break;
+      case 'secret':
+        [440, 554, 659, 880].forEach((f, i) => this.tone(f, 0.3, 'sine', 0.1, i * 0.13));
+        break;
     }
   }
 

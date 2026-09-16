@@ -1,25 +1,33 @@
 import { useState } from 'react';
-import type { SaveData } from '../game/save/storage';
+import type { DailyRecord, SaveData } from '../game/save/storage';
+import type { DailySet } from '../game/daily';
 import { META_UPGRADES } from '../game/save/meta';
-import { UNIT_DEFS } from '../game/data/units';
-import { ENEMY_DEFS } from '../game/data/enemies';
-import { RARITY_COLOR, RARITY_LABEL, formatTime } from '../game/config';
+import { ACHIEVEMENTS } from '../game/data/achievements';
+import { formatTime } from '../game/config';
 import { TIPS } from '../game/data/dialogue';
-import { UnitIcon } from './UnitIcon';
 import { Icon } from './Icon';
+import { AchievementsScreen } from './AchievementsScreen';
+import { CodexScreen } from './CodexScreen';
+import { HistoryScreen } from './HistoryScreen';
 import type { MetaUpgradeId } from '../game/types';
 
 interface Props {
   save: SaveData;
-  onStart: () => void;
+  daily: DailySet;
+  todayRecord: DailyRecord | null;
+  onStart: (daily: boolean) => void;
   onBuy: (id: MetaUpgradeId) => void;
   onToggleMute: () => void;
   onReset: () => void;
 }
 
-export function StartScreen({ save, onStart, onBuy, onToggleMute, onReset }: Props) {
-  const [tab, setTab] = useState<'main' | 'shop' | 'codex'>('main');
+type Tab = 'main' | 'shop' | 'codex' | 'ach' | 'history';
+
+export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggleMute, onReset }: Props) {
+  const [tab, setTab] = useState<Tab>('main');
   const tip = TIPS[save.totalPlays % TIPS.length];
+  const achCount = save.achievements.length;
+
   return (
     <div className="start">
       <div className="start-inner">
@@ -31,10 +39,55 @@ export function StartScreen({ save, onStart, onBuy, onToggleMute, onReset }: Pro
 
         {tab === 'main' && (
           <>
-            <button className="start-btn" onClick={onStart}>
+            <button className="start-btn" onClick={() => onStart(false)}>
               <Icon name="store" size={26} strokeWidth={2.2} />
               야간 근무 시작
             </button>
+
+            {/* ZUNRAN DAILY — 오늘의 규칙 + 오늘의 미션 */}
+            <div className="daily-card">
+              <div className="daily-head">
+                <span className="daily-tag px">ZUNRAN DAILY</span>
+                <span className="daily-date px">{daily.date}</span>
+              </div>
+              <div className="daily-name">{daily.challenge.name}</div>
+              <ul className="daily-rules">
+                {daily.challenge.desc.map((d) => (
+                  <li key={d}>{d}</li>
+                ))}
+              </ul>
+              <div className="daily-mission">
+                <span className="daily-mission-label px">TODAY'S MISSION</span>
+                <div className="daily-goal">{daily.mission.goal}</div>
+                {daily.mission.extra && <div className="daily-extra">추가 조건 · {daily.mission.extra}</div>}
+                <div className="daily-reward">
+                  <Icon name="cash" size={13} strokeWidth={2.4} />
+                  야간 수당 +{daily.mission.reward}
+                  {todayRecord?.rewarded && <span className="daily-done">수령 완료</span>}
+                </div>
+              </div>
+              {todayRecord && (
+                <div className="daily-record">
+                  <span>
+                    오늘 최고 <b className="px">W{todayRecord.bestWave}</b>
+                  </span>
+                  <span>
+                    콤보 <b className="px">{todayRecord.bestCombo}</b>
+                  </span>
+                  <span>
+                    처치 <b className="px">{todayRecord.bestKills}</b>
+                  </span>
+                  <span className={todayRecord.missionCleared ? 'daily-clear' : 'daily-fail'}>
+                    {todayRecord.missionCleared ? 'MISSION CLEAR' : `${todayRecord.plays}판 시도`}
+                  </span>
+                </div>
+              )}
+              <button className="daily-btn" onClick={() => onStart(true)}>
+                <Icon name="trophy" size={18} strokeWidth={2.4} />
+                오늘의 규칙으로 시작
+              </button>
+            </div>
+
             <div className="records">
               <div>
                 <span>최고 웨이브</span>
@@ -53,6 +106,7 @@ export function StartScreen({ save, onStart, onBuy, onToggleMute, onReset }: Pro
                 <b>{save.metaPoints}</b>
               </div>
             </div>
+
             <div className="howto">
               <div className="howto-row">
                 <Icon name="draw" size={20} strokeWidth={2.2} />
@@ -109,70 +163,41 @@ export function StartScreen({ save, onStart, onBuy, onToggleMute, onReset }: Pro
                 </div>
               );
             })}
-            <div className="shop-note">야간 수당은 한 판이 끝날 때 획득 코인의 10% + 웨이브·처치 보너스로 지급됩니다.</div>
+            <div className="shop-note">야간 수당은 한 판이 끝날 때 획득 코인의 10% + 웨이브·처치 보너스로 지급됩니다. 오늘의 미션을 깨면 추가로 받습니다.</div>
           </div>
         )}
 
-        {tab === 'codex' && (
-          <div className="codex">
-            <div className="codex-title">
-              유닛 도감 {save.unlockedUnits.length}/{UNIT_DEFS.length}
-            </div>
-            <div className="codex-grid">
-              {UNIT_DEFS.map((u) => {
-                const known = save.unlockedUnits.includes(u.id);
-                return (
-                  <div key={u.id} className={`codex-item ${known ? '' : 'locked'}`} title={known ? u.desc : '???'}>
-                    <span className="codex-rarity" style={{ background: known ? RARITY_COLOR[u.rarity] : '#3a2f63' }} />
-                    <span className="codex-body">
-                      <UnitIcon defId={u.id} size={38} dim={!known} />
-                      <span className="codex-name">{known ? u.name : '???'}</span>
-                      <span className="codex-name" style={{ color: known ? 'var(--off)' : 'var(--off)', fontSize: 9 }}>
-                        {RARITY_LABEL[u.rarity]}
-                      </span>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="codex-title">
-              손님 도감 {save.seenEnemies.length}/{ENEMY_DEFS.length}
-            </div>
-            <div className="codex-grid">
-              {ENEMY_DEFS.map((e) => {
-                const known = save.seenEnemies.includes(e.id);
-                return (
-                  <div key={e.id} className={`codex-item ${known ? '' : 'locked'}`} title={known ? e.lines[0] : '???'}>
-                    <span className="codex-rarity" style={{ background: known ? e.color : '#3a2f63' }} />
-                    <span className="codex-body">
-                      <UnitIcon defId={e.id} size={38} enemy dim={!known} />
-                      <span className="codex-name">{known ? e.name : '???'}</span>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {tab === 'codex' && <CodexScreen save={save} />}
+        {tab === 'ach' && <AchievementsScreen save={save} />}
+        {tab === 'history' && <HistoryScreen save={save} />}
 
         <nav className="tabs">
-          <button className={tab === 'main' ? 'active' : ''} onClick={() => setTab('main')}>
+          <button className={tab === 'main' ? 'active' : ''} onClick={() => setTab('main')} aria-label="시작">
             시작
           </button>
-          <button className={tab === 'shop' ? 'active' : ''} onClick={() => setTab('shop')}>
+          <button className={tab === 'shop' ? 'active' : ''} onClick={() => setTab('shop')} aria-label="강화 상점">
             강화
           </button>
-          <button className={tab === 'codex' ? 'active' : ''} onClick={() => setTab('codex')}>
+          <button className={tab === 'codex' ? 'active' : ''} onClick={() => setTab('codex')} aria-label="도감">
             도감
           </button>
+          <button className={tab === 'ach' ? 'active' : ''} onClick={() => setTab('ach')} aria-label="업적">
+            <Icon name="trophy" size={14} strokeWidth={2.4} />
+            <span className="px">
+              {achCount}/{ACHIEVEMENTS.length}
+            </span>
+          </button>
+          <button className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')} aria-label="근무 기록">
+            <Icon name="chart" size={15} strokeWidth={2.4} />
+          </button>
           <button onClick={onToggleMute} aria-label={save.muted ? '소리 켜기' : '소리 끄기'} aria-pressed={save.muted}>
-            <Icon name={save.muted ? 'mute' : 'sound'} size={18} strokeWidth={2.2} />
+            <Icon name={save.muted ? 'mute' : 'sound'} size={16} strokeWidth={2.2} />
           </button>
         </nav>
         <button
           className="reset-link"
           onClick={() => {
-            if (confirm('모든 기록과 업그레이드를 삭제할까요?')) onReset();
+            if (confirm('모든 기록과 업적, 업그레이드를 삭제할까요?')) onReset();
           }}
         >
           기록 초기화

@@ -218,6 +218,24 @@ export function formatClock(wave: number, waveElapsed: number, waveDuration: num
   return `${String(hh).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
+// 밤의 단계. 웨이브 = 15분이므로 시계로 환산해 4단계로 나눈다.
+// 0 초저녁(22시대) / 1 자정 이후 / 2 새벽 2시 / 3 새벽 3시 이후
+export type NightPhase = 0 | 1 | 2 | 3;
+
+export function nightPhase(wave: number): NightPhase {
+  if (wave >= THREE_AM_WAVE) return 3;
+  if (wave >= THREE_AM_WAVE - 4) return 2; // 02:00 무렵
+  if (wave >= 5) return 1; // 00:00 무렵
+  return 0;
+}
+
+export const NIGHT_PHASE_TINT: Record<NightPhase, string | null> = {
+  0: null,
+  1: 'rgba(30,20,80,0.05)',
+  2: 'rgba(80,20,90,0.08)',
+  3: 'rgba(120,20,40,0.10)',
+};
+
 export function formatTime(sec: number): string {
   const s = Math.floor(sec);
   const m = Math.floor(s / 60);

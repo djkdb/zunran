@@ -58,8 +58,10 @@ export function mergeUnits(state: GameState, defId: string, tier: Tier): MergeRe
   state.slots[keepSlot].unitId = unit.id;
   state.selectedUnitId = null;
   state.stats.merges++;
+  state.stats.unitMerges[defId] = (state.stats.unitMerges[defId] ?? 0) + 1;
   if (!state.stats.seenUnits.includes(resultDef)) state.stats.seenUnits.push(resultDef);
   state.stats.maxTierReached = Math.max(state.stats.maxTierReached, resultTier);
+  state.stats.unitMaxTier[resultDef] = Math.max(state.stats.unitMaxTier[resultDef] ?? 1, resultTier);
 
   const rdef = UNIT_BY_ID[resultDef];
   const upgraded = kind !== 'upgrade';

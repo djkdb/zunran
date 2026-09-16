@@ -246,6 +246,100 @@ export const EVENT_DEFS: EventDef[] = [
       c.freeDraw();
     },
   },
+
+  // ───────────── 희귀 사건 (가중치 0.3 이하) ─────────────
+  // 웬만하면 한 판에 한 번도 안 나온다. 나오면 그날 판의 이야기가 된다.
+  {
+    id: 'realOwner',
+    title: '진짜 사장님이 등장했다',
+    desc: '"너 지금 뭐하고 있냐?"',
+    minWave: 8,
+    weight: 0.3,
+    duration: 0,
+    mood: 'neutral',
+    apply: (c) => {
+      const r = c.rng.next();
+      if (r < 0.35) {
+        c.addCoins(500, '사장님: "수고했다"');
+        c.banner('사장님: "…수고했다"', '+500원', 'good');
+      } else if (r < 0.6) {
+        c.freeDraw();
+        c.freeDraw();
+        c.freeDraw();
+        c.banner('사장님: "이거라도 써라"', '무료 뽑기 +3', 'good');
+      } else if (r < 0.85) {
+        c.state.perma.dmg *= 1.15;
+        c.banner('사장님이 지켜본다', '모든 유닛 공격력 +15% (이번 근무 내내)', 'good');
+      } else {
+        c.banner('사장님: "…아니다."', '아무 일도 없었다', 'info');
+      }
+    },
+  },
+  {
+    id: 'stranger',
+    title: '문이 열렸다',
+    desc: '??? "혹시 여기…"',
+    minWave: 12,
+    weight: 0.25,
+    duration: 0,
+    mood: 'neutral',
+    apply: (c) => {
+      const r = c.rng.next();
+      if (r < 0.3) {
+        c.state.perma.critChance += 0.12;
+        c.banner('??? "…아, 아니에요."', '치명타 확률 +12%', 'good');
+      } else if (r < 0.55) {
+        c.addCoins(300, '??? 이 두고 간 봉투');
+        c.banner('봉투를 두고 갔다', '+300원', 'good');
+      } else if (r < 0.8) {
+        c.spawn('karen3am', 1, { hpMult: 0.8 });
+        c.banner('??? "사장 어디 있어요?"', '진상이 들어왔다', 'bad');
+      } else {
+        c.state.perma.legendaryOdds += 0.04;
+        c.banner('??? "여기 괜찮네요."', '전설 확률 +4%p', 'good');
+      }
+    },
+  },
+  {
+    id: 'lottoWin',
+    title: '로또 기계에서 당첨 소리가 났다',
+    desc: '+777원',
+    minWave: 6,
+    weight: 0.25,
+    duration: 0,
+    mood: 'good',
+    apply: (c) => {
+      c.addCoins(777, '1등!');
+      c.banner('로또 1등', '+777원', 'legendary');
+    },
+  },
+  {
+    id: 'legendAlba',
+    title: '전설의 알바생이 지나갔다',
+    desc: '"이 시간에 아직도 있네"',
+    minWave: 18,
+    weight: 0.2,
+    duration: 25,
+    mood: 'good',
+    modifiers: { unitAtkSpeed: 1.5, unitDmg: 1.3 },
+  },
+  {
+    id: 'catStays',
+    title: '고양이가 자리를 잡았다',
+    desc: '오늘은 안 나갈 모양이다',
+    minWave: 10,
+    weight: 0.3,
+    duration: 30,
+    mood: 'good',
+    modifiers: { enemySpeed: 0.85, coinGain: 1.25 },
+    apply: (c) => c.knockbackAll(90),
+  },
 ];
 
 export const EVENT_BY_ID: Record<string, EventDef> = Object.fromEntries(EVENT_DEFS.map((e) => [e.id, e]));
+
+// 희귀 사건 id — 도감·업적·보고서에서 특별 취급한다
+export const RARE_EVENT_IDS = ['realOwner', 'stranger', 'lottoWin', 'legendAlba', 'catStays'];
+
+// 고양이가 얽힌 사건 (누적 방문 카운트에 들어간다)
+export const CAT_EVENT_IDS = ['catVisit', 'catStays'];

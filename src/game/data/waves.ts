@@ -10,7 +10,7 @@ export interface WavePlan {
 }
 
 // 웨이브 번호로 스폰 계획을 만든다. 순수 함수 (RNG 만 사용) → 시뮬레이션 재현 가능.
-export function buildWave(wave: number, rng: RNG): WavePlan {
+export function buildWave(wave: number, rng: RNG, countMult = 1): WavePlan {
   const entries: SpawnEntry[] = [];
   const boss = isBossWave(wave) ? bossForWave(wave) : undefined;
   const duration = boss ? BOSS_WAVE_DURATION : waveDuration(wave);
@@ -37,8 +37,9 @@ export function buildWave(wave: number, rng: RNG): WavePlan {
   }
 
   // 총 개체 수: 4 + 1.4w (40웨이브 이후 완만하게)
-  let total = Math.round(4 + 1.8 * Math.min(wave, 40) + Math.max(0, wave - 40) * 0.8);
+  let total = Math.round((4 + 1.8 * Math.min(wave, 40) + Math.max(0, wave - 40) * 0.8) * countMult);
   if (boss) total = Math.round(total * 0.55);
+  total = Math.max(3, total);
 
   const pool = ENEMY_DEFS.filter((e) => e.minWave <= wave && e.weight > 0 && !e.tags.includes('boss'));
   // 후반부 좀비 가중치 상승, 기본 손님 가중치 하락
