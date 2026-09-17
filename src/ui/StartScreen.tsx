@@ -10,8 +10,8 @@ import { CodexScreen } from './CodexScreen';
 import { HistoryScreen } from './HistoryScreen';
 import { RankScreen } from './RankScreen';
 import { NicknameField } from './NicknameField';
-import { DeckScreen } from './DeckScreen';
-import { deckOfRarity, DECK_SLOTS } from '../game/data/deck';
+import { OrderScreen } from './OrderScreen';
+import { PIN_SLOTS, type Order } from '../game/data/deck';
 import { UnitIcon } from './UnitIcon';
 import { nextUnlock } from '../game/data/unlocks';
 import type { MetaUpgradeId } from '../game/types';
@@ -25,8 +25,8 @@ interface Props {
   onToggleMute: () => void;
   onSetNickname: (name: string) => void;
   onToggleRankOptIn: () => void;
-  deck: string[];
-  onSetDeck: (deck: string[]) => void;
+  order: Order;
+  onSetOrder: (order: Order) => void;
   onReplayIntro: () => void;
   onReset: () => void;
 }
@@ -43,7 +43,7 @@ const TABS: { id: Tab; label: string; aria: string; icon: IconName }[] = [
   { id: 'history', label: '기록', aria: '근무 기록', icon: 'clock' },
 ];
 
-export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggleMute, onSetNickname, onToggleRankOptIn, deck, onSetDeck, onReplayIntro, onReset }: Props) {
+export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggleMute, onSetNickname, onToggleRankOptIn, order, onSetOrder, onReplayIntro, onReset }: Props) {
   const [tab, setTab] = useState<Tab>('main');
   const [deckOpen, setDeckOpen] = useState(false);
   const upcoming = nextUnlock(save.bestWave);
@@ -59,7 +59,7 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
     return (
       <div className="start">
         <div className="start-inner">
-          <DeckScreen deck={deck} bestWave={save.bestWave} onChange={onSetDeck} onClose={() => setDeckOpen(false)} />
+          <OrderScreen order={order} bestWave={save.bestWave} onChange={onSetOrder} onClose={() => setDeckOpen(false)} />
         </div>
       </div>
     );
@@ -90,12 +90,20 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
             <button className="deck-bar" onClick={() => setDeckOpen(true)}>
               <span className="deck-bar-label">
                 오늘 발주
-                <span className="px">{deck.length}종</span>
+                <span className="px">
+                  지명 {order.pins.length}/{PIN_SLOTS}
+                </span>
               </span>
               <span className="deck-bar-units">
-                {DECK_SLOTS.flatMap(({ rarity }) => deckOfRarity(deck, rarity)).map((id) => (
+                {order.pins.map((id) => (
                   <UnitIcon key={id} defId={id} size={26} />
                 ))}
+                {order.bans.map((id) => (
+                  <span className="deck-bar-ban" key={id}>
+                    <UnitIcon defId={id} size={26} dim />
+                  </span>
+                ))}
+                {order.pins.length === 0 && order.bans.length === 0 && <span className="deck-bar-empty">비워두면 완전 랜덤</span>}
               </span>
               <span className="deck-bar-edit">바꾸기</span>
             </button>

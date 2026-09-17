@@ -2,7 +2,7 @@
 // "재미"는 못 재지만, 판마다 얼마나 달라지는지는 잴 수 있다.
 import { Engine } from '../src/game/engine/Engine';
 import { UNIT_BY_ID } from '../src/game/data/units';
-import { normalizeDeck } from '../src/game/data/deck';
+import { normalizeOrder } from '../src/game/data/deck';
 import { unlockedUnits } from '../src/game/data/unlocks';
 import { recipeStatus } from '../src/game/data/recipes';
 
@@ -19,8 +19,8 @@ function shuffle(arr: string[], seed: number): string[] {
   return out;
 }
 
-function play(seed: number, deck?: string[]) {
-  const e = new Engine({ seed, deck });
+function play(seed: number, order?: { pins: string[]; bans: string[] }) {
+  const e = new Engine({ seed, order });
   let t = 0;
   while (e.state.phase !== 'gameover' && t < 900) {
     e.tick(0.1);
@@ -40,8 +40,11 @@ function play(seed: number, deck?: string[]) {
 }
 
 const N = 40;
-for (const [label, useDeck] of [['덱 없음', false], ['덱 적용', true]] as const) {
-  const runs = Array.from({ length: N }, (_, i) => play(1000 + i * 7919, useDeck ? normalizeDeck(shuffle(all, 1000 + i * 7919), all) : undefined));
+for (const [label, useDeck] of [['발주 없음', false], ['발주 적용', true]] as const) {
+  const runs = Array.from({ length: N }, (_, i) => {
+    const sh = shuffle(all, 1000 + i * 7919);
+    return play(1000 + i * 7919, useDeck ? normalizeOrder({ pins: sh.slice(0, 2), bans: sh.slice(2, 4) }, all) : undefined);
+  });
 
   // ① 한 판에서 만나는 유닛 종류
   const perRun = runs.map((r) => r.seen.size);

@@ -1,7 +1,7 @@
 import type { ChallengeSpec, FxEvent, GameAction, GameState, MetaEffects, Rarity, Tier, UISnapshot, UnitGroup, Unit } from '../types';
 import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, MAX_TIER, drawCost, formatClock, EVENT_INTERVAL, isBossWave, AISLE_NAMES, AISLE_BONUS } from '../config';
 import { UNIT_BY_ID, unitsOfRarity } from '../data/units';
-import { isDeckRarity, DECK_BIAS } from '../data/deck';
+import { dupeWeight, PIN_GUARANTEE_DRAWS, PIN_TARGET_COPIES, EMPTY_ORDER, type Order } from '../data/deck';
 import { basePerma, chooseReward } from './rewardSystem';
 import { useSkill, tickSkills } from './skillSystem';
 import { ENEMY_BY_ID } from '../data/enemies';
@@ -24,7 +24,7 @@ export interface EngineOptions {
   meta?: MetaEffects;
   bestWave?: number;
   challenge?: ChallengeSpec | null; // ZUNRAN DAILY 규칙
-  deck?: string[]; // 런 전에 짠 덱. 없으면 전체 풀에서 뽑는다 (시뮬레이터·구버전 호환)
+  order?: Order; // 오늘 발주 (지명·제외). 없으면 순수 랜덤
 }
 
 const FIXED_DT = 1 / 60;
@@ -42,7 +42,7 @@ export class Engine {
     const seed = opts.seed ?? randomSeed();
     const meta = opts.meta ?? metaEffects(DEFAULT_META_LEVELS);
     this.state = createInitialState(seed, meta, opts.bestWave ?? 0);
-    this.state.deck = opts.deck ?? [];
+    this.state.order = opts.order ?? EMPTY_ORDER;
     this.state.challenge = opts.challenge ?? null;
     if (this.state.challenge) recomputeModifiers(this.state);
     startWave(this.state, 1);
@@ -196,19 +196,44 @@ export class Engine {
     else if (r < (acc += odds.epic)) rarity = 'epic';
     else if (r < (acc += odds.rare)) rarity = 'rare';
     let candidates = unitsOfRarity(rarity);
-    // 덱은 '가둠'이 아니라 '발주'다. 덱에 넣은 것이 더 자주 나올 뿐,
-    // 안 넣은 것도 나온다 — 그래야 매 뽑기의 "뭐 나올까?"가 살아 있다.
-    if (isDeckRarity(rarity) && s.deck.length > 0 && s.rng.next() < DECK_BIAS) {
-      const inDeck = candidates.filter((d) => s.deck.includes(d.id));
-      if (inDeck.length > 0) candidates = inDeck;
-    }
-    // 데일리 규칙으로 막힌 유닛은 뽑히지 않는다 (전부 막히면 규칙을 무시한다)
-    const banned = s.challenge?.banUnits;
-    if (banned?.length) {
-      const filtered = candidates.filter((d) => !banned.includes(d.id));
+
+    // 발주 · 제외: 오늘 안 받기로 한 물건은 안 온다. 전부 막히면 규칙을 무시한다.
+    const excluded = [...s.order.bans, ...(s.challenge?.banUnits ?? [])];
+    if (excluded.length) {
+      const filtered = candidates.filter((d) => !excluded.includes(d.id));
       if (filtered.length > 0) candidates = filtered;
     }
-    const def = s.rng.pick(candidates);
+
+    // 발주 · 지명: 초반 N회 안에 지명한 물건이 안 왔으면 이번에 준다.
+    // 확률을 올리는 게 아니라 '순서'를 보장한다 — 그래야 계획이 선다.
+    let def = null as (typeof candidates)[number] | null;
+    if (s.drawCount <= PIN_GUARANTEE_DRAWS) {
+      const due = s.order.pins.find(
+        (id) =>
+          (s.stats.unitDraws[id] ?? 0) < PIN_TARGET_COPIES && UNIT_BY_ID[id]?.rarity === rarity && !excluded.includes(id),
+      );
+      // 남은 뽑기가 빠듯해질수록 지명을 밀어준다
+      const pressure = s.drawCount / PIN_GUARANTEE_DRAWS;
+      if (due && s.rng.next() < 0.4 + pressure * 0.6) def = UNIT_BY_ID[due];
+    }
+
+    // 중복 가중: 이미 갖고 있는 유닛이 더 잘 온다.
+    // 21종 풀에서 3장 모으기가 어려운 마찰을 푼다. 풀은 그대로 전체다.
+    if (!def) {
+      const owned = new Map<string, number>();
+      for (const u of s.units) owned.set(u.defId, (owned.get(u.defId) ?? 0) + 1);
+      const weights = candidates.map((d) => dupeWeight(owned.get(d.id) ?? 0));
+      const total = weights.reduce((a, b) => a + b, 0);
+      let roll = s.rng.next() * total;
+      def = candidates[candidates.length - 1];
+      for (let i = 0; i < candidates.length; i++) {
+        roll -= weights[i];
+        if (roll <= 0) {
+          def = candidates[i];
+          break;
+        }
+      }
+    }
     const slot = s.rng.pick(emptySlots);
     const unit = createUnit(s, def.id, 1, slot.index);
     s.units.push(unit);
@@ -555,7 +580,7 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number): 
     nextId: 1,
     meta,
     hitstop: 0,
-    deck: [],
+    order: { pins: [], bans: [] },
     challenge: null,
     threeAmTriggered: false,
     lowHpWarned: false,

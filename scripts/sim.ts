@@ -5,7 +5,7 @@ import { UNIT_BY_ID } from '../src/game/data/units';
 import { metaEffects, DEFAULT_META_LEVELS } from '../src/game/save/meta';
 import type { MetaUpgradeId } from '../src/game/types';
 import { CHALLENGE_BY_ID } from '../src/game/data/dailyChallenges';
-import { normalizeDeck } from '../src/game/data/deck';
+import { normalizeOrder } from '../src/game/data/deck';
 import { recipeStatus } from '../src/game/data/recipes';
 import { unlockedUnits } from '../src/game/data/unlocks';
 import { sellCandidate } from '../src/ui/useGame';
@@ -77,10 +77,11 @@ function shuffle(arr: string[], seed: number): string[] {
 function runOnce(seed: number, strategy: Strategy, maxWave = 60, metaLevel = 0, challengeId?: string, useDeck = false) {
   const levels = { ...DEFAULT_META_LEVELS } as Record<MetaUpgradeId, number>;
   for (const k of Object.keys(levels) as MetaUpgradeId[]) levels[k] = metaLevel;
-  // 덱은 시드마다 다르게 뽑아 "특정 덱이 유리한가"가 아니라 "덱을 짜는 것 자체"의 효과를 본다
+  // 발주는 시드마다 다르게 해서 "특정 발주가 유리한가"가 아니라 "발주 자체"의 효과를 본다
   const pool = unlockedUnits(999);
-  const deck = useDeck ? normalizeDeck(shuffle(pool, seed), pool) : undefined;
-  const engine = new Engine({ seed, meta: metaEffects(levels), deck, challenge: challengeId ? (CHALLENGE_BY_ID[challengeId] ?? null) : null });
+  const sh = shuffle(pool, seed);
+  const order = useDeck ? normalizeOrder({ pins: sh.slice(0, 2), bans: sh.slice(2, 4) }, pool) : undefined;
+  const engine = new Engine({ seed, meta: metaEffects(levels), order, challenge: challengeId ? (CHALLENGE_BY_ID[challengeId] ?? null) : null });
   let t = 0;
   const waveHp: number[] = [];
   let lastWave = 0;
@@ -134,7 +135,7 @@ const times = results.map((r) => r.time);
 const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
 const hpAt = (w: number) => results.filter((r) => r.waveHp.length > w).map((r) => r.waveHp[w]);
 const mean = (xs: number[]) => (xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(0) : '-');
-console.log(`strategy=${strategy} meta=${metaLevel} runs=${runs}${challengeId ? ` daily=${challengeId}` : ''}${useDeck ? ' deck=on' : ''}`);
+console.log(`strategy=${strategy} meta=${metaLevel} runs=${runs}${challengeId ? ` daily=${challengeId}` : ''}${useDeck ? ' order=on' : ''}`);
 console.log(`한 판 길이: 평균 ${(avgTime / 60).toFixed(1)}분 (최장 ${(Math.max(...times) / 60).toFixed(1)}분)`);
 console.log(`waves: min=${Math.min(...waves)} median=${median} avg=${avg.toFixed(1)} max=${Math.max(...waves)} sd=${sd.toFixed(1)} (${((sd / avg) * 100).toFixed(0)}%)`);
 console.log(`mean hp entering wave: w5=${mean(hpAt(4))} w10=${mean(hpAt(9))} w11=${mean(hpAt(10))} w13=${mean(hpAt(12))} w14=${mean(hpAt(13))} w20=${mean(hpAt(19))} w21=${mean(hpAt(20))} w30=${mean(hpAt(29))} w31=${mean(hpAt(30))} w40=${mean(hpAt(39))} w41=${mean(hpAt(40))}`);

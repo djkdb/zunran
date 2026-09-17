@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { RECIPES, recipeStatus, pickMaterials } from '../data/recipes';
-import { slotsFor } from '../data/deck';
+import { PIN_SLOTS } from '../data/deck';
 import { UNIT_BY_ID } from '../data/units';
 import { UNIT_UNLOCK_WAVE } from '../data/unlocks';
-import type { Rarity, UnitGroup } from '../types';
+import type { UnitGroup } from '../types';
 
 const group = (defId: string, tier: number, count = 1): UnitGroup => ({
   defId,
@@ -14,20 +14,11 @@ const group = (defId: string, tier: number, count = 1): UnitGroup => ({
 });
 
 describe('조합 레시피', () => {
-  it('모든 레시피가 덱 슬롯 안에 들어간다', () => {
-    // 덱에 담을 수 없는 구성이면 영영 완성되지 않는다. 이걸 놓쳐서 30판 중 0판이 나왔었다.
+  it('재료 수가 지명 칸으로 감당할 만하다', () => {
+    // 지명은 PIN_SLOTS 개뿐이다. 재료가 그보다 훨씬 많으면 노리는 게 운에 맡겨진다.
+    // 지명 + 1 까지만 허용한다 (하나쯤은 자연히 나오길 기대해도 된다).
     for (const r of RECIPES) {
-      const need: Partial<Record<Rarity, number>> = {};
-      for (const m of r.materials) {
-        const rarity = UNIT_BY_ID[m.defId].rarity;
-        need[rarity] = (need[rarity] ?? 0) + 1;
-      }
-      for (const [rarity, n] of Object.entries(need)) {
-        expect({ recipe: r.id, rarity, need: n, slots: slotsFor(rarity as Rarity) }).toMatchObject({
-          need: expect.any(Number),
-        });
-        expect(n).toBeLessThanOrEqual(slotsFor(rarity as Rarity));
-      }
+      expect(r.materials.length, r.id).toBeLessThanOrEqual(PIN_SLOTS + 1);
     }
   });
 

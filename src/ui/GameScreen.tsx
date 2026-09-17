@@ -15,7 +15,7 @@ interface Props {
   autoMerge: boolean;
   autoSell: boolean;
   showHints: boolean;
-  deck: string[];
+  order: { pins: string[]; bans: string[] };
   challenge: ChallengeSpec | null;
   onToggleMute: () => void;
   onToggleAutoMerge: () => void;
@@ -34,8 +34,8 @@ function hintFor(snap: UISnapshot): string | null {
   return null;
 }
 
-export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHints, deck, challenge, onToggleMute, onToggleAutoMerge, onToggleAutoSell, onGameOver }: Props) {
-  const { canvasRef, snap, banners, act, toast, denied, onPointerDown, onPointerMove, endDrag } = useGame({ meta, bestWave, muted, autoMerge, autoSell, deck, challenge, onGameOver });
+export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHints, order, challenge, onToggleMute, onToggleAutoMerge, onToggleAutoSell, onGameOver }: Props) {
+  const { canvasRef, snap, banners, act, toast, denied, onPointerDown, onPointerMove, endDrag } = useGame({ meta, bestWave, muted, autoMerge, autoSell, order, challenge, onGameOver });
   // 퇴근은 되돌릴 수 없으니 두 번 눌러야 한다. 일시정지를 풀면 초기화한다.
   const [confirmExit, setConfirmExit] = useState(false);
   const paused = snap?.paused ?? false;

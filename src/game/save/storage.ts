@@ -96,7 +96,7 @@ export interface SaveData {
   // ── v4 ──
   introSeen: boolean; // 첫 판 오프닝을 봤는가 (건너뛰어도 본 것으로 친다)
   // ── v5 ──
-  deck: string[]; // 런 전에 짜는 덱. 비어 있으면 로드 시 자동으로 채운다.
+  order: { pins: string[]; bans: string[] }; // 오늘 발주 (지명·제외). 비어도 된다.
 }
 
 // crypto.randomUUID 가 없는 구형 웹뷰(카톡 인앱 등)도 있어서 폴백을 둔다.
@@ -142,7 +142,7 @@ export function defaultSave(): SaveData {
     nickname: '',
     rankOptIn: true,
     introSeen: false,
-    deck: [],
+    order: { pins: [], bans: [] },
   };
 }
 
@@ -176,7 +176,7 @@ export function migrate(parsed: Partial<SaveData>): SaveData {
     rankOptIn: typeof parsed.rankOptIn === 'boolean' ? parsed.rankOptIn : true,
     // 이미 플레이한 적 있는 사람에게 오프닝을 새로 띄우지는 않는다
     introSeen: typeof parsed.introSeen === 'boolean' ? parsed.introSeen : (parsed.totalPlays ?? 0) > 0,
-    deck: arr(parsed.deck),
+    order: { pins: arr(parsed.order?.pins), bans: arr(parsed.order?.bans) },
   };
   // 예전 저장에는 손님/유닛 통계가 없다. 도감에 이미 "봤다"고 기록된 것만 최소치로 살려 둔다.
   for (const id of out.seenEnemies) {

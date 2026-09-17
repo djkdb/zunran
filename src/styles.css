@@ -3517,3 +3517,72 @@ button:disabled {
 .deck-sub b {
   color: var(--mint);
 }
+
+/* ───────── 오늘 발주 (지명 · 제외) ───────── */
+.deck-card.pinned {
+  --fc: var(--mint);
+  background-color: var(--sunk);
+}
+.deck-card.banned {
+  --fc: var(--pink);
+  opacity: 0.6;
+}
+.deck-card.pinned .deck-role {
+  color: var(--mint);
+}
+.deck-card.banned .deck-role {
+  color: var(--pink);
+}
+.deck-card.banned .deck-name {
+  text-decoration: line-through;
+  color: var(--off);
+}
+.order-summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 5px 8px;
+  align-items: center;
+  padding: 9px 10px;
+  background: var(--sunk);
+  font-size: 11px;
+}
+.order-tag {
+  font-family: var(--font-px);
+  font-size: 10px;
+  padding: 2px 6px;
+}
+.order-tag.pin {
+  color: var(--bg);
+  background: var(--mint);
+}
+.order-tag.ban {
+  color: var(--bg);
+  background: var(--pink);
+}
+.order-names {
+  font-weight: 800;
+  color: var(--dim);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.deck-sub .ban {
+  color: var(--pink);
+}
+.deck-bar-ban {
+  position: relative;
+  display: inline-flex;
+}
+.deck-bar-ban::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 44%, var(--pink) 44% 56%, transparent 56%);
+}
+.deck-bar-empty {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--off);
+  align-self: center;
+}

@@ -2,7 +2,7 @@
 import { Engine } from '../src/game/engine/Engine';
 import { UNIT_BY_ID } from '../src/game/data/units';
 import { RECIPES, recipeStatus } from '../src/game/data/recipes';
-import { normalizeDeck } from '../src/game/data/deck';
+import { normalizeOrder } from '../src/game/data/deck';
 import { unlockedUnits } from '../src/game/data/unlocks';
 
 const all = unlockedUnits(999);
@@ -27,42 +27,50 @@ for (const r of RECIPES) {
   );
 }
 
-// ② 실제 플레이에서 레시피에 닿는가. 레시피를 노린 덱으로 돌린다.
+// ② 지명 2칸으로 레시피를 노릴 수 있는가.
+//    재료가 3종인 레시피는 2개만 지명하고 나머지 하나는 자연히 나오길 기다린다.
 for (const target of RECIPES) {
-  const wanted = target.materials.map((m) => m.defId);
-  const deck = normalizeDeck(wanted, all);
-  let reached = 0;
-  let made = 0;
-  let firstWave = 0;
-  const SEEDS = 20;
+  const pins = target.materials.slice(0, 2).map((m) => m.defId);
+  let noOrder = 0;
+  let withOrder = 0;
+  let wSum = 0;
+  const SEEDS = 40;
   for (let seed = 1; seed <= SEEDS; seed++) {
-    const e = new Engine({ seed, deck });
-    let t = 0;
-    let done = false;
-    while (e.state.phase !== 'gameover' && t < 900) {
-      e.tick(0.1);
-      e.drainFx();
-      t += 0.1;
-      if (Math.round(t * 10) % 5 === 0) {
-        if (e.state.phase === 'reward' && e.state.rewardOffers[0]) e.dispatch({ type: 'CHOOSE_REWARD', defId: e.state.rewardOffers[0].defId });
-        const snap = e.snapshot();
-        for (const g of snap.groups) if (g.mergeable) e.dispatch({ type: 'MERGE', defId: g.defId, tier: g.tier });
-        const st = recipeStatus(e.snapshot().groups).find((x) => x.def.id === target.id);
-        if (st?.ready && !done) {
-          reached++;
-          if (e.dispatch({ type: 'COMBINE', recipeId: target.id }).ok) {
-            made++;
-            firstWave += e.state.wave;
+    const run = (order?: { pins: string[]; bans: string[] }) => {
+      const e = new Engine({ seed: 1000 + seed * 7919, order });
+      let t = 0;
+      let done = false;
+      let wave = 0;
+      while (e.state.phase !== 'gameover' && t < 900) {
+        e.tick(0.1);
+        e.drainFx();
+        t += 0.1;
+        if (Math.round(t * 10) % 5 === 0) {
+          if (e.state.phase === 'reward' && e.state.rewardOffers[0]) e.dispatch({ type: 'CHOOSE_REWARD', defId: e.state.rewardOffers[0].defId });
+          const st = recipeStatus(e.snapshot().groups).find((x) => x.def.id === target.id);
+          if (st?.ready && !done && e.dispatch({ type: 'COMBINE', recipeId: target.id }).ok) {
+            done = true;
+            wave = e.state.wave;
           }
-          done = true;
+          for (const g of e.snapshot().groups) if (g.mergeable) e.dispatch({ type: 'MERGE', defId: g.defId, tier: g.tier });
+          let guard = 0;
+          while (guard++ < 8 && e.snapshot().canDraw) e.dispatch({ type: 'DRAW' });
         }
-        let guard = 0;
-        while (guard++ < 8 && e.snapshot().canDraw) e.dispatch({ type: 'DRAW' });
       }
+      return { done, wave };
+    };
+    if (run().done) noOrder++;
+    const r = run(normalizeOrder({ pins, bans: [] }, all));
+    if (r.done) {
+      withOrder++;
+      wSum += r.wave;
     }
   }
+  const a = Math.round((noOrder / SEEDS) * 100);
+  const b = Math.round((withOrder / SEEDS) * 100);
   console.log(
-    `${target.name.padEnd(10)} 재료 ${target.materials.length}종 → ${SEEDS}판 중 완성 ${made}판 (${Math.round((made / SEEDS) * 100)}%)` +
-      (made ? ` · 평균 웨이브 ${(firstWave / made).toFixed(0)}` : ''),
+    `${target.name.padEnd(10)} 재료 ${target.materials.length}종 · 지명 ${pins.length}   ` +
+      `발주 없음 ${String(a + '%').padStart(4)}  →  지명함 ${String(b + '%').padStart(4)}` +
+      (withOrder ? `  (평균 W${(wSum / withOrder).toFixed(0)})` : ''),
   );
 }

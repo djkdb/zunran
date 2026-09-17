@@ -14,7 +14,7 @@ export interface UseGameOptions {
   muted: boolean;
   autoMerge: boolean;
   autoSell: boolean;
-  deck?: string[];
+  order?: { pins: string[]; bans: string[] };
   challenge?: ChallengeSpec | null;
   onGameOver: (engine: Engine) => void;
 }
@@ -88,7 +88,7 @@ export function useGame(opts: UseGameOptions) {
 
   useEffect(() => {
     const canvas = canvasRef.current!;
-    const engine = new Engine({ meta: opts.meta, bestWave: opts.bestWave, deck: opts.deck, challenge: opts.challenge ?? null });
+    const engine = new Engine({ meta: opts.meta, bestWave: opts.bestWave, order: opts.order, challenge: opts.challenge ?? null });
     const renderer = new Renderer(canvas);
     engineRef.current = engine;
     rendererRef.current = renderer;
