@@ -21,6 +21,7 @@ interface Props {
   onToggleMute: () => void;
   onSetNickname: (name: string) => void;
   onToggleRankOptIn: () => void;
+  onReplayIntro: () => void;
   onReset: () => void;
 }
 
@@ -36,7 +37,7 @@ const TABS: { id: Tab; label: string; aria: string; icon: IconName }[] = [
   { id: 'history', label: '기록', aria: '근무 기록', icon: 'clock' },
 ];
 
-export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggleMute, onSetNickname, onToggleRankOptIn, onReset }: Props) {
+export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggleMute, onSetNickname, onToggleRankOptIn, onReplayIntro, onReset }: Props) {
   const [tab, setTab] = useState<Tab>('main');
   const tip = TIPS[save.totalPlays % TIPS.length];
   const achCount = save.achievements.length;
@@ -61,7 +62,7 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
         {tab === 'main' && (
           <>
             {/* 이름을 아직 안 정했으면 먼저 받는다. 기록이 '익명 알바'로 올라가 버리면 되돌리기 번거롭다. */}
-            {save.rankOptIn && !save.nickname && (
+            {save.rankOptIn && !save.nickname && save.introSeen && (
               <div className="nick-card">
                 <NicknameField value="" onSave={onSetNickname} label="랭킹에 올릴 이름" cta="저장" />
                 <div className="nick-hint">판이 끝나면 이 이름으로 랭킹에 올라갑니다. 나중에 바꿔도 됩니다.</div>
@@ -219,14 +220,19 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
             </button>
           ))}
         </nav>
-        <button
-          className="reset-link"
-          onClick={() => {
-            if (confirm('모든 기록과 업적, 업그레이드를 삭제할까요?')) onReset();
-          }}
-        >
-          기록 초기화
-        </button>
+        <div className="start-links">
+          <button className="reset-link" onClick={onReplayIntro}>
+            오프닝 다시 보기
+          </button>
+          <button
+            className="reset-link"
+            onClick={() => {
+              if (confirm('모든 기록과 업적, 업그레이드를 삭제할까요?')) onReset();
+            }}
+          >
+            기록 초기화
+          </button>
+        </div>
       </div>
     </div>
   );

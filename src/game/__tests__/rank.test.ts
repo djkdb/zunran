@@ -188,6 +188,13 @@ describe('저장 데이터 v3', () => {
     expect(out.rankOptIn).toBe(true);
   });
 
+  it('이미 플레이한 사람에게는 오프닝을 새로 띄우지 않는다', () => {
+    expect(migrate({ version: 3, totalPlays: 7 } as never).introSeen).toBe(true);
+    expect(migrate({ version: 3, totalPlays: 0 } as never).introSeen).toBe(false);
+    expect(migrate({} as never).introSeen).toBe(false); // 진짜 신규
+    expect(migrate({ version: 4, totalPlays: 7, introSeen: false } as never).introSeen).toBe(false); // 저장된 값 우선
+  });
+
   it('이미 있는 playerId 는 바꾸지 않는다', () => {
     const id = 'b'.repeat(32);
     expect(migrate({ version: 3, playerId: id } as never).playerId).toBe(id);

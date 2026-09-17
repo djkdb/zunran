@@ -14,6 +14,7 @@ import { submitScore, renameScore, type SubmitResult } from './game/rank/api';
 import { buildPayload, type RunSummary } from './game/rank/payload';
 import { StartScreen } from './ui/StartScreen';
 import { GameScreen } from './ui/GameScreen';
+import { IntroScene } from './ui/IntroScene';
 import { GameOverScreen } from './ui/GameOverScreen';
 
 export interface RunResult {
@@ -48,7 +49,7 @@ export interface RunResult {
 
 export function App() {
   const [save, setSave] = useState<SaveData>(() => loadSave());
-  const [screen, setScreen] = useState<'start' | 'game'>('start');
+  const [screen, setScreen] = useState<'start' | 'intro' | 'game'>('start');
   const [runKey, setRunKey] = useState(0);
   const [result, setResult] = useState<RunResult | null>(null);
   // 랭킹 전송 결과. 서버가 없거나 네트워크가 끊겨도 게임 흐름은 막지 않는다.
@@ -63,14 +64,41 @@ export function App() {
     writeSave(next);
   }, []);
 
-  const startGame = useCallback((daily: boolean) => {
-    audio.unlock();
+  const beginRun = useCallback((daily: boolean) => {
     setResult(null);
     setRank(null);
     setPendingRun(null);
     setDailyMode(daily);
     setRunKey((k) => k + 1);
     setScreen('game');
+  }, []);
+
+  const startGame = useCallback(
+    (daily: boolean) => {
+      audio.unlock();
+      // 첫 판이면 오프닝부터. 여기서 점장 이름(랭킹 표시 이름)도 받는다.
+      if (!save.introSeen) {
+        setDailyMode(daily);
+        setScreen('intro');
+        return;
+      }
+      beginRun(daily);
+    },
+    [save.introSeen, beginRun],
+  );
+
+  // 오프닝이 끝나면(또는 건너뛰면) 본 것으로 기록하고 판을 연다.
+  const finishIntro = useCallback(
+    (name: string | null) => {
+      persist({ ...save, introSeen: true, ...(name ? { nickname: name } : {}) });
+      beginRun(dailyMode);
+    },
+    [save, persist, dailyMode, beginRun],
+  );
+
+  const replayIntro = useCallback(() => {
+    audio.unlock();
+    setScreen('intro');
   }, []);
 
   const onGameOver = useCallback(
@@ -280,8 +308,16 @@ export function App() {
         onToggleMute={toggleMute}
         onSetNickname={setNickname}
         onToggleRankOptIn={toggleRankOptIn}
+        onReplayIntro={replayIntro}
         onReset={() => setSave(resetSave())}
       />
+    );
+  }
+  if (screen === 'intro') {
+    return (
+      <div className="app">
+        <IntroScene onDone={finishIntro} />
+      </div>
     );
   }
   return (

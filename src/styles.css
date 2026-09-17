@@ -145,6 +145,9 @@ button:disabled {
 .nick-card,
 .shop-nudge,
 .exit-btn,
+.intro-panel,
+.intro-bubble,
+.intro-skip,
 .rank-list li,
 .rank-me,
 .rank-empty,
@@ -2910,4 +2913,179 @@ button:disabled {
   font-weight: 700;
   color: var(--off);
   text-align: center;
+}
+
+/* ───────── 첫 판 오프닝 (만화 컷) ───────── */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+}
+.intro-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  animation: introFlash 0.42s ease-out forwards;
+}
+.intro-flash.red {
+  background: var(--pink);
+}
+.intro-flash.gold {
+  background: var(--gold);
+}
+@keyframes introFlash {
+  0% { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+.intro-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: max(10px, env(safe-area-inset-top)) 14px 8px;
+}
+.intro-tag {
+  font-size: 10px;
+  color: var(--mint);
+  letter-spacing: 0.14em;
+}
+.intro-skip {
+  --fc: var(--edge);
+  margin-left: auto;
+  min-height: 36px;
+  padding: 0 14px;
+  background-color: var(--panel);
+  color: var(--dim);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.intro-strip {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 14px 10px;
+  scrollbar-width: none;
+}
+.intro-strip::-webkit-scrollbar {
+  display: none;
+}
+.intro-panel {
+  --fc: var(--edge);
+  flex: none;
+  padding: 11px 12px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: introPanelIn 0.28s ease-out both;
+}
+@keyframes introPanelIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+.intro-panel.k-shout {
+  --fc: var(--pink);
+}
+.intro-panel.k-manager,
+.intro-panel.k-ready {
+  --fc: var(--gold);
+}
+.intro-panel.k-ask {
+  --fc: var(--mint);
+}
+.intro-panel.shake {
+  animation: introPanelIn 0.28s ease-out both, introShake 0.4s 0.28s ease-in-out 2;
+}
+@keyframes introShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+.intro-caption {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.5;
+  color: var(--dim);
+}
+.intro-cast {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.intro-actor {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  animation: introActorIn 0.3s ease-out both;
+}
+@keyframes introActorIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: none; }
+}
+.intro-bubble {
+  --fc: var(--slot);
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  background-color: var(--sunk);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+  color: var(--text);
+}
+.k-shout .intro-bubble {
+  --fc: var(--pink);
+  color: var(--pink);
+  font-size: 15px;
+}
+.k-manager .intro-bubble,
+.k-ready .intro-bubble {
+  --fc: var(--gold);
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 19px;
+}
+.intro-foot {
+  flex: none;
+  min-height: 74px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 14px calc(12px + env(safe-area-inset-bottom));
+}
+.intro-hint {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--off);
+  animation: introHint 1.6s ease-in-out infinite;
+}
+@keyframes introHint {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+.start-links {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .intro-panel,
+  .intro-panel.shake,
+  .intro-actor,
+  .intro-hint,
+  .intro-flash {
+    animation: none;
+  }
 }
