@@ -63,6 +63,11 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 80): RunLog {
 
   const play = () => {
     // 승급 2택: 더 높은 등급 → 더 높은 DPS 순으로 고른다 (사람의 흔한 선택)
+    // 사건 2택: 절반씩 고른다 (한쪽만 고르면 한쪽 효과를 영영 못 잰다)
+    if (s.phase === 'eventChoice' && s.eventChoice) {
+      engine.dispatch({ type: 'CHOOSE_EVENT', index: s.stats.eventsSeen % 2 });
+      return;
+    }
     if (s.phase === 'promote' && s.promoteChoice) {
       const best = [...s.promoteChoice.options].sort((a, b) => {
         const da = UNIT_BY_ID[a];
@@ -134,7 +139,7 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 80): RunLog {
   };
 
   while (s.phase !== 'gameover' && s.wave <= maxWave && t < 60 * 60) {
-    if (s.phase === 'promote') play();
+    if (s.phase === 'promote' || s.phase === 'eventChoice') play();
     engine.tick(0.1);
     engine.drainFx();
     t += 0.1;

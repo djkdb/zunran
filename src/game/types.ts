@@ -298,6 +298,16 @@ export interface EventDef {
   // 즉시 효과. Engine 인스턴스 대신 좁은 컨텍스트만 준다 (데이터 파일이 엔진에 의존하지 않도록).
   apply?: (ctx: EventContext) => void;
   expire?: (ctx: EventContext) => void;
+  // 2택 사건. 28종이 전부 강제 발생이라 좋은 일도 나쁜 일도 그냥 일어났다
+  // (docs/AUDIT.md 5절). 선택지가 붙는 순간 같은 사건이 결정이 된다.
+  // 전부에 붙이지는 않는다 — 판당 사건이 10번쯤이라 매번 멈추면 피로해진다.
+  choices?: EventChoice[];
+}
+
+export interface EventChoice {
+  label: string;
+  desc: string;
+  apply: (ctx: EventContext) => void;
 }
 
 export interface EventContext {
@@ -400,7 +410,7 @@ export interface MetaEffects {
 
 // ───────────────────────── 게임 상태 ─────────────────────────
 
-export type GamePhase = 'playing' | 'reward' | 'promote' | 'gameover';
+export type GamePhase = 'playing' | 'reward' | 'promote' | 'eventChoice' | 'gameover';
 
 // 웨이브 보상으로 쌓이는 영구 강화 (한 판 한정)
 export interface PermaBuffs {
@@ -526,6 +536,8 @@ export interface GameState {
   lastMergeResult?: { defId: string; tier: Tier; rarity: Rarity; kind: 'upgrade' | 'promote' | 'special'; at: number };
   // 합성 승급 2택. 고르기 전까지 게임이 멈춘다 (phase = 'promote').
   promoteChoice: { slot: number; tier: Tier; options: string[]; fromDefId: string } | null;
+  // 사건 2택. 고르기 전까지 게임이 멈춘다 (phase = 'eventChoice').
+  eventChoice: { defId: string; title: string; desc: string; choices: { label: string; desc: string }[] } | null;
   disabledUnitNotice: number;
 }
 
@@ -542,6 +554,7 @@ export type GameAction =
   | { type: 'SELL_JUNK' } // 합성 짝이 없는 티어1 일반 유닛 일괄 판매
   | { type: 'CHOOSE_REWARD'; defId: string }
   | { type: 'CHOOSE_PROMOTE'; defId: string } // 합성 승급 2택
+  | { type: 'CHOOSE_EVENT'; index: number } // 사건 2택
   | { type: 'USE_SKILL'; skill: 'shutter' | 'dump' }
   | { type: 'TOGGLE_PAUSE' }
   | { type: 'SET_SPEED'; speed: 1 | 2 }
@@ -594,6 +607,7 @@ export interface UISnapshot {
   junkValue: number;
   rewardOffers: RewardOffer[];
   promoteChoice: { slot: number; tier: Tier; options: string[]; fromDefId: string } | null;
+  eventChoice: { defId: string; title: string; desc: string; choices: { label: string; desc: string }[] } | null;
   rewardsTaken: number;
   perma: PermaBuffs;
   shutterCd: number;

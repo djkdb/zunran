@@ -17,6 +17,10 @@ const TONE_RANK = { best: 2, good: 1, normal: 0 } as const;
 
 function autoPlay(engine: Engine, strategy: Strategy): void {
   const s = engine.state;
+  if (s.phase === 'eventChoice' && s.eventChoice) {
+    engine.dispatch({ type: 'CHOOSE_EVENT', index: s.stats.eventsSeen % 2 });
+    return;
+  }
   if (s.phase === 'promote' && s.promoteChoice) {
     const best = [...s.promoteChoice.options].sort((a, b) => {
       const da = UNIT_BY_ID[a];
@@ -98,7 +102,7 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 60, metaLevel = 0, 
   const waveHp: number[] = [];
   let lastWave = 0;
   while (engine.state.phase !== 'gameover' && engine.state.wave <= maxWave && t < 60 * 60) {
-    if (engine.state.phase === 'promote') autoPlay(engine, strategy);
+    if (engine.state.phase === 'promote' || engine.state.phase === 'eventChoice') autoPlay(engine, strategy);
     engine.tick(0.1);
     engine.drainFx();
     t += 0.1;

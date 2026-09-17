@@ -8,6 +8,8 @@ import { buildThemeSchedule, buildWave, THEME_INFO, type WaveTheme } from '../da
 import { createRng } from '../engine/rng';
 import { rollOffers } from '../engine/rewardSystem';
 import { REWARD_CARDS, REWARD_BY_ID } from '../data/rewards';
+import { EVENT_DEFS } from '../data/events';
+import { updateEvents } from '../engine/eventSystem';
 
 describe('장갑 — 한 방이 큰 공격을 요구한다', () => {
   it('같은 총 피해라도 잘게 나눠 때리면 장갑에 막힌다', () => {
@@ -196,5 +198,82 @@ describe('보상 카드 — 숫자 증가와 플레이 변화의 분리', () => 
     });
     for (const i of occupied) expect(s.slots[i].blocked).toBeFalsy();
     expect(s.slots.filter((sl) => sl.blocked).length).toBe(3);
+  });
+});
+
+describe('사건 2택', () => {
+  it('선택지가 있는 사건이 뜨면 게임이 멈추고, 고르면 다시 흐른다', () => {
+    const engine = new Engine({ seed: 21 });
+    const s = engine.state;
+    s.wave = 8;
+    s.phase = 'playing';
+    // 선택지가 있는 사건이 나올 때까지 사건을 강제로 돌린다
+    let guard = 0;
+    while (s.phase === 'playing' && guard++ < 400) {
+      s.nextEventAt = s.time;
+      updateEvents(s);
+      s.time += 1;
+    }
+    expect(s.phase).toBe('eventChoice');
+    expect(s.eventChoice!.choices.length).toBeGreaterThanOrEqual(2);
+    const t0 = s.time;
+    for (let i = 0; i < 20; i++) engine.tick(0.1);
+    expect(s.time).toBe(t0); // 멈춰 있다
+    expect(engine.dispatch({ type: 'CHOOSE_EVENT', index: 0 }).ok).toBe(true);
+    expect(s.phase).toBe('playing');
+    expect(s.eventChoice).toBeNull();
+  });
+
+  it('두 선택지의 결과가 실제로 다르다', () => {
+    const run = (index: number) => {
+      const engine = new Engine({ seed: 22 });
+      const s = engine.state;
+      s.wave = 8;
+      s.hp = 50;
+      s.coins = 1000;
+      const def = EVENT_DEFS.find((d) => d.id === 'expiredFood')!;
+      s.eventChoice = { defId: def.id, title: def.title, desc: def.desc, choices: def.choices!.map((c) => ({ label: c.label, desc: c.desc })) };
+      s.phase = 'eventChoice';
+      engine.dispatch({ type: 'CHOOSE_EVENT', index });
+      return { hp: s.hp, coins: s.coins };
+    };
+    const a = run(0);
+    const b = run(1);
+    expect(a.hp).toBeGreaterThan(b.hp);
+    expect(b.coins).toBeGreaterThan(a.coins);
+  });
+
+  it('선택지가 있는 사건은 기본 apply 로 새지 않는다', () => {
+    // 선택지가 있으면 고르기 전까지 어떤 효과도 일어나면 안 된다
+    const engine = new Engine({ seed: 23 });
+    const s = engine.state;
+    s.wave = 8;
+    const coins0 = s.coins;
+    const hp0 = s.hp;
+    let guard = 0;
+    while (s.phase === 'playing' && guard++ < 400) {
+      s.nextEventAt = s.time;
+      updateEvents(s);
+      s.time += 1;
+    }
+    expect(s.phase).toBe('eventChoice');
+    expect(s.coins).toBe(coins0);
+    expect(s.hp).toBe(hp0);
+    expect(s.activeEvents).toHaveLength(0);
+  });
+
+  it('선택지를 붙인 사건이 충분히 있다', () => {
+    expect(EVENT_DEFS.filter((e) => e.choices).length).toBeGreaterThanOrEqual(8);
+    // 전부에 붙이지는 않는다 — 매번 멈추면 피로해진다
+    expect(EVENT_DEFS.filter((e) => e.choices).length).toBeLessThan(EVENT_DEFS.length / 2);
+  });
+
+  it('모든 선택지에 이름과 설명이 있다', () => {
+    for (const e of EVENT_DEFS.filter((d) => d.choices)) {
+      for (const c of e.choices!) {
+        expect(c.label.length).toBeGreaterThan(0);
+        expect(c.desc.length).toBeGreaterThan(0);
+      }
+    }
   });
 });

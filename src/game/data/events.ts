@@ -5,12 +5,16 @@ export const EVENT_DEFS: EventDef[] = [
   {
     id: 'rush',
     title: '갑자기 손님이 몰려왔습니다',
-    desc: '손님 8명 추가',
+    desc: '손님이 몰려온다',
     minWave: 3,
     weight: 6,
     duration: 0,
     mood: 'bad',
     apply: (c) => c.spawn('basic', 8, { spread: 3 }),
+    choices: [
+      { label: '받는다', desc: '손님 10명 추가 · 코인 +500', apply: (c) => { c.spawn('basic', 10, { spread: 3 }); c.addCoins(500); c.banner('손님 폭주', '바쁘다 · +500원', 'bad'); } },
+      { label: '문을 반쯤 닫는다', desc: '손님 4명만 · 코인 없음', apply: (c) => { c.spawn('basic', 4, { spread: 3 }); c.banner('손님 폭주', '천천히 오세요', 'info'); } },
+    ],
   },
   {
     id: 'microwaveBroken',
@@ -25,7 +29,7 @@ export const EVENT_DEFS: EventDef[] = [
   {
     id: 'inspection',
     title: '본사에서 점검을 나왔습니다',
-    desc: '유닛 하나가 10초간 점검 중',
+    desc: '본사 직원이 매장을 둘러본다',
     minWave: 4,
     weight: 4,
     duration: 0,
@@ -33,26 +37,38 @@ export const EVENT_DEFS: EventDef[] = [
     apply: (c) => {
       c.disableRandomUnit(10);
     },
+    choices: [
+      { label: '협조한다', desc: '유닛 하나가 10초 점검', apply: (c) => { c.disableRandomUnit(10); c.banner('본사 점검', '"협조 감사합니다"', 'bad'); } },
+      { label: '뇌물을 준다', desc: '코인 -600 · 점검 없음', apply: (c) => { if (c.state.coins >= 600) { c.addCoins(-600); c.banner('본사 점검', '"오늘은 그냥 가죠"', 'good'); } else { c.disableRandomUnit(10); c.banner('본사 점검', '돈이 없다', 'bad'); } } },
+    ],
   },
   {
     id: 'onePlusOne',
     title: '1+1 행사 시작!',
-    desc: '삼각김밥·라면 진열대 공격력 2배 (20초)',
+    desc: '무엇을 1+1 로 걸까',
     minWave: 3,
     weight: 5,
     duration: 20,
     mood: 'good',
     modifiers: { unitDmgById: { onigiri: 2, ramenShelf: 2 } },
+    choices: [
+      { label: '삼각김밥·라면', desc: '그 둘 공격력 2배 (20초)', apply: (c) => { c.state.activeEvents.push({ defId: 'onePlusOne', until: c.state.time + 20, title: '1+1 행사', mood: 'good' }); c.banner('1+1 행사', '삼각김밥·라면 진열대 2배', 'good'); } },
+      { label: '전 품목', desc: '모든 유닛 공격력 +25% (20초)', apply: (c) => { c.state.activeEvents.push({ defId: 'sale', until: c.state.time + 20, title: '전 품목 1+1', mood: 'good' }); c.banner('1+1 행사', '전 품목 +25%', 'good'); } },
+    ],
   },
   {
     id: 'rain',
     title: '비가 오기 시작했습니다',
-    desc: '손님 이동속도 -30% (20초)',
+    desc: '손님들이 젖은 채로 들어온다',
     minWave: 3,
     weight: 5,
     duration: 20,
     mood: 'good',
     modifiers: { enemySpeed: 0.7, rain: true },
+    choices: [
+      { label: '우산을 빌려준다', desc: '손님 이동속도 -35% (25초)', apply: (c) => { c.state.activeEvents.push({ defId: 'rain', until: c.state.time + 25, title: '비', mood: 'good' }); c.banner('비', '다들 천천히 간다', 'good'); } },
+      { label: '우산을 판다', desc: '코인 +450 · 감속 없음', apply: (c) => { c.addCoins(450); c.banner('비', '우산 다 팔렸다 · +450원', 'good'); } },
+    ],
   },
   {
     id: 'deliveryRush',
@@ -73,16 +89,24 @@ export const EVENT_DEFS: EventDef[] = [
     duration: 10,
     mood: 'bad',
     modifiers: { unitAtkSpeed: 0.65, darkness: 0.55 },
+    choices: [
+      { label: '그냥 버틴다', desc: '20초간 어두워진다', apply: (c) => { c.state.activeEvents.push({ defId: 'blackout', until: c.state.time + 20, title: '정전', mood: 'bad' }); c.banner('정전', '아무것도 안 보인다', 'bad'); } },
+      { label: '두꺼비집을 올린다', desc: '유닛 하나가 12초 정지 · 불은 들어온다', apply: (c) => { c.disableRandomUnit(12); c.banner('정전', '불은 들어왔다', 'info'); } },
+    ],
   },
   {
     id: 'expiredFood',
     title: '폐기 시간',
-    desc: '폐기 도시락으로 저녁 해결. 무료 뽑기 +1',
+    desc: '폐기 도시락이 나왔다',
     minWave: 3,
     weight: 4,
     duration: 0,
     mood: 'good',
     apply: (c) => c.freeDraw(),
+    choices: [
+      { label: '먹는다', desc: '체력 +15 · 코인은 없다', apply: (c) => { c.state.hp = Math.min(c.state.maxHp, c.state.hp + 15); c.banner('폐기 시간', '든든하다 · 체력 +15', 'good'); } },
+      { label: '판다', desc: '코인 +400 · 체력은 그대로', apply: (c) => { c.addCoins(400); c.banner('폐기 시간', '몰래 팔았다 · +400원', 'good'); } },
+    ],
   },
   {
     id: 'foundCoins',
@@ -93,6 +117,10 @@ export const EVENT_DEFS: EventDef[] = [
     duration: 0,
     mood: 'good',
     apply: (c) => c.addCoins(120, '동전 발견'),
+    choices: [
+      { label: '주머니에 넣는다', desc: '코인 +350', apply: (c) => { c.addCoins(350); c.banner('바닥의 동전', '+350원', 'good'); } },
+      { label: '시재에 넣는다', desc: '최대 체력 +8 · 체력도 +8', apply: (c) => { c.state.maxHp += 8; c.state.hp += 8; c.banner('바닥의 동전', '정직하게 · 최대 체력 +8', 'good'); } },
+    ],
   },
   {
     id: 'drunkParty',
@@ -109,12 +137,16 @@ export const EVENT_DEFS: EventDef[] = [
   {
     id: 'cigRestock',
     title: '담배 신상 입고',
-    desc: '담배 손님 이동속도 +50% (20초)',
+    desc: '담배를 진열할까, 창고에 둘까',
     minWave: 5,
     weight: 3,
     duration: 20,
-    mood: 'bad',
+    mood: 'neutral',
     modifiers: { enemySpeedById: { cig: 1.5 } },
+    choices: [
+      { label: '진열한다', desc: '코인 +300 · 담배 손님이 빨라진다 (20초)', apply: (c) => { c.addCoins(300); c.state.activeEvents.push({ defId: 'cigRestock', until: c.state.time + 20, title: '담배 신상 입고', mood: 'bad' }); c.banner('담배 신상 입고', '+300원 · 담배 손님 주의', 'good'); } },
+      { label: '창고에 둔다', desc: '아무 일도 없다', apply: (c) => { c.banner('담배 신상 입고', '오늘은 안 팝니다', 'info'); } },
+    ],
   },
   {
     id: 'cctvCheck',
@@ -129,12 +161,16 @@ export const EVENT_DEFS: EventDef[] = [
   {
     id: 'snackTime',
     title: '알바 야식 타임',
-    desc: '야간 알바생 공격력 2배 · 10년차 알바 1.5배 (20초)',
+    desc: '쉴까, 먹으면서 일할까',
     minWave: 3,
     weight: 4,
     duration: 20,
     mood: 'good',
-    modifiers: { unitDmgById: { alba: 2, veteran: 1.5 } },
+    modifiers: { unitDmgById: { alba: 2, veteran: 1.5 }, unitAtkSpeed: 1.25 },
+    choices: [
+      { label: '먹고 쉰다', desc: '체력 +10', apply: (c) => { c.state.hp = Math.min(c.state.maxHp, c.state.hp + 10); c.banner('야식 타임', '체력 +10', 'good'); } },
+      { label: '먹으면서 일한다', desc: '30초간 알바 공격력 2배 · 전체 공격속도 +25%', apply: (c) => { c.state.activeEvents.push({ defId: 'snackTime', until: c.state.time + 30, title: '야식 타임', mood: 'good' }); c.banner('야식 타임', '공격속도 +25% (30초)', 'good'); } },
+    ],
   },
   {
     id: 'coldWave',
@@ -202,6 +238,10 @@ export const EVENT_DEFS: EventDef[] = [
         c.banner('사장님: "…한숨"', '아무 일도 일어나지 않았다', 'info');
       }
     },
+    choices: [
+      { label: '"잘 되고 있어요"', desc: '코인 +250', apply: (c) => { c.addCoins(250); c.banner('사장님', '"수고했다" · +250원', 'good'); } },
+      { label: '"사람 좀 더 뽑아주세요"', desc: '무료 뽑기 2회', apply: (c) => { c.freeDraw(); c.freeDraw(); c.banner('사장님', '"한 번만 더 알아볼게" · 무료 뽑기 2회', 'good'); } },
+    ],
   },
   {
     id: 'sale',

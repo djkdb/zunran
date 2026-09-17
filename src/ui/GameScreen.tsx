@@ -8,6 +8,7 @@ import { BottomPanel } from './BottomPanel';
 import { BannerLayer } from './Banner';
 import { RewardOverlay } from './RewardOverlay';
 import { PromoteOverlay } from './PromoteOverlay';
+import { EventChoiceOverlay } from './EventChoiceOverlay';
 import { Icon } from './Icon';
 
 interface Props {
@@ -118,6 +119,7 @@ export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHin
       {snap && <BottomPanel snap={snap} act={act} denied={denied} />}
       {snap && <RewardOverlay snap={snap} act={act} />}
       {snap && <PromoteOverlay snap={snap} act={act} />}
+      {snap && <EventChoiceOverlay snap={snap} act={act} />}
     </div>
   );
 }

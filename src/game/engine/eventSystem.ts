@@ -124,9 +124,37 @@ export function updateEvents(state: GameState): void {
   } else {
     sfx(state, 'event');
   }
+  // 선택지가 있는 사건은 고를 때까지 멈춘다.
+  if (chosen.choices && chosen.choices.length > 1) {
+    state.eventChoice = {
+      defId: chosen.id,
+      title: chosen.title,
+      desc: chosen.desc,
+      choices: chosen.choices.map((ch) => ({ label: ch.label, desc: ch.desc })),
+    };
+    state.phase = 'eventChoice';
+    return;
+  }
   if (chosen.apply) chosen.apply(makeContext(state));
   if (chosen.duration > 0) {
     state.activeEvents.push({ defId: chosen.id, until: state.time + chosen.duration, title: chosen.title, mood: chosen.mood });
     recomputeModifiers(state);
   }
+}
+
+
+// 사건 2택에서 하나를 골랐다.
+export function chooseEvent(state: GameState, index: number): boolean {
+  const ec = state.eventChoice;
+  if (state.phase !== 'eventChoice' || !ec) return false;
+  const def = EVENT_DEFS.find((d) => d.id === ec.defId);
+  const choice = def?.choices?.[index];
+  if (!def || !choice) return false;
+  state.eventChoice = null;
+  state.phase = 'playing';
+  // 지속 효과는 각 선택지가 직접 건다. 여기서 자동으로 걸면
+  // "비를 맞는다" 대신 "우산을 판다"를 골라도 감속이 걸려 선택이 무의미해진다.
+  choice.apply(makeContext(state));
+  recomputeModifiers(state);
+  return true;
 }

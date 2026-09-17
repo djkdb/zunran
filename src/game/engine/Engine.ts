@@ -12,7 +12,7 @@ import { updateEnemies } from './enemySystem';
 import { updateUnits } from './unitSystem';
 import { buildThemeSchedule } from '../data/waves';
 import { updateWave, startWave } from './waveSystem';
-import { updateEvents, baseModifiers, recomputeModifiers } from './eventSystem';
+import { updateEvents, baseModifiers, recomputeModifiers, chooseEvent } from './eventSystem';
 import { mergeUnits, choosePromote, canMerge, announceLegendary } from './mergeSystem';
 import { createUnit } from './unitFactory';
 import { RECIPE_BY_ID, pickMaterials } from '../data/recipes';
@@ -165,6 +165,8 @@ export class Engine {
         return this.sellJunk();
       case 'CHOOSE_PROMOTE':
         return { ok: choosePromote(s, action.defId) };
+      case 'CHOOSE_EVENT':
+        return { ok: chooseEvent(s, action.index) };
       case 'CHOOSE_REWARD': {
         const ok = chooseReward(s, action.defId);
         return { ok, reason: ok ? undefined : '이미 고른 보상이에요.' };
@@ -507,6 +509,7 @@ export class Engine {
       disabledUnits: s.units.filter((u) => u.disabledUntil > s.time).length,
       rewardOffers: s.rewardOffers,
       promoteChoice: s.promoteChoice,
+      eventChoice: s.eventChoice,
       rewardsTaken: s.rewardsTaken.length,
       perma: s.perma,
       shutterCd: s.skills.shutter,
@@ -601,6 +604,7 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number): 
     perma: basePerma(),
     rewardOffers: [],
     promoteChoice: null,
+    eventChoice: null,
     rewardsTaken: [],
     riskWave: -1,
     skills: { shutter: 0, dump: 0 },
