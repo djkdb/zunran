@@ -95,6 +95,7 @@ export function BottomPanel({ snap, act, denied }: Props) {
         <span className="order-label">본사 발주</span>
         {(['rare', 'epic', 'legendary'] as const).map((r) => {
           const cost = snap.orderCost[r];
+          const short = cost - snap.coins;
           const ok = snap.phase === 'playing' && snap.emptySlots > 0 && snap.coins >= cost;
           return (
             <button
@@ -104,8 +105,13 @@ export function BottomPanel({ snap, act, denied }: Props) {
               onClick={() => act({ type: 'ORDER', rarity: r })}
               title={`${RARITY_LABEL[r]} 확정 · ${cost}원`}
             >
+              {/* 모으는 중이라는 걸 보여준다. 얼마 남았는지 모르면 아무도 참지 않는다.
+                  직접 한 판 해 보니 발주를 한 번도 누르지 않고 끝났다. */}
+              <span className="order-fill" style={{ width: `${Math.min(100, (snap.coins / Math.max(1, cost)) * 100)}%` }} />
               <span className="order-rank">{RARITY_LABEL[r]}</span>
-              <span className="order-cost">{cost >= 10000 ? `${Math.round(cost / 1000)}k` : cost}</span>
+              <span className="order-cost">
+                {ok ? (cost >= 10000 ? `${Math.round(cost / 1000)}k` : cost) : `−${short >= 10000 ? `${Math.round(short / 1000)}k` : short}`}
+              </span>
             </button>
           );
         })}

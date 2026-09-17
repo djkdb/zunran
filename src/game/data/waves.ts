@@ -31,8 +31,11 @@ export function buildThemeSchedule(rng: RNG, upto = 80): WaveTheme[] {
     }
     for (let k = 0; k < block.length; k++) {
       let t = block[k];
+      // 테마는 '답'을 구할 수 있게 된 뒤에 낸다. 직접 해 보니 웨이브 6의 장갑 테마에서
+      // 체력이 92 → 62 로 날아갔다. 그 시점엔 유닛이 8개 남짓 전부 1티어라
+      // "한 방이 큰 공격"이라는 답을 가질 방법이 없었다. 예고해도 답이 없으면 예고가 아니다.
       if (t === 'swarm' && w + k < 8) t = 'fast'; // 단체 손님 해금 전
-      if (t === 'armor' && w + k < 4) t = 'mixed';
+      if (t === 'armor' && w + k < 9) t = 'mixed'; // 포스기·핫바 같은 고화력 유닛을 갖기 전
       out[w + k] = t;
     }
   }
@@ -91,10 +94,17 @@ export function buildWave(wave: number, rng: RNG, countMult = 1, themeOf: WaveTh
     if (e.id === 'basic') w = Math.max(3, 10 - wave * 0.2);
     if (e.id === 'zombie') w = 3 + Math.max(0, wave - 22) * 0.3;
     if (e.id === 'karen3am') w = wave >= 25 ? 2 : 1;
-    // 테마에 맞는 손님을 크게 몰아준다. 웨이브가 하나의 문제를 내도록.
-    if (theme === 'fast' && e.tags.includes('fast')) w *= 6;
-    if (theme === 'swarm' && e.swarm) w *= 6;
-    if (theme === 'armor' && e.armor) w *= 6;
+    // 테마에 맞는 손님을 몰아준다. 웨이브가 하나의 문제를 내도록.
+    // ×6 으로 두었더니 "무리 웨이브인데 무리만 40명" 같은 극단이 나와
+    // 대응 못 한 판이 한 웨이브에 반 토막 났다. ×4 면 테마는 읽히고 극단은 준다.
+    if (theme === 'fast' && e.tags.includes('fast')) w *= 4;
+    if (theme === 'swarm' && e.swarm) w *= 4;
+    if (theme === 'armor' && e.armor) w *= 4;
+    // 가중치는 '뽑히는 횟수'인데 총량(total)은 머릿수다.
+    // 묶음으로 나오는 손님은 한 번 뽑힐 때 5~6명이 들어오므로, 보정하지 않으면
+    // 가중치 3짜리 단체 손님이 머릿수의 17.7% 를 먹는다 (기본 손님은 5.9%).
+    // 어느 밤이든 사실상 단체 손님 웨이브가 된다. 묶음 크기로 나눠 균형을 맞춘다.
+    if (e.groupSize) w /= (e.groupSize[0] + e.groupSize[1]) / 2;
     return { def: e, w };
   });
   const sumW = weighted.reduce((s, x) => s + x.w, 0);

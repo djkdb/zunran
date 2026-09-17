@@ -34,10 +34,16 @@ export function rollOffers(state: GameState, count = 3): RewardOffer[] {
   const picked: RewardOffer[] = [];
   const used = new Set<string>();
   for (let i = 0; i < count && picked.length < pool.length; i++) {
-    // 3택에는 '플레이 방식이 바뀌는' 카드가 최소 한 장 들어간다.
-    // 예전에는 19장이 사실상 전부 숫자 증가라, 세 장을 봐도 고민할 게 없었다.
-    const needBuild = i === count - 1 && !picked.some((p) => p.kind === 'build');
-    const candidates = pool.filter((c) => !used.has(c.id) && (!needBuild || c.kind === 'build'));
+    // 3택은 build(플레이 방식이 바뀐다)와 stat(숫자가 오른다)이 섞여야 한다.
+    //  · 최소 1장: 예전에는 19장이 사실상 전부 숫자 증가라 세 장을 봐도 고민할 게 없었다.
+    //  · 최대 2장: 실제로 한 판 해 보니 3택이 전부 "판이 바뀐다"로 채워져서
+    //    라벨이 의미를 잃었다. 대비가 있어야 "이건 판을 바꾸는 카드"가 읽힌다.
+    const builds = picked.filter((p) => p.kind === 'build').length;
+    const needBuild = i === count - 1 && builds === 0;
+    const capBuild = builds >= Math.max(1, count - 1);
+    const candidates = pool.filter(
+      (c) => !used.has(c.id) && (!needBuild || c.kind === 'build') && (!capBuild || c.kind !== 'build'),
+    );
     if (candidates.length === 0) break;
     const weights = candidates.map((c) => {
       const taken = state.rewardsTaken.filter((t) => t === c.id).length;

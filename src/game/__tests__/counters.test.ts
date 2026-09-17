@@ -3,7 +3,8 @@ import { Engine } from '../engine/Engine';
 import { spawnEnemy, damageEnemy } from '../engine/enemySystem';
 import { ENEMY_DEFS, ENEMY_BY_ID } from '../data/enemies';
 import { UNIT_BY_ID } from '../data/units';
-import { armorAt, ARMOR_FLOOR, enemyHpScale } from '../config';
+import { armorAt, ARMOR_FLOOR, enemyHpScale, drawCost } from '../config';
+import { orderPrice } from '../data/deck';
 import { buildThemeSchedule, buildWave, THEME_INFO, type WaveTheme } from '../data/waves';
 import { createRng } from '../engine/rng';
 import { rollOffers } from '../engine/rewardSystem';
@@ -110,7 +111,7 @@ describe('웨이브 테마', () => {
     for (const t of ['fast', 'armor', 'swarm'] as WaveTheme[]) expect(counts[t] ?? 0).toBeGreaterThanOrEqual(4);
   });
 
-  it('테마 웨이브는 해당 속성 손님을 크게 늘린다', () => {
+  it('테마 웨이브는 해당 속성 손님을 크게 늘린다 (머릿수 기준)', () => {
     const swarmIds = new Set(ENEMY_DEFS.filter((e) => e.swarm).map((e) => e.id));
     const share = (theme: WaveTheme) => {
       let hit = 0;
@@ -124,6 +125,9 @@ describe('웨이브 테마', () => {
       }
       return hit / all;
     };
+    // 가중치가 스폰 '건수' 기준이라 묶음 손님이 머릿수를 독식하던 버그가 있었다.
+    // 평범한 밤에도 무리 손님이 47% 였다. 묶음 크기로 나눠 보정한 뒤의 값을 지킨다.
+    expect(share('mixed')).toBeLessThan(0.35);
     expect(share('swarm')).toBeGreaterThan(share('mixed') * 1.8);
   });
 
@@ -274,6 +278,44 @@ describe('사건 2택', () => {
         expect(c.label.length).toBeGreaterThan(0);
         expect(c.desc.length).toBeGreaterThan(0);
       }
+    }
+  });
+});
+
+describe('보상 3택 구성 (직접 플레이에서 잡은 것)', () => {
+  it('3택이 전부 build 로 채워지지 않는다', () => {
+    // 한 판 직접 해 보니 보상 7회 중 7회가 전부 "판이 바뀐다"였다.
+    // 대비가 없으면 그 라벨은 아무 의미가 없다.
+    for (let seed = 0; seed < 60; seed++) {
+      const engine = new Engine({ seed });
+      engine.state.wave = 4 + (seed % 25);
+      const offers = rollOffers(engine.state, 3);
+      const builds = offers.filter((o) => o.kind === 'build').length;
+      expect(builds).toBeGreaterThanOrEqual(1);
+      expect(builds).toBeLessThanOrEqual(2);
+    }
+  });
+});
+
+describe('본사 발주 가격 (직접 플레이에서 잡은 것)', () => {
+  it('등급 확정이 일반 뽑기보다 싸지는 구간이 없다', () => {
+    // 실제 판에서 웨이브 20에 일반 뽑기 1,973원 / 희귀 발주 1,050원이 나왔다.
+    // 확정이 랜덤보다 싸면 일반 뽑기를 누를 이유가 사라진다.
+    for (let wave = 1; wave <= 40; wave++) {
+      for (let draws = 0; draws <= 120; draws += 5) {
+        const d = drawCost(draws, 0);
+        for (const r of ['rare', 'epic', 'legendary'] as const) {
+          expect(orderPrice(r, wave, d)).toBeGreaterThan(d);
+        }
+      }
+    }
+  });
+
+  it('등급이 높을수록 비싸다', () => {
+    for (let wave = 1; wave <= 40; wave += 3) {
+      const d = drawCost(wave * 2, 0);
+      expect(orderPrice('epic', wave, d)).toBeGreaterThan(orderPrice('rare', wave, d));
+      expect(orderPrice('legendary', wave, d)).toBeGreaterThan(orderPrice('epic', wave, d));
     }
   });
 });

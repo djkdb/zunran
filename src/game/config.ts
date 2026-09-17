@@ -191,9 +191,12 @@ export function waveIncome(wave: number): number {
 // 계산대 도달 피해도 웨이브에 따라 커진다. 이게 없으면 후반에 손님이 뚫려도 체력이 안 깎여
 // 사실상 죽지 않는 게임이 된다 (보상 카드로 회복까지 되므로).
 // 초반에 뚫린 손님 한 명이 아무 느낌이 없으면 "뚫리면 아프다"를 배울 수 없다.
-// 시작 배율을 1.6으로 올리고 증가율을 낮춘다 — 초반 누수는 더 아프고, 후반은 덜 가파르다.
+// 다만 직접 두 판을 해 보니 체력이 15웨이브 동안 100이다가 한 웨이브에 41~53이
+// 날아갔다. 방어가 무너지는 임계점을 넘는 순간 0명 → 20명이 한꺼번에 뚫려서다.
+// 그건 곡선이 아니라 절벽이고, 플레이어에게 경고가 가지 않는다.
+// 한 명당 피해를 낮춰 "조금씩 새는 구간"이 생기게 한다 — 그게 경고다.
 export function enemyDamageScale(wave: number): number {
-  return 1.6 + 0.05 * Math.max(0, wave - 1);
+  return 1.45 + 0.028 * Math.max(0, wave - 1);
 }
 
 export function enemyBountyScale(wave: number): number {

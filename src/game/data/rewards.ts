@@ -95,7 +95,7 @@ export const REWARD_CARDS: RewardCardDef[] = [
     desc: '희귀 유닛 1개를 바로 받는다',
     icon: 'gem',
     tone: 'good',
-    kind: 'build',
+    kind: 'stat',
     weight: 8,
     available: (s) => s.slots.some((sl) => sl.unitId === null),
     apply: (c) => {
@@ -109,7 +109,7 @@ export const REWARD_CARDS: RewardCardDef[] = [
     desc: '에픽 유닛 1개를 바로 받는다',
     icon: 'star',
     tone: 'best',
-    kind: 'build',
+    kind: 'stat',
     weight: 4,
     minWave: 6,
     available: (s) => s.slots.some((sl) => sl.unitId === null),
@@ -124,7 +124,7 @@ export const REWARD_CARDS: RewardCardDef[] = [
     desc: '보유 유닛 하나의 티어를 올린다',
     icon: 'trophy',
     tone: 'best',
-    kind: 'build',
+    kind: 'stat',
     weight: 5,
     available: (s) => s.units.some((u) => u.tier < 5),
     apply: (c) => {
@@ -221,7 +221,7 @@ export const REWARD_CARDS: RewardCardDef[] = [
     desc: '무료 뽑기 3회 · 그 3회는 희귀 이상 확정',
     icon: 'draw',
     tone: 'good',
-    kind: 'build',
+    kind: 'stat',
     weight: 7,
     apply: (c) => {
       // 무료 뽑기 3회는 선택률 2/94 였다. 후반에 뽑기는 돈이 아니라 칸의 문제라서다.
@@ -237,7 +237,7 @@ export const REWARD_CARDS: RewardCardDef[] = [
     desc: '뽑기 전설 확률 +3%p',
     icon: 'star',
     tone: 'best',
-    kind: 'build',
+    kind: 'stat',
     weight: 4,
     minWave: 4,
     apply: (c) => {

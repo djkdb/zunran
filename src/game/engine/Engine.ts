@@ -206,7 +206,7 @@ export class Engine {
   // 동시에 후반에 남아도는 코인(웨이브 27 잔고 44,361원)의 배출구가 된다.
   orderCost(rarity: 'rare' | 'epic' | 'legendary'): number {
     const off = Math.min(0.8, this.state.perma.orderDiscount + this.state.meta.orderDiscount);
-    return orderPrice(rarity, this.state.wave, off);
+    return orderPrice(rarity, this.state.wave, this.currentDrawCost(), off);
   }
 
   private draw(forced?: 'rare' | 'epic' | 'legendary'): { ok: boolean; reason?: string } {

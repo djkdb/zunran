@@ -623,6 +623,8 @@ button:disabled {
   padding-right: 2px;
 }
 .order-btn {
+  position: relative;
+  overflow: hidden;
   flex: 1;
   min-height: 34px;
   display: flex;
@@ -637,12 +639,23 @@ button:disabled {
   cursor: pointer;
   padding: 3px 2px;
 }
+.order-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: currentColor;
+  opacity: 0.16;
+  pointer-events: none;
+}
 .order-btn .order-rank {
+  position: relative;
   font-size: 10px;
   font-weight: 700;
   line-height: 1;
 }
 .order-btn .order-cost {
+  position: relative;
   font-family: var(--font-px);
   font-size: 9px;
   line-height: 1;
@@ -3919,7 +3932,8 @@ button:disabled {
 
 /* 보상 카드: 숫자 증가와 플레이 변화를 눈으로 구분한다 */
 .reward-card.kind-build {
-  border-color: var(--gold);
+  /* 이 카드들은 픽셀 프레임을 --fc 로 그린다. border-color 로는 안 바뀐다 (실제로 안 바뀌었다). */
+  --fc: var(--gold);
 }
 .reward-card.kind-build .reward-tone {
   color: var(--gold);
