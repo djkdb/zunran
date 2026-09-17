@@ -2,43 +2,83 @@ import type { RNG, SpawnEntry } from '../types';
 import { ENEMY_DEFS, bossForWave } from './enemies';
 import { BOSS_WAVE_DURATION, waveDuration, THREE_AM_WAVE, isBossWave } from '../config';
 
+// 웨이브 테마. 예전에는 손님 구성이 가중 랜덤이라 웨이브 25와 28이 체감상 똑같고
+// 숫자만 컸다 (docs/AUDIT.md 6절). 각 웨이브가 '무엇을 시험하는가'를 정하고 미리 알려준다.
+// 예고가 있어야 대비할 수 있고, 대비할 수 있어야 판단이 생긴다.
+export type WaveTheme = 'mixed' | 'fast' | 'swarm' | 'armor';
+
+export const THEME_INFO: Record<WaveTheme, { label: string; hint: string }> = {
+  mixed: { label: '평범한 밤', hint: '여러 손님이 섞여 온다' },
+  fast: { label: '급한 손님들', hint: '빠르다 · 감속과 사거리가 필요하다' },
+  swarm: { label: '단체 손님', hint: '뭉칠수록 빨라진다 · 범위 공격이 필요하다' },
+  armor: { label: '두꺼운 손님들', hint: '잔매가 안 통한다 · 한 방이 큰 공격이 필요하다' },
+};
+
+// 테마 배정표를 판 시작 때 한 번 만든다.
+// 고정 순환으로 돌려봤더니 모든 판이 같은 순서의 같은 문제를 내서
+// 생존 웨이브 표준편차가 1.1까지 떨어졌다 — 판마다 다른 밤이 되어야 한다.
+// 6웨이브를 한 블록으로 묶어 블록 안에서만 섞는다. 그래서 테마는 고르게 나오되
+// 어느 웨이브에 무엇이 오는지는 판마다 다르다.
+const THEME_BLOCK: WaveTheme[] = ['fast', 'mixed', 'armor', 'mixed', 'swarm', 'mixed'];
+
+export function buildThemeSchedule(rng: RNG, upto = 80): WaveTheme[] {
+  const out: WaveTheme[] = ['mixed', 'mixed', 'mixed', 'mixed']; // index 0 은 안 쓰고 w1~3 은 학습 구간
+  for (let w = 4; w <= upto; w += THEME_BLOCK.length) {
+    const block = [...THEME_BLOCK];
+    for (let i = block.length - 1; i > 0; i--) {
+      const j = rng.int(0, i);
+      [block[i], block[j]] = [block[j], block[i]];
+    }
+    for (let k = 0; k < block.length; k++) {
+      let t = block[k];
+      if (t === 'swarm' && w + k < 8) t = 'fast'; // 단체 손님 해금 전
+      if (t === 'armor' && w + k < 4) t = 'mixed';
+      out[w + k] = t;
+    }
+  }
+  return out;
+}
+
 export interface WavePlan {
   entries: SpawnEntry[];
   duration: number;
   boss?: string;
   script?: 'threeAm';
+  theme: WaveTheme;
 }
 
 // 웨이브 번호로 스폰 계획을 만든다. 순수 함수 (RNG 만 사용) → 시뮬레이션 재현 가능.
-export function buildWave(wave: number, rng: RNG, countMult = 1): WavePlan {
+export function buildWave(wave: number, rng: RNG, countMult = 1, themeOf: WaveTheme = 'mixed'): WavePlan {
   const entries: SpawnEntry[] = [];
   const boss = isBossWave(wave) ? bossForWave(wave) : undefined;
+  const theme = boss ? 'mixed' : themeOf;
   const duration = boss ? BOSS_WAVE_DURATION : waveDuration(wave);
   let groupSeq = wave * 1000;
 
   // 초반 3웨이브는 학습용: 아주 쉽게.
   if (wave === 1) {
     for (let i = 0; i < 4; i++) entries.push({ at: 1.5 + i * 2.4, defId: 'basic', count: 1 });
-    return { entries, duration };
+    return { entries, duration, theme };
   }
   if (wave === 2) {
     for (let i = 0; i < 6; i++) entries.push({ at: 1 + i * 2, defId: 'basic', count: 1 });
     // 뛰는 손님 등장: 여기서 한두 대 맞아 보는 게 "계산대에 닿으면 깎인다"를 가르친다
     entries.push({ at: 4, defId: 'runner', count: 1 });
     entries.push({ at: 9.5, defId: 'runner', count: 1 });
-    return { entries, duration };
+    return { entries, duration, theme };
   }
   if (wave === 3) {
     for (let i = 0; i < 6; i++) entries.push({ at: 1 + i * 1.9, defId: 'basic', count: 1 });
     entries.push({ at: 5, defId: 'cig', count: 1 });
     entries.push({ at: 8, defId: 'runner', count: 2 });
     entries.push({ at: 11, defId: 'cig', count: 1 });
-    return { entries, duration };
+    return { entries, duration, theme };
   }
 
   // 총 개체 수: 4 + 1.4w (40웨이브 이후 완만하게)
   let total = Math.round((4 + 1.8 * Math.min(wave, 40) + Math.max(0, wave - 40) * 0.8) * countMult);
   // 보스 웨이브 손님 수를 0.55배로 줄였더니 보스전이 오히려 쉬는 시간이 됐다 (docs/AUDIT.md 8절).
+  if (theme !== 'mixed') total = Math.round(total * 1.15);
   if (boss) total = Math.round(total * 0.8);
   total = Math.max(3, total);
 
@@ -49,6 +89,10 @@ export function buildWave(wave: number, rng: RNG, countMult = 1): WavePlan {
     if (e.id === 'basic') w = Math.max(3, 10 - wave * 0.2);
     if (e.id === 'zombie') w = 3 + Math.max(0, wave - 22) * 0.3;
     if (e.id === 'karen3am') w = wave >= 25 ? 2 : 1;
+    // 테마에 맞는 손님을 크게 몰아준다. 웨이브가 하나의 문제를 내도록.
+    if (theme === 'fast' && e.tags.includes('fast')) w *= 6;
+    if (theme === 'swarm' && e.swarm) w *= 6;
+    if (theme === 'armor' && e.armor) w *= 6;
     return { def: e, w };
   });
   const sumW = weighted.reduce((s, x) => s + x.w, 0);
@@ -103,5 +147,5 @@ export function buildWave(wave: number, rng: RNG, countMult = 1): WavePlan {
   }
 
   entries.sort((a, b) => a.at - b.at);
-  return { entries, duration, boss, script };
+  return { entries, duration, boss, script, theme };
 }

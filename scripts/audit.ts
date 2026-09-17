@@ -38,6 +38,7 @@ interface RunLog {
   mvp: string | null;
   enemySeen: Record<string, number>;
   enemyReached: Record<string, number>;
+  themeLoss: Record<string, { loss: number; waves: number }>; // 테마별 체력 손실
   offered: string[];
   chosen: string[];
   finalUnits: string[];
@@ -51,11 +52,13 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 80): RunLog {
     wave: 0, time: 0, diedOnBoss: false, diedWave: 0, kills: 0, draws: 0, merges: 0, recipes: 0,
     rewards: 0, sells: 0, orders: 0, promotes: 0, firstSellWave: null, coinsEarned: 0, firstBy: {},
     hpByWave: [], coinsByWave: [], occByWave: [], affordByWave: [], drawsByWave: [],
-    unitDamage: {}, unitSeen: [], mvp: null, enemySeen: {}, enemyReached: {},
+    unitDamage: {}, unitSeen: [], mvp: null, enemySeen: {}, enemyReached: {}, themeLoss: {},
     offered: [], chosen: [], finalUnits: [],
   };
   let t = 0;
   let lastWave = 0;
+  let lastTheme = 'mixed';
+  let hpAtWaveStart = 100;
   let prevSells = 0;
 
   const play = () => {
@@ -137,6 +140,14 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 80): RunLog {
     t += 0.1;
     if (s.phase === 'reward' || Math.round(t * 10) % 5 === 0) play();
     if (s.wave !== lastWave) {
+      if (lastWave > 0) {
+        const th = lastTheme;
+        const rec = (log.themeLoss[th] ??= { loss: 0, waves: 0 });
+        rec.loss += Math.max(0, hpAtWaveStart - s.hp);
+        rec.waves++;
+      }
+      lastTheme = s.waveTheme;
+      hpAtWaveStart = s.hp;
       lastWave = s.wave;
       log.hpByWave.push(s.hp);
       log.coinsByWave.push(s.coins);
@@ -237,6 +248,21 @@ for (const r of main) {
 for (const [k, v] of Object.entries(eseen).sort((a, b) => b[1] - a[1])) {
   const def = ENEMY_BY_ID[k];
   console.log(`${(def?.name ?? k).padEnd(16)} 등장 ${String(v).padStart(5)} | 도달 ${String(ereach[k] ?? 0).padStart(4)} (${pct(ereach[k] ?? 0, v).padStart(4)}) | minW${def?.minWave ?? '?'}`);
+}
+
+console.log('\n═══════════ 6-2. 웨이브 테마별 웨이브당 평균 체력 손실 ═══════════');
+{
+  const agg: Record<string, { loss: number; waves: number }> = {};
+  for (const r of main) {
+    for (const [k, v] of Object.entries(r.themeLoss)) {
+      const a = (agg[k] ??= { loss: 0, waves: 0 });
+      a.loss += v.loss;
+      a.waves += v.waves;
+    }
+  }
+  for (const [k, v] of Object.entries(agg).sort((a, b) => b[1].loss / b[1].waves - a[1].loss / a[1].waves)) {
+    console.log(`${k.padEnd(8)} 웨이브당 -${(v.loss / Math.max(1, v.waves)).toFixed(2)} HP (${v.waves}웨이브)`);
+  }
 }
 
 console.log('\n═══════════ 7. 보상 카드 제시/선택률 (greedy) ═══════════');

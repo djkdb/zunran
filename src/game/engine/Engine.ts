@@ -10,6 +10,7 @@ import { DRAW_LINES } from '../data/dialogue';
 import { createRng, randomSeed } from './rng';
 import { updateEnemies } from './enemySystem';
 import { updateUnits } from './unitSystem';
+import { buildThemeSchedule } from '../data/waves';
 import { updateWave, startWave } from './waveSystem';
 import { updateEvents, baseModifiers, recomputeModifiers } from './eventSystem';
 import { mergeUnits, choosePromote, canMerge, announceLegendary } from './mergeSystem';
@@ -62,6 +63,7 @@ export class Engine {
     }
     this.state.challenge = opts.challenge ?? null;
     if (this.state.challenge) recomputeModifiers(this.state);
+    this.state.themeSchedule = buildThemeSchedule(this.state.rng);
     startWave(this.state, 1);
     this.state.fx.length = 0; // 첫 웨이브 배너는 UI 가 별도로 처리
   }
@@ -461,6 +463,7 @@ export class Engine {
       wave: s.wave,
       waveTimer: s.waveTimer,
       waveDuration: s.waveDuration,
+      waveTheme: s.waveTheme,
       survivedSec: s.realTime,
       hp: s.hp,
       maxHp: s.maxHp,
@@ -576,6 +579,8 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number): 
     wave: 0,
     waveTimer: 0,
     waveDuration: 1,
+    waveTheme: 'mixed',
+    themeSchedule: [],
     waveElapsed: 0,
     spawnQueue: [],
     waveEnemyIds: new Set(),

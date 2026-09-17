@@ -1,5 +1,5 @@
 import type { GameState } from '../types';
-import { buildWave } from '../data/waves';
+import { buildWave, THEME_INFO } from '../data/waves';
 import { waveClearBonus, waveIncome, THREE_AM_WAVE, isBossWave, isRewardWave } from '../config';
 import { openRewardChoice } from './rewardSystem';
 import { spawnEnemy } from './enemySystem';
@@ -9,7 +9,7 @@ import { sfx, addFloater } from './helpers';
 
 export function startWave(state: GameState, wave: number): void {
   state.wave = wave;
-  const plan = buildWave(wave, state.rng, state.challenge?.enemyCountMult ?? 1);
+  const plan = buildWave(wave, state.rng, state.challenge?.enemyCountMult ?? 1, state.themeSchedule[wave] ?? 'mixed');
   // "새벽 장사" 도박을 골랐다면 이 웨이브만 손님이 확 늘어난다 (보상은 economy 에서 2배)
   if (state.riskWave === wave) {
     const extra = plan.entries
@@ -22,6 +22,7 @@ export function startWave(state: GameState, wave: number): void {
   const leftoverBoss = state.spawnQueue.filter((e) => ENEMY_BY_ID[e.defId]?.tags.includes('boss')).map((e) => ({ ...e, at: 0, spawned: 0 }));
   state.spawnQueue = [...leftoverBoss, ...plan.entries];
   state.waveDuration = plan.duration;
+  state.waveTheme = plan.theme;
   state.waveTimer = plan.duration;
   state.waveElapsed = 0;
   state.waveEnemyIds = new Set();
@@ -50,7 +51,16 @@ export function startWave(state: GameState, wave: number): void {
     state.fx.push({ type: 'banner', text: '02:00', sub: '손님이 이상해지기 시작한다', style: 'warning', dur: 2 });
     sfx(state, 'warning');
   } else if (wave > 1) {
-    state.fx.push({ type: 'banner', text: `웨이브 ${wave}`, sub: waveHint(wave), style: 'info', dur: 1.2 });
+    // 테마가 있으면 그걸 먼저 알린다 — 대비할 수 있어야 판단이 생긴다.
+    const info = plan.theme !== 'mixed' ? THEME_INFO[plan.theme] : null;
+    state.fx.push({
+      type: 'banner',
+      text: info ? `웨이브 ${wave} · ${info.label}` : `웨이브 ${wave}`,
+      sub: info ? info.hint : waveHint(wave),
+      style: info ? 'warning' : 'info',
+      dur: info ? 1.8 : 1.2,
+    });
+    if (info) sfx(state, 'warning');
   }
   if (state.riskWave === wave) {
     state.fx.push({ type: 'banner', text: '새벽 장사', sub: '손님이 두 배로 몰려온다 · 코인도 두 배', style: 'warning', dur: 2.2 });

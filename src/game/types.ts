@@ -152,6 +152,12 @@ export interface EnemyDef {
   immune?: Immunity[];
   groupSize?: [number, number]; // 술 취한 친구들처럼 뭉쳐서 나오는 경우
   bagCost?: number; // 봉투 손님: 처치 시 뺏어가는 코인
+  // ───── 카운터 속성 ─────
+  // 27종 중 22종의 계산대 도달률이 0~2%였다. 위협 조건이 '빠른가' 하나뿐이라
+  // 모든 상황의 답이 DPS였다 (docs/AUDIT.md 문제 3·7절).
+  // 손님마다 '요구하는 답'을 다르게 만든다.
+  armor?: number; // 장갑: 피격당 고정 피해 감소. 다단히트가 안 통하고 한 방이 큰 공격이 통한다
+  swarm?: { radius: number; perAlly: number; max: number }; // 무리: 뭉칠수록 빨라진다. 범위 공격으로 솎아내야 한다
 }
 
 export interface Enemy {
@@ -173,6 +179,7 @@ export interface Enemy {
   isBoss: boolean;
   bossPhase: number;
   shield: number; // 월말 마감 보스 보호막
+  swarmBoost: number; // 무리 가속 (렌더 표시용)
   spawnedWave: number;
   reached: boolean;
   dead: boolean;
@@ -461,6 +468,8 @@ export interface GameState {
   wave: number;
   waveTimer: number;
   waveDuration: number;
+  waveTheme: import('./data/waves').WaveTheme;
+  themeSchedule: import('./data/waves').WaveTheme[]; // 판 시작 때 한 번 정해지는 웨이브별 테마
   waveElapsed: number;
   spawnQueue: SpawnEntry[];
   waveEnemyIds: Set<number>;
@@ -545,6 +554,7 @@ export interface UISnapshot {
   wave: number;
   waveTimer: number;
   waveDuration: number;
+  waveTheme: import('./data/waves').WaveTheme;
   survivedSec: number;
   hp: number;
   maxHp: number;

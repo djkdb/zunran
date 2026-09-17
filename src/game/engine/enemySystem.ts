@@ -1,6 +1,6 @@
 import type { Enemy, GameState, OnHitEffect, Unit } from '../types';
 import { ENEMY_BY_ID } from '../data/enemies';
-import { PATH_LENGTH, pathPos, enemyHpScale, enemyDamageScale, MAX_ENEMIES_ON_FIELD, LOW_HP_THRESHOLD, formatClock } from '../config';
+import { PATH_LENGTH, pathPos, enemyHpScale, enemyDamageScale, MAX_ENEMIES_ON_FIELD, LOW_HP_THRESHOLD, formatClock, armorAt, ARMOR_FLOOR } from '../config';
 import { addFloater, sfx, unitDef, auraRadius, auraValue, dist2, isTargetable } from './helpers';
 import { rewardKill } from './economy';
 import { BOSS_INTRO } from '../data/dialogue';
@@ -37,6 +37,7 @@ export function spawnEnemy(
     isBoss: def.tags.includes('boss'),
     bossPhase: 0,
     shield: 0,
+    swarmBoost: 0,
     spawnedWave: wave,
     reached: false,
     dead: false,
@@ -91,6 +92,20 @@ export function damageEnemy(state: GameState, e: Enemy, rawAmount: number, sourc
     if (absorbed > 0 && amount <= 0) {
       addFloater(state, { x: e.x, y: e.y - 20, text: '보호막', color: '#c4b5fd', size: 11, life: 0.5 });
       return;
+    }
+  }
+  // 장갑: 한 방의 크기를 본다. 작게 여러 번 때리는 유닛은 거의 못 뚫고,
+  // 한 방이 큰 유닛은 그대로 들어간다. 바닥(15%)이 있어 완전 무력화는 없다.
+  if (def.armor) {
+    const armor = armorAt(def.armor, e.spawnedWave);
+    const blocked = amount - armor;
+    if (blocked < amount * ARMOR_FLOOR) {
+      if (amount > 0 && source) {
+        addFloater(state, { x: e.x, y: e.y - 18, text: '장갑', color: '#94a3b8', size: 10, life: 0.4 });
+      }
+      amount = amount * ARMOR_FLOOR;
+    } else {
+      amount = blocked;
     }
   }
   amount = Math.max(0, amount);
@@ -256,6 +271,24 @@ export function updateEnemies(state: GameState, dt: number): void {
       if (bb.kind === 'buffer' && dist2(bf.x, bf.y, e.x, e.y) <= bb.radius * bb.radius) {
         speed *= 1 + bb.speedBuff;
         break;
+      }
+    }
+    // 무리: 뭉쳐 있을수록 빨라진다.
+    // 범위 공격으로 솎아내면 느려지고, 방치하면 가속해서 감속 유닛 앞을 그냥 지나간다.
+    // "무리에는 범위 공격"이라는 답을 만드는 장치다.
+    if (def.swarm) {
+      const sw = def.swarm;
+      const r2 = sw.radius * sw.radius;
+      let allies = 0;
+      for (const o of state.enemies) {
+        if (o === e || o.dead || o.reached) continue;
+        if (ENEMY_BY_ID[o.defId].swarm && dist2(o.x, o.y, e.x, e.y) <= r2) allies++;
+      }
+      if (allies > 0) {
+        e.swarmBoost = Math.min(sw.max, allies * sw.perAlly);
+        speed *= 1 + e.swarmBoost;
+      } else {
+        e.swarmBoost = 0;
       }
     }
     // 가격 손님 뒤에 막힘

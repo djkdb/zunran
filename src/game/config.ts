@@ -255,3 +255,13 @@ export function formatTime(sec: number): string {
   const r = s % 60;
   return `${m}:${String(r).padStart(2, '0')}`;
 }
+
+// ───────────── 카운터 속성 ─────────────
+// 장갑은 웨이브에 따라 커지지만 체력만큼 빠르게 오르지는 않는다 (^0.75 스케일).
+// √ 로 두고 재보니 후반 한 방(200 이상) 앞에서 장갑이 24%밖에 못 막아 아무 의미가 없었다.
+// ^0.75 면 웨이브 20에서 장갑 10 = 109 — 다단히트(한 방 30)는 바닥까지 막히고
+// 고화력 한 방(200)은 절반이 들어간다. 그게 "무엇으로 때리는가"를 묻는 수치다.
+export const ARMOR_FLOOR = 0.15; // 장갑을 뚫지 못해도 항상 15%는 들어간다
+export function armorAt(armor: number, wave: number): number {
+  return armor * Math.pow(enemyHpScale(wave), 0.75);
+}

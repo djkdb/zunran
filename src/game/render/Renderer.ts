@@ -594,6 +594,29 @@ export class Renderer {
     } else {
       drawFallback(ctx, 0, 4, w, def.color, def.name);
     }
+    // 카운터 속성 표시. 화면에서 읽히지 않으면 카운터는 존재하지 않는 것과 같다.
+    // 장갑 = 회색 겹테두리, 무리 가속 = 주황 잔상 화살표.
+    if (def.armor && !e.isBoss) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(148,163,184,0.85)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-w / 2 - 2, -w + 2, w + 4, w);
+      ctx.strokeStyle = 'rgba(148,163,184,0.4)';
+      ctx.strokeRect(-w / 2 - 4, -w, w + 8, w + 4);
+      ctx.restore();
+    }
+    if (e.swarmBoost > 0.12) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(0.85, 0.3 + e.swarmBoost);
+      ctx.fillStyle = '#fb923c';
+      ctx.beginPath();
+      ctx.moveTo(-w / 2 - 5, -w / 2 - 2);
+      ctx.lineTo(-w / 2 - 11, -w / 2 - 5);
+      ctx.lineTo(-w / 2 - 11, -w / 2 + 1);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
     // 상태 표시
     if (e.stun > 0) {
       ctx.font = '12px sans-serif';
