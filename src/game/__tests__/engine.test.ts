@@ -1,13 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { Engine } from '../engine/Engine';
+import { metaEffects, DEFAULT_META_LEVELS } from '../save/meta';
 import { UNIT_BY_ID, UNIT_DEFS } from '../data/units';
 import { ENEMY_DEFS } from '../data/enemies';
 import { EVENT_DEFS } from '../data/events';
 import { buildWave } from '../data/waves';
 import { createRng } from '../engine/rng';
-import { pathPos, PATH_LENGTH, TOTAL_SLOTS, formatClock, THREE_AM_WAVE } from '../config';
+import { pathPos, PATH_LENGTH, TOTAL_SLOTS, MAX_SHELF_LEVEL, formatClock, THREE_AM_WAVE } from '../config';
 import { createUnit } from '../engine/unitFactory';
 import { mergeUnits, choosePromote } from '../engine/mergeSystem';
+
+// 진열대 증축 만렙 엔진. 칸 번호를 직접 쓰는 테스트는 21칸이 다 열려 있어야 한다.
+function fullEngine(seed: number): Engine {
+  return new Engine({ seed, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: MAX_SHELF_LEVEL }) });
+}
 
 function runFor(engine: Engine, seconds: number) {
   for (let t = 0; t < seconds; t += 0.05) {
@@ -68,7 +74,7 @@ describe('엔진', () => {
     expect(r2.reason).toContain('코인');
   });
   it('뽑기: 슬롯이 꽉 차면 실패', () => {
-    const engine = new Engine({ seed: 7 });
+    const engine = fullEngine(7);
     engine.state.coins = 999999;
     for (let i = 0; i < TOTAL_SLOTS; i++) expect(engine.dispatch({ type: 'DRAW' }).ok).toBe(true);
     expect(engine.dispatch({ type: 'DRAW' }).ok).toBe(false);
@@ -115,7 +121,7 @@ describe('엔진', () => {
     expect(engine.dispatch({ type: 'MERGE', defId: 'onigiri', tier: 1 }).ok).toBe(false);
   });
   it('이동/교환/판매', () => {
-    const engine = new Engine({ seed: 5 });
+    const engine = fullEngine(5);
     const s = engine.state;
     const a = createUnit(s, 'onigiri', 1, 0);
     const b = createUnit(s, 'alba', 1, 1);

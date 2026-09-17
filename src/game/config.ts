@@ -70,6 +70,21 @@ export const SLOT_ROWS = [197, 355, 510];
 export const SLOT_COLS = [118, 186, 254, 322, 390, 458, 526];
 export const SLOT_POSITIONS = SLOT_ROWS.flatMap((y, row) => SLOT_COLS.map((x) => ({ x, y, row })));
 export const TOTAL_SLOTS = SLOT_POSITIONS.length;
+
+// ───────────── 진열대 증축 ─────────────
+// 처음부터 21칸을 다 주면 메타 강화가 체감되지 않는다.
+// 실측: 강화 0레벨 중앙값 27웨이브 / 만렙 33웨이브 — 70단계를 다 사도 +22% 뿐이었다.
+// 로그라이트의 계약은 "처음엔 벽에 부딪히고, 벌어서 강화하면 뚫린다"인데
+// 그 벽이 없었다. 칸은 눈에 보이는 성장이라 이 역할에 가장 맞는다.
+//
+// 가운데 열부터 시작해서 바깥으로 넓힌다. 세 코너(줄)는 처음부터 모두 열려 있어야
+// "어디에 둘까"라는 결정이 첫 판부터 존재한다.
+export const START_SLOTS = 9; // 가운데 3열 × 3줄
+const UNLOCK_COLS = [1, 5, 0, 6]; // 시작 열(3·2·4) 다음에 열리는 순서
+export const SLOT_UNLOCK_ORDER: number[] = UNLOCK_COLS.flatMap((col) =>
+  SLOT_ROWS.map((_, row) => row * SLOT_COLS.length + col),
+);
+export const MAX_SHELF_LEVEL = SLOT_UNLOCK_ORDER.length; // 9 → 12 + 9 = 21칸
 export const SLOT_HIT_RADIUS = 34;
 
 // ───────────── 경제 ─────────────

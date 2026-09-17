@@ -333,14 +333,14 @@ export const REWARD_CARDS: RewardCardDef[] = [
     kind: 'build',
     weight: 4,
     minWave: 10,
-    available: (s) => s.slots.filter((sl) => !sl.blocked).length > 12,
+    available: (s) => s.slots.filter((sl) => !sl.blocked && !sl.locked).length > 12,
     apply: (c) => {
       c.state.perma.auraMult *= 2;
       // 뒤쪽 빈 칸부터 막는다. 유닛이 있는 칸은 건드리지 않는다.
       let left = 3;
       for (let i = c.state.slots.length - 1; i >= 0 && left > 0; i--) {
         const sl = c.state.slots[i];
-        if (sl.blocked || sl.unitId !== null) continue;
+        if (sl.blocked || sl.locked || sl.unitId !== null) continue;
         sl.blocked = true;
         left--;
       }

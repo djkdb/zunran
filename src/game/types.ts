@@ -102,7 +102,8 @@ export interface Slot {
   y: number;
   row: number;
   unitId: number | null;
-  blocked?: boolean; // '혼자 근무' 조건에서 봉쇄된 칸
+  blocked?: boolean; // '혼자 근무' 조건에서 봉쇄된 칸 (이번 판 한정)
+  locked?: boolean; // 아직 증축하지 않은 칸 (메타 강화로 열린다)
 }
 
 // ───────────────────────── 손님 ─────────────────────────
@@ -393,6 +394,7 @@ export type MetaUpgradeId =
   | 'epicChance'
   | 'coinGain'
   | 'mergeLuck'
+  | 'shelves'
   | 'orderDiscount'
   | 'armorPierce'
   | 'veteran';
@@ -400,6 +402,7 @@ export type MetaUpgradeId =
 export interface MetaEffects {
   startCoins: number;
   startHp: number;
+  slots: number; // 이번 판에 쓸 수 있는 진열대 칸 수
   drawCostReduce: number;
   rareBonus: number; // +확률(0.015 = +1.5%p)
   epicBonus: number;

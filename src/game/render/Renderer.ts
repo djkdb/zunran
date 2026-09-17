@@ -352,6 +352,27 @@ export class Renderer {
       const hovered = this.interaction.hoverSlot === s.index;
       ctx.save();
       ctx.translate(s.x, s.y);
+      // 아직 증축하지 않은 칸 — 어둡게 덮고 자물쇠를 둔다.
+      // "여기도 살 수 있다"가 보여야 강화 상점으로 갈 이유가 생긴다.
+      if (s.locked) {
+        const r = 22;
+        ctx.fillStyle = 'rgba(8,6,18,0.55)';
+        ctx.fillRect(-r, -r, r * 2, r * 2);
+        ctx.strokeStyle = 'rgba(239,234,255,0.14)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.strokeRect(-r, -r, r * 2, r * 2);
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(239,234,255,0.30)';
+        ctx.fillRect(-5, -3, 10, 8);
+        ctx.strokeStyle = 'rgba(239,234,255,0.30)';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(0, -3, 3.4, Math.PI, 0);
+        ctx.stroke();
+        ctx.restore();
+        continue;
+      }
       // '혼자 근무' 조건으로 봉쇄된 칸 — 빗금으로 못 쓴다는 걸 보여준다
       if (s.blocked) {
         ctx.strokeStyle = 'rgba(255,77,141,0.5)';

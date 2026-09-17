@@ -1,5 +1,5 @@
 import type { ChallengeSpec, FxEvent, GameAction, GameState, MetaEffects, Rarity, Tier, UISnapshot, UnitGroup, Unit } from '../types';
-import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, MAX_TIER, MIXED_MERGE_TIER, PATH_LENGTH, drawCost, formatClock, EVENT_INTERVAL, isBossWave, AISLE_NAMES, AISLE_BONUS } from '../config';
+import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, TOTAL_SLOTS, SLOT_UNLOCK_ORDER, MAX_TIER, MIXED_MERGE_TIER, PATH_LENGTH, drawCost, formatClock, EVENT_INTERVAL, isBossWave, AISLE_NAMES, AISLE_BONUS } from '../config';
 import { UNIT_BY_ID, unitsOfRarity } from '../data/units';
 import { dupeWeight, PIN_GUARANTEE_DRAWS, PIN_TARGET_COPIES, EMPTY_ORDER, orderPrice, EPIC_PITY, type Order } from '../data/deck';
 import type { ShiftCondition } from '../data/shiftConditions';
@@ -47,6 +47,14 @@ export class Engine {
     this.state = createInitialState(seed, meta, opts.bestWave ?? 0);
     this.state.order = opts.order ?? EMPTY_ORDER;
     // 오늘의 근무 조건: spec 은 challenge 로 합쳐 들어오고, 여기서는 나머지를 적용한다.
+    // 아직 증축하지 않은 칸을 잠근다. 가운데 열부터 시작해 바깥으로 열린다.
+    const openSlots = this.state.meta.slots ?? TOTAL_SLOTS;
+    const toLock = Math.max(0, TOTAL_SLOTS - openSlots);
+    for (let i = 0; i < toLock; i++) {
+      const idx = SLOT_UNLOCK_ORDER[SLOT_UNLOCK_ORDER.length - 1 - i];
+      if (idx !== undefined) this.state.slots[idx].locked = true;
+    }
+
     const cond = opts.condition ?? null;
     this.state.condition = cond;
     if (cond) {
@@ -57,8 +65,9 @@ export class Engine {
       }
       if (cond.freeDraws) this.state.freeDraws += cond.freeDraws;
       // 뒤쪽 칸부터 봉쇄한다 (입구 쪽을 남겨야 판이 성립한다)
-      for (let i = 0; i < (cond.blockSlots ?? 0) && i < this.state.slots.length - 6; i++) {
-        this.state.slots[this.state.slots.length - 1 - i].blocked = true;
+      const open = this.state.slots.filter((sl) => !sl.locked);
+      for (let i = 0; i < (cond.blockSlots ?? 0) && i < open.length - 6; i++) {
+        open[open.length - 1 - i].blocked = true;
       }
     }
     this.state.challenge = opts.challenge ?? null;
@@ -216,7 +225,7 @@ export class Engine {
   private draw(forced?: 'rare' | 'epic' | 'legendary'): { ok: boolean; reason?: string } {
     const s = this.state;
     if (s.phase !== 'playing') return { ok: false };
-    const emptySlots = s.slots.filter((sl) => sl.unitId === null && !sl.blocked);
+    const emptySlots = s.slots.filter((sl) => sl.unitId === null && !sl.blocked && !sl.locked);
     if (emptySlots.length === 0) return { ok: false, reason: '빈 칸이 없어요. 합성하거나 판매하세요.' };
     const cost = forced ? this.orderCost(forced) : this.currentDrawCost();
     if (!forced && s.freeDraws > 0) {
@@ -413,7 +422,7 @@ export class Engine {
     const u = s.units.find((x) => x.id === unitId);
     const target = s.slots[slotIdx];
     if (!u || !target) return { ok: false };
-    if (target.blocked) return { ok: false };
+    if (target.blocked || target.locked) return { ok: false };
     if (target.unitId === null) {
       s.slots[u.slot].unitId = null;
       u.slot = slotIdx;
@@ -474,7 +483,7 @@ export class Engine {
     }
     const boss = s.enemies.find((e) => e.isBoss && !e.dead && !e.reached);
     const sel = s.selectedUnitId !== null ? s.units.find((u) => u.id === s.selectedUnitId) : undefined;
-    const emptySlots = s.slots.filter((sl) => sl.unitId === null && !sl.blocked).length;
+    const emptySlots = s.slots.filter((sl) => sl.unitId === null && !sl.blocked && !sl.locked).length;
     const cost = this.currentDrawCost();
     const junk = this.junkUnits();
     this.cachedSnapshot = {
@@ -495,7 +504,7 @@ export class Engine {
       canDraw: s.phase === 'playing' && emptySlots > 0 && (s.freeDraws > 0 || s.coins >= cost),
       orderCost: { rare: this.orderCost('rare'), epic: this.orderCost('epic'), legendary: this.orderCost('legendary') },
       emptySlots,
-      totalSlots: s.slots.length,
+      totalSlots: s.slots.filter((sl) => !sl.locked).length,
       speed: s.speed,
       paused: s.paused,
       enemyCount: s.enemies.length,

@@ -1,6 +1,6 @@
 import type { MetaEffects, MetaUpgradeId } from '../types';
 import type { IconName } from '../../ui/Icon';
-import { START_COINS, START_HP } from '../config';
+import { START_COINS, START_HP, START_SLOTS, MAX_SHELF_LEVEL, TOTAL_SLOTS } from '../config';
 
 export interface MetaUpgradeDef {
   id: MetaUpgradeId;
@@ -16,6 +16,15 @@ export interface MetaUpgradeDef {
 // 만렙 성능은 예전과 같지만 살 것이 30단계 → 70단계가 되어 금방 끝나지 않는다.
 // 마지막 '연차'는 천장이 없어서 다 산 뒤에도 쓸 곳이 남는다.
 export const META_UPGRADES: MetaUpgradeDef[] = [
+  {
+    id: 'shelves',
+    name: '진열대 증축',
+    icon: 'store',
+    maxLevel: MAX_SHELF_LEVEL,
+    desc: (l) => `진열대 ${START_SLOTS + l}칸 (최대 ${TOTAL_SLOTS}칸)`,
+    cost: (l) => 120 + l * 80,
+    note: '칸이 곧 화력이다. 이 상점에서 가장 크게 체감된다',
+  },
   { id: 'startCoins', name: '시작 코인', icon: 'coin', maxLevel: 10, desc: (l) => `시작 코인 +${l * 50}원`, cost: (l) => 60 + l * 34 },
   { id: 'startHp', name: '초기 체력', icon: 'heart', maxLevel: 10, desc: (l) => `편의점 체력 +${l * 7.5}`, cost: (l) => 60 + l * 34 },
   { id: 'drawCost', name: '뽑기 할인', icon: 'tag', maxLevel: 10, desc: (l) => `뽑기 비용 -${l * 3}원`, cost: (l) => 70 + l * 44 },
@@ -69,6 +78,7 @@ export const DEFAULT_META_LEVELS: Record<MetaUpgradeId, number> = {
   epicChance: 0,
   coinGain: 0,
   mergeLuck: 0,
+  shelves: 0,
   orderDiscount: 0,
   armorPierce: 0,
   veteran: 0,
@@ -78,6 +88,7 @@ export function metaEffects(levels: Record<MetaUpgradeId, number>): MetaEffects 
   return {
     startCoins: START_COINS + levels.startCoins * 50,
     startHp: START_HP + levels.startHp * 7.5,
+    slots: Math.min(TOTAL_SLOTS, START_SLOTS + levels.shelves),
     drawCostReduce: levels.drawCost * 3,
     rareBonus: levels.rareChance * 0.0075,
     epicBonus: levels.epicChance * 0.0035,
@@ -95,6 +106,9 @@ export function metaEffects(levels: Record<MetaUpgradeId, number>): MetaEffects 
 // 코인 비중을 크게 낮췄다. 예전엔 수당의 95%가 획득 코인에서 나와 두 판이면 상점을
 // 다 사버렸고(전체 8800), 코인은 후반에 어차피 남아돌아서 "더 멀리 갔다"를 보상하지 못했다.
 // 지금은 웨이브와 처치 수가 주도한다: 좋은 판 한 번 ≈ 800점 → 상점 전부 약 11판.
+// 진열대 증축(12단계)이 들어오면서 상점 전체가 8,800점 → 37,800점이 됐다.
+// 판당 700점이면 다 사는 데 54판이다. 수당을 올려 30판 아래로 맞춘다.
+// 웨이브 비중을 키운 건 "더 멀리 갔다"를 보상하기 위해서다.
 export function metaPointsForRun(coinsEarned: number, wave: number, kills: number, payMult = 1): number {
-  return Math.round((wave * 14 + kills * 0.25 + coinsEarned * 0.004) * payMult);
+  return Math.round((wave * 28 + kills * 0.45 + coinsEarned * 0.004) * payMult);
 }

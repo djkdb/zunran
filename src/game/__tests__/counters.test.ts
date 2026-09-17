@@ -3,7 +3,8 @@ import { Engine } from '../engine/Engine';
 import { spawnEnemy, damageEnemy } from '../engine/enemySystem';
 import { ENEMY_DEFS, ENEMY_BY_ID } from '../data/enemies';
 import { UNIT_BY_ID } from '../data/units';
-import { armorAt, ARMOR_FLOOR, enemyHpScale, drawCost } from '../config';
+import { armorAt, ARMOR_FLOOR, enemyHpScale, drawCost, START_SLOTS, MAX_SHELF_LEVEL, TOTAL_SLOTS } from '../config';
+import { metaEffects, DEFAULT_META_LEVELS } from '../save/meta';
 import { orderPrice } from '../data/deck';
 import { buildThemeSchedule, buildWave, THEME_INFO, type WaveTheme } from '../data/waves';
 import { createRng } from '../engine/rng';
@@ -317,5 +318,63 @@ describe('본사 발주 가격 (직접 플레이에서 잡은 것)', () => {
       expect(orderPrice('epic', wave, d)).toBeGreaterThan(orderPrice('rare', wave, d));
       expect(orderPrice('legendary', wave, d)).toBeGreaterThan(orderPrice('epic', wave, d));
     }
+  });
+});
+
+describe('진열대 증축 (메타 강화)', () => {
+  it('강화 0레벨이면 가운데 9칸만 열려 있다', () => {
+    const engine = new Engine({ seed: 40, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: 0 }) });
+    const open = engine.state.slots.filter((sl) => !sl.locked);
+    expect(open).toHaveLength(START_SLOTS);
+    expect(engine.snapshot().totalSlots).toBe(START_SLOTS);
+  });
+
+  it('세 줄(코너)이 처음부터 모두 열려 있다 — 첫 판부터 "어디에 둘까"가 있어야 한다', () => {
+    const engine = new Engine({ seed: 41, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: 0 }) });
+    const rows = new Set(engine.state.slots.filter((sl) => !sl.locked).map((sl) => sl.row));
+    expect(rows).toEqual(new Set([0, 1, 2]));
+  });
+
+  it('레벨마다 한 칸씩 열리고, 만렙이면 전부 열린다', () => {
+    for (const lv of [0, 1, 5, MAX_SHELF_LEVEL]) {
+      const engine = new Engine({ seed: 42, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: lv }) });
+      expect(engine.state.slots.filter((sl) => !sl.locked)).toHaveLength(Math.min(TOTAL_SLOTS, START_SLOTS + lv));
+    }
+    const full = new Engine({ seed: 43, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: MAX_SHELF_LEVEL }) });
+    expect(full.state.slots.some((sl) => sl.locked)).toBe(false);
+  });
+
+  it('잠긴 칸에는 유닛이 들어가지 않는다', () => {
+    const engine = new Engine({ seed: 44, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: 0 }) });
+    engine.state.coins = 999999;
+    for (let i = 0; i < START_SLOTS; i++) expect(engine.dispatch({ type: 'DRAW' }).ok).toBe(true);
+    expect(engine.dispatch({ type: 'DRAW' }).ok).toBe(false); // 9칸이 다 찼다
+    for (const u of engine.state.units) expect(engine.state.slots[u.slot].locked).toBeFalsy();
+    const locked = engine.state.slots.find((sl) => sl.locked)!;
+    expect(engine.dispatch({ type: 'MOVE', unitId: engine.state.units[0].id, slot: locked.index }).ok).toBe(false);
+  });
+
+  it('강화가 실제로 판을 바꾼다 — 칸이 많을수록 더 멀리 간다', () => {
+    // 같은 시드로 0레벨과 만렙을 돌려 비교한다
+    const run = (shelves: number) => {
+      const engine = new Engine({ seed: 77, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves }) });
+      const s = engine.state;
+      let t = 0;
+      while (s.phase !== 'gameover' && s.wave <= 60 && t < 1800) {
+        if (s.phase === 'promote' && s.promoteChoice) { engine.dispatch({ type: 'CHOOSE_PROMOTE', defId: s.promoteChoice.options[0] }); continue; }
+        if (s.phase === 'eventChoice') { engine.dispatch({ type: 'CHOOSE_EVENT', index: 0 }); continue; }
+        engine.tick(0.1);
+        engine.drainFx();
+        t += 0.1;
+        if (s.phase === 'reward') { engine.dispatch({ type: 'CHOOSE_REWARD', defId: s.rewardOffers[0].defId }); continue; }
+        if (Math.round(t * 10) % 5 === 0) {
+          for (const g of engine.snapshot().groups) if (g.mergeable) engine.dispatch({ type: 'MERGE', defId: g.defId, tier: g.tier });
+          let guard = 0;
+          while (guard++ < 10 && engine.snapshot().canDraw) engine.dispatch({ type: 'DRAW' });
+        }
+      }
+      return s.wave;
+    };
+    expect(run(MAX_SHELF_LEVEL)).toBeGreaterThan(run(0));
   });
 });
