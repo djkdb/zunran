@@ -177,6 +177,11 @@ class AudioEngine {
       case 'click':
         this.tone(1200, 0.03, 'square', 0.04);
         break;
+      // 거절: 조작이 먹히지 않았을 때. 낮고 짧게 두 번 — 클릭음과 확실히 구분된다.
+      case 'deny':
+        this.tone(180, 0.07, 'square', 0.05);
+        this.tone(120, 0.09, 'square', 0.05, 0.06);
+        break;
       case 'skill':
         this.tone(400, 0.25, 'sawtooth', 0.08, 0, 1400);
         break;

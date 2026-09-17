@@ -68,7 +68,7 @@ export function RunReport({ result }: { result: RunResult }) {
 
       {mvp && (
         <div className="mvp">
-          <div className="mvp-rarity" style={{ background: RARITY_COLOR[mvp.rarity] }} />
+          <div className={`mvp-rarity r-${mvp.rarity}`} style={{ ['--rc' as string]: RARITY_COLOR[mvp.rarity] }} />
           <div className="mvp-inner">
             <UnitIcon defId={mvp.id} size={42} />
             <div>

@@ -35,7 +35,7 @@ function hintFor(snap: UISnapshot): string | null {
 }
 
 export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHints, deck, challenge, onToggleMute, onToggleAutoMerge, onToggleAutoSell, onGameOver }: Props) {
-  const { canvasRef, snap, banners, act, toast, onPointerDown, onPointerMove, endDrag } = useGame({ meta, bestWave, muted, autoMerge, autoSell, deck, challenge, onGameOver });
+  const { canvasRef, snap, banners, act, toast, denied, onPointerDown, onPointerMove, endDrag } = useGame({ meta, bestWave, muted, autoMerge, autoSell, deck, challenge, onGameOver });
   // 퇴근은 되돌릴 수 없으니 두 번 눌러야 한다. 일시정지를 풀면 초기화한다.
   const [confirmExit, setConfirmExit] = useState(false);
   const paused = snap?.paused ?? false;
@@ -112,7 +112,7 @@ export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHin
           )}
         </div>
       </div>
-      {snap && <BottomPanel snap={snap} act={act} />}
+      {snap && <BottomPanel snap={snap} act={act} denied={denied} />}
       {snap && <RewardOverlay snap={snap} act={act} />}
     </div>
   );

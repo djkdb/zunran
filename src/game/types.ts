@@ -238,6 +238,7 @@ export type SfxId =
   | 'damage'
   | 'sell'
   | 'click'
+  | 'deny'
   | 'skill'
   | 'record'
   | 'achievement'
@@ -488,6 +489,7 @@ export interface GameState {
   nextId: number;
   meta: MetaEffects;
 
+  hitstop: number; // 남은 히트스톱 (초). 이 동안 게임 시간이 멈춘다 — 타격이 묵직해진다.
   deck: string[]; // 이번 판에 쓰는 덱 (유닛 id). 비면 전체 풀에서 뽑는다.
   challenge: ChallengeSpec | null; // ZUNRAN DAILY 규칙 (없으면 일반 근무)
 

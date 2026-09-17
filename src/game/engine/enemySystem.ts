@@ -151,6 +151,10 @@ export function applySlow(state: GameState, e: Enemy, pct: number, dur: number):
 export function killEnemy(state: GameState, e: Enemy, killer: Unit | null, bonusCoin: number): void {
   if (e.dead) return;
   e.dead = true;
+  // 히트스톱은 보스에만 건다. 일반 처치마다 걸면 한 판 700번이 쌓여
+  // 실제로 판이 1분 가까이 길어졌다 (측정치 9.8분 → 10.7분).
+  // 일반 처치의 손맛은 콤보 5연쇄에서 따로 준다 (economy.ts).
+  if (e.isBoss) state.hitstop = Math.max(state.hitstop, 0.2);
   const def = ENEMY_BY_ID[e.defId];
   state.stats.enemyKills[e.defId] = (state.stats.enemyKills[e.defId] ?? 0) + 1;
   rewardKill(state, e, killer, bonusCoin);

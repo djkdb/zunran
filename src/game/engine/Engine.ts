@@ -54,6 +54,13 @@ export class Engine {
     if (s.phase !== 'playing' || s.paused) return;
     const dt = Math.min(dtReal, 0.25);
     s.realTime += dt;
+    // 히트스톱: 처치 순간 게임 시간을 아주 잠깐 멈춘다. 실시간은 계속 흐르므로
+    // 판이 길어지지 않고, 타격만 묵직해진다. 배속을 켜면 그만큼 짧아진다.
+    if (s.hitstop > 0) {
+      s.hitstop = Math.max(0, s.hitstop - dt * s.speed);
+      this.snapshotDirty = true;
+      return;
+    }
     this.accumulator += dt * s.speed;
     let steps = 0;
     while (this.accumulator >= FIXED_DT && steps < MAX_STEPS) {
@@ -498,6 +505,7 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number): 
     shake: 0,
     nextId: 1,
     meta,
+    hitstop: 0,
     deck: [],
     challenge: null,
     threeAmTriggered: false,

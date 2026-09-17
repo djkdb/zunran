@@ -35,6 +35,8 @@ function bumpCombo(state: GameState, x: number, y: number): void {
     const bonus = Math.round((18 + state.wave * 5) * step * state.modifiers.coinGain * state.perma.coin);
     addCoins(state, bonus);
     addFloater(state, { x, y: y - 34, text: `${c.count} 연속! +${bonus}원`, color: '#ffd23f', size: 15, life: 1.3 });
+    // 짧은 히트스톱으로 연쇄가 터지는 순간을 찍어준다. 5연쇄마다라 아껴 쓰는 셈이다.
+    state.hitstop = Math.max(state.hitstop, 0.07);
     sfx(state, 'waveClear');
   }
 }

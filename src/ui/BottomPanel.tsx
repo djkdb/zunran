@@ -8,9 +8,19 @@ import { Icon, TierTicks } from './Icon';
 interface Props {
   snap: UISnapshot;
   act: (a: GameAction) => void;
+  denied: number;
 }
 
-export function BottomPanel({ snap, act }: Props) {
+export function BottomPanel({ snap, act, denied }: Props) {
+  // 거절된 조작이 생길 때마다 뽑기 버튼을 한 번 흔든다.
+  const [shake, setShake] = useState(false);
+  useEffect(() => {
+    if (denied === 0) return;
+    setShake(true);
+    const t = window.setTimeout(() => setShake(false), 260);
+    return () => clearTimeout(t);
+  }, [denied]);
+
   const mergeables = snap.groups.filter((g) => g.mergeable);
   const sel = snap.selected ? UNIT_BY_ID[snap.selected.defId] : null;
   // 값나가는 유닛은 실수로 팔리지 않게 한 번 더 묻는다
@@ -52,7 +62,7 @@ export function BottomPanel({ snap, act }: Props) {
     <section className="panel" ref={panelRef}>
       <div className="panel-top">
         <button
-          className={`draw-btn ${snap.canDraw ? '' : 'disabled'} ${free ? 'free' : ''}`}
+          className={`draw-btn ${snap.canDraw ? '' : 'disabled'} ${free ? 'free' : ''} ${shake ? 'denied' : ''}`}
           onClick={() => act({ type: 'DRAW' })}
           disabled={snap.phase !== 'playing'}
         >
@@ -140,7 +150,7 @@ export function BottomPanel({ snap, act }: Props) {
 
       {sel && snap.selected && (
         <div className="selected-card">
-          <div className="selected-rarity" style={{ background: RARITY_COLOR[sel.rarity] }} />
+          <div className={`selected-rarity r-${sel.rarity}`} style={{ ['--rc' as string]: RARITY_COLOR[sel.rarity] }} />
           <div className="selected-main">
             <UnitIcon defId={sel.id} size={36} />
             <div className="selected-info">
@@ -198,7 +208,7 @@ export function BottomPanel({ snap, act }: Props) {
                 onClick={() => act({ type: 'SELECT', unitId: g.unitIds[0] })}
                 title={def.desc}
               >
-                <span className="inv-rarity" style={{ background: RARITY_COLOR[def.rarity] }} />
+                <span className={`inv-rarity r-${def.rarity}`} style={{ ['--rc' as string]: RARITY_COLOR[def.rarity] }} />
                 <span className="inv-body">
                   <UnitIcon defId={g.defId} size={26} />
                   <span className="inv-text">

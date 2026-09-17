@@ -68,7 +68,7 @@ export function CodexScreen({ save }: { save: SaveData }) {
                 className={`codex-item ${known ? '' : 'locked'} ${isOpen ? 'open' : ''}`}
                 onClick={() => known && setOpen(isOpen ? null : u.id)}
               >
-                <span className="codex-rarity" style={{ background: known ? RARITY_COLOR[u.rarity] : '#3a2f63' }} />
+                <span className={`codex-rarity ${known ? `r-${u.rarity}` : ''}`} style={{ ['--rc' as string]: known ? RARITY_COLOR[u.rarity] : '#3a2f63' }} />
                 <span className="codex-body">
                   <UnitIcon defId={u.id} size={38} dim={!known} />
                   <span className="codex-name">{known ? u.name : '???'}</span>

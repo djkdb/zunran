@@ -3346,3 +3346,44 @@ button:disabled {
   line-height: 1.6;
   color: var(--off);
 }
+
+/* ───────── 거절 피드백 ───────── */
+.draw-btn.denied {
+  animation: denyShake 0.26s ease-in-out;
+}
+@keyframes denyShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  45% { transform: translateX(5px); }
+  70% { transform: translateX(-3px); }
+}
+
+/* ───────── 색각 이상 대응: 희귀도를 색 말고 무늬로도 구분한다 ─────────
+   실측(적녹색약 변환)에서 희귀(민트)-에픽(보라), 일반(dim)-희귀가 무너졌다.
+   합성·판매 판단에 직접 쓰이는 정보라, 이미 있는 희귀도 막대에 세로 무늬를 얹는다.
+   색은 --rc 로 받아 background-color 로 칠하고, 무늬는 투명 구간으로 판다.
+   그레이스케일로 봐도 등급이 읽히면 통과. */
+.inv-rarity,
+.selected-rarity,
+.codex-rarity,
+.mvp-rarity {
+  background-color: var(--rc, var(--off));
+  background-repeat: repeat-y;
+}
+/* 일반: 꽉 찬 막대 (기준) */
+/* 희귀: 성긴 끊김 */
+.r-rare {
+  background-image: repeating-linear-gradient(transparent 0 3px, var(--sunk) 3px 6px);
+}
+/* 에픽: 촘촘한 끊김 */
+.r-epic {
+  background-image: repeating-linear-gradient(transparent 0 2px, var(--sunk) 2px 3px);
+}
+/* 전설: 가운데가 비어 이중선으로 보인다 */
+.r-legendary {
+  background-image: linear-gradient(90deg, transparent 0 1px, var(--sunk) 1px 2px, transparent 2px 4px);
+}
+/* 특수: 대각 빗금 */
+.r-special {
+  background-image: repeating-linear-gradient(45deg, transparent 0 2px, var(--sunk) 2px 4px);
+}

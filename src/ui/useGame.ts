@@ -66,13 +66,20 @@ export function useGame(opts: UseGameOptions) {
     toastTimer.current = window.setTimeout(() => setToast(null), 1500);
   }, []);
 
+  // 거절된 조작의 횟수. 올라갈 때마다 UI 가 한 번 흔들린다.
+  const [denied, setDenied] = useState(0);
   const actRef = useRef<(a: GameAction) => void>(() => {});
   const act = useCallback(
     (action: GameAction) => {
       const engine = engineRef.current;
       if (!engine) return;
       const r = engine.dispatch(action);
-      if (!r.ok && r.reason) showToast(r.reason);
+      if (!r.ok) {
+        if (r.reason) showToast(r.reason);
+        // 눌렀는데 아무 일도 안 일어나면 버그로 보인다. 흔들고 낮은 음으로 거절을 알린다.
+        setDenied((n) => n + 1);
+        audio.play('deny');
+      }
       setSnap(engine.snapshot());
     },
     [showToast],
@@ -292,5 +299,5 @@ export function useGame(opts: UseGameOptions) {
     [act, slotAt],
   );
 
-  return { canvasRef, snap, banners, act, toast, onPointerDown, onPointerMove, endDrag, engineRef };
+  return { canvasRef, snap, banners, act, toast, denied, onPointerDown, onPointerMove, endDrag, engineRef };
 }
