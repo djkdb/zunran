@@ -2,11 +2,12 @@
 // 실행: npm run sim -- [runs] [strategy]
 import { Engine } from '../src/game/engine/Engine';
 import { UNIT_BY_ID } from '../src/game/data/units';
-import { metaEffects, DEFAULT_META_LEVELS } from '../src/game/save/meta';
+import { metaEffects, DEFAULT_META_LEVELS, metaPointsForRun } from '../src/game/save/meta';
 import type { MetaUpgradeId } from '../src/game/types';
 import { CHALLENGE_BY_ID } from '../src/game/data/dailyChallenges';
 import { normalizeOrder } from '../src/game/data/deck';
 import { recipeStatus } from '../src/game/data/recipes';
+import { CONDITION_BY_ID, mergeIntoChallenge } from '../src/game/data/shiftConditions';
 import { unlockedUnits } from '../src/game/data/unlocks';
 import { sellCandidate } from '../src/ui/useGame';
 
@@ -74,14 +75,16 @@ function shuffle(arr: string[], seed: number): string[] {
   return out;
 }
 
-function runOnce(seed: number, strategy: Strategy, maxWave = 60, metaLevel = 0, challengeId?: string, useDeck = false) {
+function runOnce(seed: number, strategy: Strategy, maxWave = 60, metaLevel = 0, challengeId?: string, useDeck = false, conditionId?: string) {
   const levels = { ...DEFAULT_META_LEVELS } as Record<MetaUpgradeId, number>;
   for (const k of Object.keys(levels) as MetaUpgradeId[]) levels[k] = metaLevel;
   // 발주는 시드마다 다르게 해서 "특정 발주가 유리한가"가 아니라 "발주 자체"의 효과를 본다
   const pool = unlockedUnits(999);
   const sh = shuffle(pool, seed);
   const order = useDeck ? normalizeOrder({ pins: sh.slice(0, 2), bans: sh.slice(2, 4) }, pool) : undefined;
-  const engine = new Engine({ seed, meta: metaEffects(levels), order, challenge: challengeId ? (CHALLENGE_BY_ID[challengeId] ?? null) : null });
+  const cond = conditionId ? (CONDITION_BY_ID[conditionId] ?? null) : null;
+  const daily = challengeId ? (CHALLENGE_BY_ID[challengeId] ?? null) : null;
+  const engine = new Engine({ seed, meta: metaEffects(levels), order, condition: cond, challenge: mergeIntoChallenge(daily, cond) });
   let t = 0;
   const waveHp: number[] = [];
   let lastWave = 0;
@@ -109,6 +112,7 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 60, metaLevel = 0, 
     maxTier: s.stats.maxTierReached,
     legendary: s.stats.legendaryDraws,
     coinsEarned: s.stats.coinsEarned,
+    points: metaPointsForRun(s.stats.coinsEarned, s.wave, s.stats.kills, cond?.scoreMult ?? 1),
     rewards: s.rewardsTaken.length,
     combo: s.stats.bestCombo,
     skills: s.stats.skillsUsed,
@@ -123,9 +127,10 @@ const runs = Number(process.argv[2] ?? 10);
 const strategy = (process.argv[3] ?? 'greedy') as Strategy;
 const metaLevel = Number(process.argv[4] ?? 0);
 const challengeId = process.argv[6]; // 선택: ZUNRAN DAILY 규칙 id
-const useDeck = process.argv[7] === 'deck'; // 선택: 덱을 짜고 플레이
+const useDeck = process.argv[7] === 'deck'; // 선택: 발주를 하고 플레이
+const conditionId = process.argv[8]; // 선택: 오늘의 근무 조건 id
 const results: ReturnType<typeof runOnce>[] = [];
-for (let i = 0; i < runs; i++) results.push(runOnce(1000 + i * 7919, strategy, 80, metaLevel, challengeId, useDeck));
+for (let i = 0; i < runs; i++) results.push(runOnce(1000 + i * 7919, strategy, 80, metaLevel, challengeId, useDeck, conditionId));
 const waves = results.map((r) => r.wave);
 const avg = waves.reduce((a, b) => a + b, 0) / waves.length;
 const sorted = [...waves].sort((a, b) => a - b);
@@ -136,6 +141,7 @@ const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
 const hpAt = (w: number) => results.filter((r) => r.waveHp.length > w).map((r) => r.waveHp[w]);
 const mean = (xs: number[]) => (xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(0) : '-');
 console.log(`strategy=${strategy} meta=${metaLevel} runs=${runs}${challengeId ? ` daily=${challengeId}` : ''}${useDeck ? ' order=on' : ''}`);
+console.log(`야간 수당: 평균 ${Math.round(results.reduce((a, r) => a + r.points, 0) / results.length)}점`);
 console.log(`한 판 길이: 평균 ${(avgTime / 60).toFixed(1)}분 (최장 ${(Math.max(...times) / 60).toFixed(1)}분)`);
 console.log(`waves: min=${Math.min(...waves)} median=${median} avg=${avg.toFixed(1)} max=${Math.max(...waves)} sd=${sd.toFixed(1)} (${((sd / avg) * 100).toFixed(0)}%)`);
 console.log(`mean hp entering wave: w5=${mean(hpAt(4))} w10=${mean(hpAt(9))} w11=${mean(hpAt(10))} w13=${mean(hpAt(12))} w14=${mean(hpAt(13))} w20=${mean(hpAt(19))} w21=${mean(hpAt(20))} w30=${mean(hpAt(29))} w31=${mean(hpAt(30))} w40=${mean(hpAt(39))} w41=${mean(hpAt(40))}`);

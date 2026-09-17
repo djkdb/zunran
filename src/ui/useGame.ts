@@ -4,6 +4,7 @@ import { Engine } from '../game/engine/Engine';
 import { Renderer } from '../game/render/Renderer';
 import { audio } from '../game/audio/sfx';
 import { UNIT_BY_ID } from '../game/data/units';
+import type { ShiftCondition } from '../game/data/shiftConditions';
 import type { ChallengeSpec, GameAction, MetaEffects, UISnapshot, UnitGroup } from '../game/types';
 import { SLOT_HIT_RADIUS, THREE_AM_WAVE, SELL_REFUND } from '../game/config';
 import type { BannerItem } from './Banner';
@@ -15,6 +16,7 @@ export interface UseGameOptions {
   autoMerge: boolean;
   autoSell: boolean;
   order?: { pins: string[]; bans: string[] };
+  condition?: ShiftCondition | null;
   challenge?: ChallengeSpec | null;
   onGameOver: (engine: Engine) => void;
 }
@@ -88,7 +90,7 @@ export function useGame(opts: UseGameOptions) {
 
   useEffect(() => {
     const canvas = canvasRef.current!;
-    const engine = new Engine({ meta: opts.meta, bestWave: opts.bestWave, order: opts.order, challenge: opts.challenge ?? null });
+    const engine = new Engine({ meta: opts.meta, bestWave: opts.bestWave, order: opts.order, condition: opts.condition, challenge: opts.challenge ?? null });
     const renderer = new Renderer(canvas);
     engineRef.current = engine;
     rendererRef.current = renderer;

@@ -17,6 +17,8 @@ import { buildPayload, type RunSummary } from './game/rank/payload';
 import { StartScreen } from './ui/StartScreen';
 import { GameScreen } from './ui/GameScreen';
 import { IntroScene } from './ui/IntroScene';
+import { ConditionPicker } from './ui/ConditionPicker';
+import { mergeIntoChallenge, type ShiftCondition } from './game/data/shiftConditions';
 import { GameOverScreen } from './ui/GameOverScreen';
 
 export interface RunResult {
@@ -52,7 +54,10 @@ export interface RunResult {
 
 export function App() {
   const [save, setSave] = useState<SaveData>(() => loadSave());
-  const [screen, setScreen] = useState<'start' | 'intro' | 'game'>('start');
+  const [screen, setScreen] = useState<'start' | 'intro' | 'condition' | 'game'>('start');
+  // 오늘의 근무 조건 (판 시작 직전 3택 1)
+  const [condition, setCondition] = useState<ShiftCondition | null>(null);
+  const [runSeed, setRunSeed] = useState(() => (Math.random() * 0x7fffffff) | 0);
   const [runKey, setRunKey] = useState(0);
   const [result, setResult] = useState<RunResult | null>(null);
   // 랭킹 전송 결과. 서버가 없거나 네트워크가 끊겨도 게임 흐름은 막지 않는다.
@@ -67,11 +72,20 @@ export function App() {
     writeSave(next);
   }, []);
 
+  // 조건 선택 화면으로. 판마다 새 시드를 뽑아 3택이 매번 달라지게 한다.
   const beginRun = useCallback((daily: boolean) => {
     setResult(null);
     setRank(null);
     setPendingRun(null);
+    setCondition(null);
     setDailyMode(daily);
+    setRunSeed((Math.random() * 0x7fffffff) | 0);
+    setScreen('condition');
+  }, []);
+
+  const pickCondition = useCallback((c: ShiftCondition) => {
+    audio.play('click');
+    setCondition(c);
     setRunKey((k) => k + 1);
     setScreen('game');
   }, []);
@@ -150,7 +164,9 @@ export function App() {
         const def = ACHIEVEMENT_BY_ID[id];
         return sum + (def ? achievementReward(def) : 0);
       }, 0);
-      const basePoints = metaPointsForRun(s.stats.coinsEarned, s.wave, s.stats.kills, meta.payMult);
+      // 오늘의 조건 배율은 실력이 아니라 감수한 위험에 대한 보상이다.
+      const condMult = s.condition?.scoreMult ?? 1;
+      const basePoints = metaPointsForRun(s.stats.coinsEarned, s.wave, s.stats.kills, meta.payMult * condMult);
       const points = basePoints + missionReward + achReward;
 
       const res: RunResult = {
@@ -328,6 +344,13 @@ export function App() {
       />
     );
   }
+  if (screen === 'condition') {
+    return (
+      <div className="app">
+        <ConditionPicker seed={runSeed} onPick={pickCondition} />
+      </div>
+    );
+  }
   if (screen === 'intro') {
     return (
       <div className="app">
@@ -346,7 +369,8 @@ export function App() {
         autoSell={save.autoSell}
         showHints={!save.hintsSeen}
         order={order}
-        challenge={dailyMode ? today.challenge : null}
+        condition={condition}
+        challenge={mergeIntoChallenge(dailyMode ? today.challenge : null, condition)}
         onToggleMute={toggleMute}
         onToggleAutoMerge={toggleAutoMerge}
         onToggleAutoSell={toggleAutoSell}

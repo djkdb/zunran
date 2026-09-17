@@ -102,6 +102,7 @@ export interface Slot {
   y: number;
   row: number;
   unitId: number | null;
+  blocked?: boolean; // '혼자 근무' 조건에서 봉쇄된 칸
 }
 
 // ───────────────────────── 손님 ─────────────────────────
@@ -492,6 +493,7 @@ export interface GameState {
 
   hitstop: number; // 남은 히트스톱 (초). 이 동안 게임 시간이 멈춘다 — 타격이 묵직해진다.
   order: { pins: string[]; bans: string[] }; // 오늘 발주. 뽑기 풀은 항상 전체다.
+  condition: { id: string; scoreMult: number; drawCostMult?: number } | null; // 오늘의 근무 조건
   challenge: ChallengeSpec | null; // ZUNRAN DAILY 규칙 (없으면 일반 근무)
 
   // 연출 플래그

@@ -352,6 +352,22 @@ export class Renderer {
       const hovered = this.interaction.hoverSlot === s.index;
       ctx.save();
       ctx.translate(s.x, s.y);
+      // '혼자 근무' 조건으로 봉쇄된 칸 — 빗금으로 못 쓴다는 걸 보여준다
+      if (s.blocked) {
+        ctx.strokeStyle = 'rgba(255,77,141,0.5)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([]);
+        const r = 22;
+        ctx.strokeRect(-r, -r, r * 2, r * 2);
+        ctx.beginPath();
+        ctx.moveTo(-r, -r);
+        ctx.lineTo(r, r);
+        ctx.moveTo(r, -r);
+        ctx.lineTo(-r, r);
+        ctx.stroke();
+        ctx.restore();
+        continue;
+      }
       if (empty) {
         ctx.strokeStyle = hovered ? '#ffd84d' : placing ? 'rgba(255,216,77,0.95)' : 'rgba(239,234,255,0.32)';
         ctx.setLineDash(placing ? [] : [4, 4]);

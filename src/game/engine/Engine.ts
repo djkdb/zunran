@@ -2,6 +2,7 @@ import type { ChallengeSpec, FxEvent, GameAction, GameState, MetaEffects, Rarity
 import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, MAX_TIER, drawCost, formatClock, EVENT_INTERVAL, isBossWave, AISLE_NAMES, AISLE_BONUS } from '../config';
 import { UNIT_BY_ID, unitsOfRarity } from '../data/units';
 import { dupeWeight, PIN_GUARANTEE_DRAWS, PIN_TARGET_COPIES, EMPTY_ORDER, type Order } from '../data/deck';
+import type { ShiftCondition } from '../data/shiftConditions';
 import { basePerma, chooseReward } from './rewardSystem';
 import { useSkill, tickSkills } from './skillSystem';
 import { ENEMY_BY_ID } from '../data/enemies';
@@ -25,6 +26,7 @@ export interface EngineOptions {
   bestWave?: number;
   challenge?: ChallengeSpec | null; // ZUNRAN DAILY 규칙
   order?: Order; // 오늘 발주 (지명·제외). 없으면 순수 랜덤
+  condition?: ShiftCondition | null; // 오늘의 근무 조건 (3택 1)
 }
 
 const FIXED_DT = 1 / 60;
@@ -43,6 +45,21 @@ export class Engine {
     const meta = opts.meta ?? metaEffects(DEFAULT_META_LEVELS);
     this.state = createInitialState(seed, meta, opts.bestWave ?? 0);
     this.state.order = opts.order ?? EMPTY_ORDER;
+    // 오늘의 근무 조건: spec 은 challenge 로 합쳐 들어오고, 여기서는 나머지를 적용한다.
+    const cond = opts.condition ?? null;
+    this.state.condition = cond;
+    if (cond) {
+      if (cond.startCoins) this.state.coins = Math.max(0, this.state.coins + cond.startCoins);
+      if (cond.startHpMult) {
+        this.state.maxHp = Math.max(1, Math.round(this.state.maxHp * cond.startHpMult));
+        this.state.hp = this.state.maxHp;
+      }
+      if (cond.freeDraws) this.state.freeDraws += cond.freeDraws;
+      // 뒤쪽 칸부터 봉쇄한다 (입구 쪽을 남겨야 판이 성립한다)
+      for (let i = 0; i < (cond.blockSlots ?? 0) && i < this.state.slots.length - 6; i++) {
+        this.state.slots[this.state.slots.length - 1 - i].blocked = true;
+      }
+    }
     this.state.challenge = opts.challenge ?? null;
     if (this.state.challenge) recomputeModifiers(this.state);
     startWave(this.state, 1);
@@ -171,13 +188,14 @@ export class Engine {
   }
 
   currentDrawCost(): number {
-    return drawCost(this.state.drawCount, this.state.meta.drawCostReduce + this.state.perma.drawDiscount);
+    const base = drawCost(this.state.drawCount, this.state.meta.drawCostReduce + this.state.perma.drawDiscount);
+    return Math.round(base * (this.state.condition?.drawCostMult ?? 1));
   }
 
   private draw(): { ok: boolean; reason?: string } {
     const s = this.state;
     if (s.phase !== 'playing') return { ok: false };
-    const emptySlots = s.slots.filter((sl) => sl.unitId === null);
+    const emptySlots = s.slots.filter((sl) => sl.unitId === null && !sl.blocked);
     if (emptySlots.length === 0) return { ok: false, reason: '빈 칸이 없어요. 합성하거나 판매하세요.' };
     const cost = this.currentDrawCost();
     if (s.freeDraws > 0) {
@@ -347,6 +365,7 @@ export class Engine {
     const u = s.units.find((x) => x.id === unitId);
     const target = s.slots[slotIdx];
     if (!u || !target) return { ok: false };
+    if (target.blocked) return { ok: false };
     if (target.unitId === null) {
       s.slots[u.slot].unitId = null;
       u.slot = slotIdx;
@@ -398,7 +417,7 @@ export class Engine {
     const groups = groupUnits(s);
     const boss = s.enemies.find((e) => e.isBoss && !e.dead && !e.reached);
     const sel = s.selectedUnitId !== null ? s.units.find((u) => u.id === s.selectedUnitId) : undefined;
-    const emptySlots = s.slots.filter((sl) => sl.unitId === null).length;
+    const emptySlots = s.slots.filter((sl) => sl.unitId === null && !sl.blocked).length;
     const cost = this.currentDrawCost();
     const junk = this.junkUnits();
     this.cachedSnapshot = {
@@ -581,6 +600,7 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number): 
     meta,
     hitstop: 0,
     order: { pins: [], bans: [] },
+    condition: null,
     challenge: null,
     threeAmTriggered: false,
     lowHpWarned: false,
