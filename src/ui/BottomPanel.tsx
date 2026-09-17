@@ -178,6 +178,24 @@ export function BottomPanel({ snap, act, denied }: Props) {
         </div>
       )}
 
+      {/* 고티어 통합 합성: 3티어부터는 종류가 달라도 합친다.
+          같은 유닛만 고집하면 사다리가 3티어에서 끊긴다 (4티어 하나에 같은 유닛 12개). */}
+      {snap.tierMerge && (
+        <div className="merge-row">
+          <button className="merge-btn tier-merge" onClick={() => act({ type: 'MERGE_TIER', tier: snap.tierMerge!.tier })}>
+            <span className="tier-merge-badge px">★{snap.tierMerge.tier}</span>
+            <span className="merge-label">
+              <span>같은 티어 {snap.tierMerge.count}개</span>
+              <span className="tier-merge-hint">종류가 달라도 합쳐집니다</span>
+            </span>
+            <span className="merge-arrow">
+              ★{snap.tierMerge.tier + 1}
+              <Icon name="merge" size={14} strokeWidth={2.4} />
+            </span>
+          </button>
+        </div>
+      )}
+
       {mergeables.length > 0 && (
         <div className="merge-row">
           {mergeables.map((g) => {

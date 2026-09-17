@@ -551,6 +551,7 @@ export type GameAction =
   | { type: 'DRAW' }
   | { type: 'ORDER'; rarity: 'rare' | 'epic' | 'legendary' } // 본사 발주: 등급 지정 뽑기
   | { type: 'MERGE'; defId: string; tier: Tier }
+  | { type: 'MERGE_TIER'; tier: Tier } // 고티어: 종류가 달라도 같은 티어끼리 합친다
   | { type: 'SELL'; unitId: number }
   | { type: 'SELECT'; unitId: number | null }
   | { type: 'MOVE'; unitId: number; slot: number }
@@ -601,6 +602,8 @@ export interface UISnapshot {
   bossMaxHp: number;
   bossName: string;
   groups: UnitGroup[];
+  // 고티어 통합 합성: 종류가 달라도 합칠 수 있는 티어와 그 개수
+  tierMerge: { tier: Tier; count: number } | null;
   selected: { unitId: number; defId: string; tier: Tier; kills: number; damage: number; sellPrice: number; aisle: string; aisleBonus: string; groupCount: number } | null;
   activeEvents: { title: string; remain: number; mood: EventMood }[];
   stats: RunStats;

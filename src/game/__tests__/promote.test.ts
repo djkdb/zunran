@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { Engine } from '../engine/Engine';
 import { UNIT_BY_ID, unitsOfRarity, NEXT_RARITY } from '../data/units';
 import { createUnit } from '../engine/unitFactory';
-import { MERGE_ODDS } from '../config';
+import { MERGE_ODDS, MAX_TIER } from '../config';
+import { canTierMerge } from '../engine/mergeSystem';
+import type { Tier } from '../types';
 
 // 같은 유닛 3개를 원하는 슬롯에 강제로 놓는다
 function seed3(engine: Engine, defId: string) {
@@ -105,5 +107,75 @@ describe('합성 승급 2택', () => {
     expect(engine.state.units).toHaveLength(1);
     expect(engine.state.units[0].defId).toBe('onigiri');
     expect(engine.state.units[0].tier).toBe(2);
+  });
+});
+
+describe('고티어 통합 합성 (3티어부터 종류가 달라도)', () => {
+  const put = (engine: Engine, defId: string, tier: Tier, slot: number) => {
+    const s = engine.state;
+    const u = createUnit(s, defId, tier, slot);
+    s.units.push(u);
+    s.slots[slot].unitId = u.id;
+    return u;
+  };
+
+  it('3티어 미만에서는 종류가 다르면 안 합쳐진다', () => {
+    const engine = new Engine({ seed: 31 });
+    put(engine, 'onigiri', 2, 0);
+    put(engine, 'alba', 2, 1);
+    expect(canTierMerge(engine.state, 2)).toBe(false);
+    expect(engine.snapshot().tierMerge).toBeNull();
+  });
+
+  it('3티어 두 개는 종류가 달라도 합쳐진다', () => {
+    const engine = new Engine({ seed: 32 });
+    put(engine, 'onigiri', 3, 0);
+    put(engine, 'alba', 3, 1);
+    expect(canTierMerge(engine.state, 3)).toBe(true);
+    expect(engine.snapshot().tierMerge).toEqual({ tier: 3, count: 2 });
+  });
+
+  it('종류가 다르면 어느 쪽으로 남길지 고른다', () => {
+    const engine = new Engine({ seed: 33 });
+    put(engine, 'onigiri', 3, 0);
+    put(engine, 'alba', 3, 1);
+    expect(engine.dispatch({ type: 'MERGE_TIER', tier: 3 }).ok).toBe(true);
+    expect(engine.state.phase).toBe('promote');
+    const c = engine.state.promoteChoice!;
+    expect(new Set(c.options)).toEqual(new Set(['onigiri', 'alba']));
+    expect(c.tier).toBe(4); // 티어가 오른다
+    engine.dispatch({ type: 'CHOOSE_PROMOTE', defId: 'alba' });
+    expect(engine.state.units).toHaveLength(1);
+    expect(engine.state.units[0].defId).toBe('alba');
+    expect(engine.state.units[0].tier).toBe(4);
+  });
+
+  it('종류가 같으면 고를 게 없으므로 바로 올라간다', () => {
+    const engine = new Engine({ seed: 34 });
+    put(engine, 'onigiri', 3, 0);
+    put(engine, 'onigiri', 3, 1);
+    expect(engine.dispatch({ type: 'MERGE_TIER', tier: 3 }).ok).toBe(true);
+    expect(engine.state.phase).toBe('playing');
+    expect(engine.state.units).toHaveLength(1);
+    expect(engine.state.units[0].tier).toBe(4);
+  });
+
+  it('최대 티어에서는 더 합쳐지지 않는다', () => {
+    const engine = new Engine({ seed: 35 });
+    put(engine, 'onigiri', MAX_TIER, 0);
+    put(engine, 'alba', MAX_TIER, 1);
+    expect(canTierMerge(engine.state, MAX_TIER)).toBe(false);
+    expect(engine.snapshot().tierMerge).toBeNull();
+  });
+
+  it('선택한 유닛은 반드시 재료에 들어간다 (아껴 둔 게 멋대로 안 남는다)', () => {
+    const engine = new Engine({ seed: 36 });
+    const a = put(engine, 'onigiri', 3, 0);
+    put(engine, 'alba', 3, 1);
+    put(engine, 'hotbar', 3, 2);
+    a.damage = 99999; // 활약이 커서 기본 정렬로는 재료에서 빠질 유닛
+    engine.state.selectedUnitId = a.id;
+    engine.dispatch({ type: 'MERGE_TIER', tier: 3 });
+    expect(engine.state.promoteChoice!.options).toContain('onigiri');
   });
 });

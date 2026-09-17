@@ -94,6 +94,14 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 80): RunLog {
     }
     if (strategy !== 'noMerge') {
       for (const g of snap.groups) if (g.mergeable) engine.dispatch({ type: 'MERGE', defId: g.defId, tier: g.tier });
+      // 고티어 통합 합성 (종류가 달라도 같은 티어끼리)
+      let tg = 0;
+      while (tg++ < 4) {
+        const tm = engine.snapshot().tierMerge;
+        if (!tm) break;
+        engine.dispatch({ type: 'MERGE_TIER', tier: tm.tier });
+        if (s.phase === 'promote') break; // 2택이 뜨면 다음 루프에서 고른다
+      }
     }
     if ((strategy === 'autoClean' || strategy === 'orderer') && snap.emptySlots === 0) {
       const target = sellCandidate(snap.groups);

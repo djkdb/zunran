@@ -4031,3 +4031,18 @@ button:disabled {
   opacity: 0.75;
   letter-spacing: 0.04em;
 }
+
+/* 고티어 통합 합성 */
+.merge-btn.tier-merge {
+  --fc: var(--gold);
+}
+.tier-merge-badge {
+  font-size: 15px;
+  color: var(--gold);
+  min-width: 30px;
+  text-align: center;
+}
+.tier-merge-hint {
+  font-size: 10px;
+  opacity: 0.7;
+}

@@ -1,5 +1,5 @@
 import type { ChallengeSpec, FxEvent, GameAction, GameState, MetaEffects, Rarity, Tier, UISnapshot, UnitGroup, Unit } from '../types';
-import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, MAX_TIER, drawCost, formatClock, EVENT_INTERVAL, isBossWave, AISLE_NAMES, AISLE_BONUS } from '../config';
+import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, MAX_TIER, MIXED_MERGE_TIER, drawCost, formatClock, EVENT_INTERVAL, isBossWave, AISLE_NAMES, AISLE_BONUS } from '../config';
 import { UNIT_BY_ID, unitsOfRarity } from '../data/units';
 import { dupeWeight, PIN_GUARANTEE_DRAWS, PIN_TARGET_COPIES, EMPTY_ORDER, orderPrice, EPIC_PITY, type Order } from '../data/deck';
 import type { ShiftCondition } from '../data/shiftConditions';
@@ -13,7 +13,7 @@ import { updateUnits } from './unitSystem';
 import { buildThemeSchedule } from '../data/waves';
 import { updateWave, startWave } from './waveSystem';
 import { updateEvents, baseModifiers, recomputeModifiers, chooseEvent } from './eventSystem';
-import { mergeUnits, choosePromote, canMerge, announceLegendary } from './mergeSystem';
+import { mergeUnits, choosePromote, canMerge, canTierMerge, mergeByTier, tierMergeCandidates, announceLegendary } from './mergeSystem';
 import { createUnit } from './unitFactory';
 import { RECIPE_BY_ID, pickMaterials } from '../data/recipes';
 import { spendCoins, addCoins } from './economy';
@@ -145,6 +145,10 @@ export class Engine {
         return this.draw();
       case 'ORDER':
         return this.draw(action.rarity);
+      case 'MERGE_TIER': {
+        const r = mergeByTier(s, action.tier);
+        return { ok: r.ok, reason: r.reason };
+      }
       case 'MERGE': {
         if (s.phase !== 'playing') return { ok: false };
         const r = mergeUnits(s, action.defId, action.tier);
@@ -459,6 +463,15 @@ export class Engine {
     this.snapshotVersion++;
     this.snapshotDirty = false;
     const groups = groupUnits(s);
+    // 고티어 통합 합성: 종류가 달라도 합칠 수 있는 티어 중 가장 높은 것 하나만 보여준다.
+    // 여러 개를 동시에 띄우면 하단 패널이 버튼으로 가득 찬다.
+    let tierMerge: UISnapshot['tierMerge'] = null;
+    for (let t = MAX_TIER - 1; t >= MIXED_MERGE_TIER; t--) {
+      if (canTierMerge(s, t as Tier)) {
+        tierMerge = { tier: t as Tier, count: tierMergeCandidates(s, t as Tier).length };
+        break;
+      }
+    }
     const boss = s.enemies.find((e) => e.isBoss && !e.dead && !e.reached);
     const sel = s.selectedUnitId !== null ? s.units.find((u) => u.id === s.selectedUnitId) : undefined;
     const emptySlots = s.slots.filter((sl) => sl.unitId === null && !sl.blocked).length;
@@ -491,6 +504,7 @@ export class Engine {
       bossMaxHp: boss?.maxHp ?? 0,
       bossName: boss ? ENEMY_BY_ID[boss.defId].name : '',
       groups,
+      tierMerge,
       selected: sel
         ? {
             unitId: sel.id,
