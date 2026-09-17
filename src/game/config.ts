@@ -175,7 +175,10 @@ export function isBossWave(w: number): boolean {
 // 그 결함을 고치니 플레이어가 계속 강해져 한 판이 두 배로 길어졌다.
 export function enemyHpScale(wave: number): number {
   const w = Math.max(1, wave);
-  let s = 1 + 0.16 * w + 0.05 * w * w;
+  // 손님 수를 1.8w → 2.3w 로 올린 만큼 개체 체력의 2차항을 낮춘다.
+  // 총 압력(수 × 체력)은 웨이브 20에서 비슷하게 두고, 후반에는 낮춘다.
+  // 난이도는 체력 인플레가 아니라 테마 웨이브가 내는 문제로 만든다.
+  let s = 1 + 0.22 * w + 0.038 * w * w;
   if (w > 20) s *= Math.pow(1.075, w - 20); // 1.1 → 1.075. 난이도는 체력이 아니라 테마 웨이브로 만든다
   return s;
 }
@@ -187,8 +190,10 @@ export function waveIncome(wave: number): number {
 }
 // 계산대 도달 피해도 웨이브에 따라 커진다. 이게 없으면 후반에 손님이 뚫려도 체력이 안 깎여
 // 사실상 죽지 않는 게임이 된다 (보상 카드로 회복까지 되므로).
+// 초반에 뚫린 손님 한 명이 아무 느낌이 없으면 "뚫리면 아프다"를 배울 수 없다.
+// 시작 배율을 1.6으로 올리고 증가율을 낮춘다 — 초반 누수는 더 아프고, 후반은 덜 가파르다.
 export function enemyDamageScale(wave: number): number {
-  return 1 + 0.06 * Math.max(0, wave - 1);
+  return 1.6 + 0.05 * Math.max(0, wave - 1);
 }
 
 export function enemyBountyScale(wave: number): number {

@@ -75,8 +75,10 @@ export function buildWave(wave: number, rng: RNG, countMult = 1, themeOf: WaveTh
     return { entries, duration, theme };
   }
 
-  // 총 개체 수: 4 + 1.4w (40웨이브 이후 완만하게)
-  let total = Math.round((4 + 1.8 * Math.min(wave, 40) + Math.max(0, wave - 40) * 0.8) * countMult);
+  // 총 개체 수. 1.8w 로 두었더니 웨이브 12까지 체력이 97~100에서 움직이지 않았다 —
+  // 첫 4분이 "잃을 것도 없는" 시간이 된다 (docs/AUDIT.md 문제 1·6절).
+  // 2.3w 로 올려 초반부터 실제로 손님이 밀려오게 한다.
+  let total = Math.round((4 + 2.3 * Math.min(wave, 40) + Math.max(0, wave - 40) * 1) * countMult);
   // 보스 웨이브 손님 수를 0.55배로 줄였더니 보스전이 오히려 쉬는 시간이 됐다 (docs/AUDIT.md 8절).
   if (theme !== 'mixed') total = Math.round(total * 1.15);
   if (boss) total = Math.round(total * 0.8);
