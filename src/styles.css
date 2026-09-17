@@ -116,7 +116,7 @@ button:disabled {
 .hint,
 .title-block,
 .start-btn,
-.records div,
+.records button,
 .howto,
 .tip,
 .tabs button,
@@ -143,6 +143,8 @@ button:disabled {
 .ach-toast,
 .rank-tabs button,
 .nick-card,
+.shop-nudge,
+.exit-btn,
 .rank-list li,
 .rank-me,
 .rank-empty,
@@ -1308,10 +1310,25 @@ button:disabled {
 }
 .title-block {
   --fc: var(--mint);
-  padding: 17px 18px 19px;
+  position: relative;
+  padding: 11px 14px 13px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+}
+.title-mute {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--off);
+}
+.title-mute[aria-pressed='true'] {
+  color: var(--pink);
 }
 .title-sign {
   align-self: flex-start;
@@ -1322,10 +1339,10 @@ button:disabled {
   padding: 4px 9px;
 }
 .title {
-  margin: 8px 0 0;
+  margin: 5px 0 0;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: clamp(32px, 9vw, 48px);
+  font-size: clamp(27px, 7.4vw, 38px);
   line-height: 1;
   color: var(--text);
 }
@@ -1360,7 +1377,7 @@ button:disabled {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
 }
-.records div {
+.records button {
   padding: 8px 4px 9px;
   text-align: center;
   display: flex;
@@ -1416,21 +1433,44 @@ button:disabled {
 }
 .tabs {
   display: flex;
-  gap: 5px;
+  gap: 4px;
   margin-top: auto;
+  /* 스크롤 컨테이너 바닥에 고정. 처음 켰을 때 탭이 있다는 걸 바로 봐야 한다. */
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding: 7px 0 calc(7px + env(safe-area-inset-bottom));
+  background: var(--bg);
+  box-shadow: 0 -12px 16px -6px var(--bg);
 }
 .tabs button {
+  position: relative;
   flex: 1;
-  min-height: 46px;
+  min-height: 48px;
   color: var(--dim);
   font-weight: 800;
-  font-size: 13px;
+  font-size: 11px;
   white-space: nowrap;
-  padding: 0 6px;
+  padding: 0 2px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 2px;
+}
+.tab-label {
+  font-size: 11px;
+  letter-spacing: -0.02em;
+}
+/* 강화 탭에 살 게 있으면 점을 찍는다 */
+.tab-dot {
+  position: absolute;
+  top: 6px;
+  right: 50%;
+  margin-right: -16px;
+  width: 6px;
+  height: 6px;
+  background: var(--gold);
 }
 .tabs button.active {
   --fc: var(--mint);
@@ -2807,4 +2847,67 @@ button:disabled {
   flex-direction: column;
   align-items: stretch;
   gap: 6px;
+}
+
+/* ───────── 기록 칸 = 탭으로 가는 입구 ───────── */
+.records button {
+  cursor: pointer;
+}
+.records button.hot {
+  --fc: var(--gold);
+}
+.records button.hot b {
+  color: var(--gold);
+}
+.records b i {
+  font-style: normal;
+  font-size: 0.7em;
+  color: var(--off);
+}
+.shop-nudge {
+  --fc: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 0 12px;
+  color: var(--gold);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* ───────── 일시정지: 근무 끝내고 나가기 ───────── */
+.pause-exit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+}
+.exit-btn {
+  --fc: var(--edge);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 18px;
+  background-color: var(--panel);
+  color: var(--dim);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.exit-btn.armed {
+  --fc: var(--pink);
+  color: var(--pink);
+}
+.exit-note {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--off);
+  text-align: center;
 }

@@ -3,9 +3,8 @@ import type { DailyRecord, SaveData } from '../game/save/storage';
 import type { DailySet } from '../game/daily';
 import { META_UPGRADES } from '../game/save/meta';
 import { ACHIEVEMENTS } from '../game/data/achievements';
-import { formatTime } from '../game/config';
 import { TIPS } from '../game/data/dialogue';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 import { AchievementsScreen } from './AchievementsScreen';
 import { CodexScreen } from './CodexScreen';
 import { HistoryScreen } from './HistoryScreen';
@@ -25,17 +24,35 @@ interface Props {
   onReset: () => void;
 }
 
-type Tab = 'main' | 'shop' | 'codex' | 'ach' | 'history' | 'rank';
+type Tab = 'main' | 'shop' | 'rank' | 'codex' | 'ach' | 'history';
+
+// 처음 하는 사람도 뭐가 있는지 보이도록 전부 라벨을 단다. 순서 = 중요도.
+const TABS: { id: Tab; label: string; aria: string; icon: IconName }[] = [
+  { id: 'main', label: '시작', aria: '시작', icon: 'store' },
+  { id: 'shop', label: '강화', aria: '강화 상점', icon: 'cash' },
+  { id: 'rank', label: '랭킹', aria: '랭킹', icon: 'chart' },
+  { id: 'codex', label: '도감', aria: '도감', icon: 'book' },
+  { id: 'ach', label: '업적', aria: '업적', icon: 'trophy' },
+  { id: 'history', label: '기록', aria: '근무 기록', icon: 'clock' },
+];
 
 export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggleMute, onSetNickname, onToggleRankOptIn, onReset }: Props) {
   const [tab, setTab] = useState<Tab>('main');
   const tip = TIPS[save.totalPlays % TIPS.length];
   const achCount = save.achievements.length;
+  // 살 수 있는 업그레이드가 있으면 강화 탭에 점을 찍는다 (있는지도 모르고 지나치지 않게)
+  const canAfford = META_UPGRADES.some((u) => {
+    const lvl = save.metaLevels[u.id];
+    return lvl < u.maxLevel && save.metaPoints >= u.cost(lvl);
+  });
 
   return (
     <div className="start">
       <div className="start-inner">
         <div className="title-block">
+          <button className="title-mute" onClick={onToggleMute} aria-label={save.muted ? '소리 켜기' : '소리 끄기'} aria-pressed={save.muted}>
+            <Icon name={save.muted ? 'mute' : 'sound'} size={16} strokeWidth={2.2} />
+          </button>
           <span className="title-sign">24H</span>
           <h1 className="title">편의점 야간근무</h1>
           <p className="subtitle">새벽 3시, 혼자 남았다.</p>
@@ -101,23 +118,32 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
             </div>
 
             <div className="records">
-              <div>
+              <button onClick={() => setTab('rank')}>
                 <span>최고 웨이브</span>
                 <b>{save.bestWave || '-'}</b>
-              </div>
-              <div>
-                <span>최장 생존</span>
-                <b>{save.bestTime ? formatTime(save.bestTime) : '-'}</b>
-              </div>
-              <div>
+              </button>
+              <button onClick={() => setTab('ach')}>
+                <span>업적</span>
+                <b>
+                  {achCount}
+                  <i>/{ACHIEVEMENTS.length}</i>
+                </b>
+              </button>
+              <button onClick={() => setTab('history')}>
                 <span>총 근무</span>
                 <b>{save.totalPlays}</b>
-              </div>
-              <div>
+              </button>
+              <button className={canAfford ? 'hot' : ''} onClick={() => setTab('shop')}>
                 <span>야간 수당</span>
                 <b>{save.metaPoints}</b>
-              </div>
+              </button>
             </div>
+            {canAfford && (
+              <button className="shop-nudge" onClick={() => setTab('shop')}>
+                <Icon name="cash" size={15} strokeWidth={2.4} />
+                야간 수당으로 강화를 살 수 있습니다
+              </button>
+            )}
 
             <div className="howto">
               <div className="howto-row">
@@ -185,30 +211,13 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
         {tab === 'rank' && <RankScreen save={save} onSetNickname={onSetNickname} onToggleOptIn={onToggleRankOptIn} />}
 
         <nav className="tabs">
-          <button className={tab === 'main' ? 'active' : ''} onClick={() => setTab('main')} aria-label="시작">
-            시작
-          </button>
-          <button className={tab === 'shop' ? 'active' : ''} onClick={() => setTab('shop')} aria-label="강화 상점">
-            강화
-          </button>
-          <button className={tab === 'codex' ? 'active' : ''} onClick={() => setTab('codex')} aria-label="도감">
-            도감
-          </button>
-          <button className={tab === 'ach' ? 'active' : ''} onClick={() => setTab('ach')} aria-label="업적">
-            <Icon name="trophy" size={14} strokeWidth={2.4} />
-            <span className="px">
-              {achCount}/{ACHIEVEMENTS.length}
-            </span>
-          </button>
-          <button className={tab === 'rank' ? 'active' : ''} onClick={() => setTab('rank')} aria-label="랭킹">
-            랭킹
-          </button>
-          <button className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')} aria-label="근무 기록">
-            <Icon name="chart" size={15} strokeWidth={2.4} />
-          </button>
-          <button onClick={onToggleMute} aria-label={save.muted ? '소리 켜기' : '소리 끄기'} aria-pressed={save.muted}>
-            <Icon name={save.muted ? 'mute' : 'sound'} size={16} strokeWidth={2.2} />
-          </button>
+          {TABS.map((t) => (
+            <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)} aria-label={t.aria}>
+              <Icon name={t.icon} size={15} strokeWidth={2.3} />
+              <span className="tab-label">{t.label}</span>
+              {t.id === 'shop' && canAfford && <span className="tab-dot" aria-label="구매 가능" />}
+            </button>
+          ))}
         </nav>
         <button
           className="reset-link"

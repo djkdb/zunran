@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { Engine } from '../game/engine/Engine';
 import type { ChallengeSpec, MetaEffects, UISnapshot } from '../game/types';
 import { useGame } from './useGame';
@@ -34,6 +35,12 @@ function hintFor(snap: UISnapshot): string | null {
 
 export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHints, challenge, onToggleMute, onToggleAutoMerge, onToggleAutoSell, onGameOver }: Props) {
   const { canvasRef, snap, banners, act, toast, onPointerDown, onPointerMove, endDrag } = useGame({ meta, bestWave, muted, autoMerge, autoSell, challenge, onGameOver });
+  // 퇴근은 되돌릴 수 없으니 두 번 눌러야 한다. 일시정지를 풀면 초기화한다.
+  const [confirmExit, setConfirmExit] = useState(false);
+  const paused = snap?.paused ?? false;
+  useEffect(() => {
+    if (!paused) setConfirmExit(false);
+  }, [paused]);
   const hint = showHints && snap && snap.phase === 'playing' && snap.wave <= 8 ? hintFor(snap) : null;
   return (
     <div className="game">
@@ -90,7 +97,16 @@ export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHin
                   자동 정리 {autoSell ? 'ON' : 'OFF'}
                 </button>
               </div>
-              <div className="pause-sub">탭해서 계속</div>
+              <div className="pause-exit" onClick={(e) => e.stopPropagation()}>
+                <button className={`exit-btn ${confirmExit ? 'armed' : ''}`} onClick={() => (confirmExit ? act({ type: 'GIVE_UP' }) : setConfirmExit(true))}>
+                  <Icon name="store" size={16} strokeWidth={2.4} />
+                  {confirmExit ? '한 번 더 누르면 퇴근' : '근무 끝내고 나가기'}
+                </button>
+                <div className="exit-note">
+                  {confirmExit ? '지금까지 기록이 저장되고 야간 수당을 받습니다' : '지금까지 기록으로 근무 보고서를 받습니다'}
+                </div>
+              </div>
+              <div className="pause-sub">바깥을 탭하면 계속</div>
             </div>
           )}
         </div>
