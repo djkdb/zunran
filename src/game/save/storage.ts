@@ -1,7 +1,10 @@
 import type { MetaUpgradeId } from '../types';
 import { DEFAULT_META_LEVELS } from './meta';
 
+import { FIRST_STAGE } from '../data/stages';
+
 export const SAVE_KEY = 'cvs-night-shift:v1'; // 키는 유지 (기존 유저 데이터 보존)
+
 export const SAVE_VERSION = 5;
 
 export interface LastRun {
@@ -74,6 +77,8 @@ export interface SaveData {
   metaLevels: Record<MetaUpgradeId, number>;
   muted: boolean;
   haptics: boolean; // 진동 피드백 (지원하는 기기에서만)
+  stageId: string; // 마지막으로 고른 지점
+  bestByStage: Record<string, number>; // 지점별 최고 웨이브 (해금 판정용)
   autoMerge: boolean;
   autoSell: boolean; // 칸이 꽉 찼을 때 합성 짝 없는 1티어 일반 유닛 자동 정리
   hintsSeen: boolean;
@@ -126,6 +131,8 @@ export function defaultSave(): SaveData {
     metaLevels: { ...DEFAULT_META_LEVELS },
     muted: false,
     haptics: true,
+    stageId: FIRST_STAGE,
+    bestByStage: {},
     autoMerge: false,
     autoSell: true,
     hintsSeen: false,
@@ -171,6 +178,8 @@ export function migrate(parsed: Partial<SaveData>): SaveData {
     eventCounts: rec<number>(parsed.eventCounts),
     autoSell: typeof parsed.autoSell === 'boolean' ? parsed.autoSell : true,
     haptics: typeof parsed.haptics === 'boolean' ? parsed.haptics : true,
+    stageId: typeof parsed.stageId === 'string' ? parsed.stageId : FIRST_STAGE,
+    bestByStage: { ...base.bestByStage, ...rec<number>(parsed.bestByStage) },
     catVisits: typeof parsed.catVisits === 'number' ? parsed.catVisits : 0,
     totalMerges: typeof parsed.totalMerges === 'number' ? parsed.totalMerges : 0,
     totalBossKills: typeof parsed.totalBossKills === 'number' ? parsed.totalBossKills : 0,

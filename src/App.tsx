@@ -17,6 +17,7 @@ import { submitScore, renameScore, type SubmitResult } from './game/rank/api';
 import { buildPayload, type RunSummary } from './game/rank/payload';
 import { StartScreen } from './ui/StartScreen';
 import { GameScreen } from './ui/GameScreen';
+import { StageScreen } from './ui/StageScreen';
 import { IntroScene } from './ui/IntroScene';
 import { ConditionPicker } from './ui/ConditionPicker';
 import { mergeIntoChallenge, type ShiftCondition } from './game/data/shiftConditions';
@@ -59,7 +60,7 @@ export function App() {
     setHaptics(loaded.haptics);
     return loaded;
   });
-  const [screen, setScreen] = useState<'start' | 'intro' | 'condition' | 'game'>('start');
+  const [screen, setScreen] = useState<'start' | 'intro' | 'stage' | 'condition' | 'game'>('start');
   // 오늘의 근무 조건 (판 시작 직전 3택 1)
   const [condition, setCondition] = useState<ShiftCondition | null>(null);
   const [runSeed, setRunSeed] = useState(() => (Math.random() * 0x7fffffff) | 0);
@@ -85,8 +86,10 @@ export function App() {
     setCondition(null);
     setDailyMode(daily);
     setRunSeed((Math.random() * 0x7fffffff) | 0);
-    setScreen('condition');
+    setScreen('stage');
   }, []);
+
+
 
   // 같은 조건으로 바로 다시. 게임오버 → 조건 고르기 → 시작은 모바일에서 마찰이 크다.
   const quickRestart = useCallback(() => {
@@ -101,6 +104,16 @@ export function App() {
     setRunKey((k) => k + 1);
     setScreen('game');
   }, [condition, dailyMode, beginRun]);
+
+  // 지점을 고르면 저장해 두고 근무 조건으로 넘어간다.
+  const pickStage = useCallback(
+    (id: string) => {
+      audio.play('click');
+      persist({ ...save, stageId: id });
+      setScreen('condition');
+    },
+    [save, persist],
+  );
 
   const pickCondition = useCallback((c: ShiftCondition) => {
     audio.play('click');
@@ -185,7 +198,9 @@ export function App() {
       }, 0);
       // 오늘의 조건 배율은 실력이 아니라 감수한 위험에 대한 보상이다.
       const condMult = s.condition?.scoreMult ?? 1;
-      const basePoints = metaPointsForRun(s.stats.coinsEarned, s.wave, s.stats.kills, meta.payMult * condMult);
+      // 지점 배율: 유동인구가 많은 곳은 힘든 만큼 수당도 크다.
+      const stageMult = s.stage.scoreMult;
+      const basePoints = metaPointsForRun(s.stats.coinsEarned, s.wave, s.stats.kills, meta.payMult * condMult * stageMult);
       const points = basePoints + missionReward + achReward;
 
       const res: RunResult = {
@@ -249,6 +264,8 @@ export function App() {
         ...save,
         ...merged,
         bestWave: Math.max(save.bestWave, s.wave),
+        // 지점별 최고 기록. 다음 지점 해금 판정에 쓴다.
+        bestByStage: { ...save.bestByStage, [s.stage.id]: Math.max(save.bestByStage[s.stage.id] ?? 0, s.wave) },
         bestTime: Math.max(save.bestTime, s.realTime),
         bestKills: Math.max(save.bestKills, s.stats.kills),
         totalPlays: save.totalPlays + 1,
@@ -371,6 +388,18 @@ export function App() {
       />
     );
   }
+  if (screen === 'stage') {
+    return (
+      <div className="app">
+        <StageScreen
+          bestByStage={save.bestByStage}
+          current={save.stageId}
+          onPick={pickStage}
+          onBack={() => setScreen('start')}
+        />
+      </div>
+    );
+  }
   if (screen === 'condition') {
     return (
       <div className="app">
@@ -397,6 +426,7 @@ export function App() {
         showHints={!save.hintsSeen}
         order={order}
         condition={condition}
+        stageId={save.stageId}
         challenge={mergeIntoChallenge(dailyMode ? today.challenge : null, condition)}
         onToggleMute={toggleMute}
         onToggleAutoMerge={toggleAutoMerge}

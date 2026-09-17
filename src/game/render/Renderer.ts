@@ -1,5 +1,6 @@
 import type { Enemy, FxEvent, GameState, Unit } from '../types';
-import { FIELD_W, FIELD_H, PATH, SLOT_ROWS, SLOT_COLS, RARITY_COLOR, CHECKOUT_POS, AISLE_NAMES, AISLE_BONUS, nightPhase, NIGHT_PHASE_TINT, PATH_LENGTH } from '../config';
+import { FIELD_W, FIELD_H, RARITY_COLOR, nightPhase, NIGHT_PHASE_TINT } from '../config';
+import type { StageGeometry } from '../data/stages';
 import { UNIT_BY_ID } from '../data/units';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { rasterize, drawFallback, getSprite } from './sprites';
@@ -26,6 +27,7 @@ const BOSS_SCALE = 2.6;
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private bg: HTMLCanvasElement | null = null;
+  private bgStage: string | null = null; // 배경은 지점마다 다르므로 캐시를 지점 단위로 잡는다
   private particles: Particle[] = [];
   private shake = 0;
   private flash: { color: string; life: number } | null = null;
@@ -124,7 +126,10 @@ export class Renderer {
     this.lastTime = now;
     this.frame++;
     const ctx = this.ctx;
-    if (!this.bg) this.bg = this.buildBackground();
+    if (!this.bg || this.bgStage !== state.geo.stageId) {
+      this.bg = this.buildBackground(state.geo);
+      this.bgStage = state.geo.stageId;
+    }
 
     // 파티클/연출 진행
     for (const p of this.particles) {
@@ -177,7 +182,7 @@ export class Renderer {
 
   // ───────────── 배경 (한 번만 그려서 캐시) ─────────────
 
-  private buildBackground(): HTMLCanvasElement {
+  private buildBackground(geo: StageGeometry): HTMLCanvasElement {
     const c = document.createElement('canvas');
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     c.width = FIELD_W * dpr;
@@ -230,14 +235,14 @@ export class Renderer {
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(PATH[1].x, 44);
-    for (let i = 1; i < PATH.length; i++) ctx.lineTo(PATH[i].x, PATH[i].y);
+    ctx.moveTo(geo.path[1].x, 44);
+    for (let i = 1; i < geo.path.length; i++) ctx.lineTo(geo.path[i].x, geo.path[i].y);
     ctx.stroke();
     ctx.strokeStyle = '#3f3470';
     ctx.lineWidth = 40;
     ctx.beginPath();
-    ctx.moveTo(PATH[1].x, 44);
-    for (let i = 1; i < PATH.length; i++) ctx.lineTo(PATH[i].x, PATH[i].y);
+    ctx.moveTo(geo.path[1].x, 44);
+    for (let i = 1; i < geo.path.length; i++) ctx.lineTo(geo.path[i].x, geo.path[i].y);
     ctx.stroke();
     // 통로 화살표
     ctx.fillStyle = '#574a8f';
@@ -272,7 +277,7 @@ export class Renderer {
       ['#f59e0b', '#ff4d8d', '#84cc16', '#f97316'],
       ['#ff4d8d', '#f97316', '#facc15', '#dc2626'],
     ];
-    SLOT_ROWS.forEach((y, row) => {
+    geo.rows.forEach((y, row) => {
       const top = y - 40;
       const h = 70;
       ctx.fillStyle = '#372f5e';
@@ -284,7 +289,7 @@ export class Renderer {
       // 상품 (작은 색 블록) — 슬롯 사이 빈 공간에만
       const cols = shelfColors[row];
       for (let x = 92; x < FIELD_W - 92; x += 12) {
-        const nearSlot = SLOT_COLS.some((sx) => Math.abs(sx - x) < 30);
+        const nearSlot = geo.cols.some((sx) => Math.abs(sx - x) < 30);
         if (nearSlot) continue;
         ctx.fillStyle = cols[Math.floor(x / 12) % cols.length];
         ctx.fillRect(x, top + 8, 8, 10);
@@ -292,8 +297,8 @@ export class Renderer {
         ctx.fillRect(x, top + 24, 8, 10);
       }
       // 코너 이름표 + 배치 보너스 (어느 줄에 둘지가 전략이 되도록 항상 보이게)
-      const name = AISLE_NAMES[row];
-      const bonus = AISLE_BONUS[row].label;
+      const name = geo.aisleNames[row];
+      const bonus = geo.aisleBonus[row].label;
       ctx.font = 'bold 10px sans-serif';
       const nameW = ctx.measureText(name).width + 14;
       ctx.font = 'bold 9px sans-serif';
@@ -315,19 +320,19 @@ export class Renderer {
 
     // 계산대
     ctx.fillStyle = '#5b3a1e';
-    ctx.fillRect(CHECKOUT_POS.x - 70, 560, 140, 50);
+    ctx.fillRect(geo.checkout.x - 70, 560, 140, 50);
     ctx.fillStyle = '#7c4a24';
-    ctx.fillRect(CHECKOUT_POS.x - 70, 556, 140, 8);
+    ctx.fillRect(geo.checkout.x - 70, 556, 140, 8);
     ctx.fillStyle = '#120e24';
-    ctx.fillRect(CHECKOUT_POS.x - 60, 566, 40, 26);
+    ctx.fillRect(geo.checkout.x - 60, 566, 40, 26);
     ctx.fillStyle = '#4fe3d0';
-    ctx.fillRect(CHECKOUT_POS.x - 56, 570, 32, 18);
+    ctx.fillRect(geo.checkout.x - 56, 570, 32, 18);
     ctx.fillStyle = '#efeaff';
     ctx.font = 'bold 11px sans-serif';
-    ctx.fillText('계산대', CHECKOUT_POS.x + 20, 585);
+    ctx.fillText('계산대', geo.checkout.x + 20, 585);
     ctx.fillStyle = '#ffd84d';
     ctx.font = 'bold 9px sans-serif';
-    ctx.fillText('여기 도달하면 피해!', CHECKOUT_POS.x + 20, 600);
+    ctx.fillText('여기 도달하면 피해!', geo.checkout.x + 20, 600);
 
     // 조명 (형광등 느낌의 밝은 띠)
     ctx.fillStyle = 'rgba(255,255,255,0.03)';
@@ -617,7 +622,7 @@ export class Renderer {
     }
     // 계산대 직전 구간에 들어선 손님은 붉은 링으로 표시한다.
     // 체력이 깎이고 나서야 아는 게 아니라, 닿기 전에 보이도록.
-    if (!e.isBoss && e.dist > PATH_LENGTH * 0.78) {
+    if (!e.isBoss && e.dist > state.geo.length * 0.78) {
       ctx.save();
       ctx.strokeStyle = 'rgba(255,77,141,0.85)';
       ctx.lineWidth = 2;

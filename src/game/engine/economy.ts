@@ -59,7 +59,7 @@ export function rewardKill(state: GameState, e: Enemy, killer: Unit | null, bonu
     const r = auraRadius(d, u.tier);
     if (dist2(s.x, s.y, e.x, e.y) <= r * r) coinAura = Math.max(coinAura, auraValue(state, d, u.tier));
   }
-  let bounty = def.bounty * enemyBountyScale(e.spawnedWave) * state.modifiers.coinGain * state.perma.coin * (1 + coinAura) + bonusCoin;
+  let bounty = def.bounty * enemyBountyScale(e.spawnedWave) * state.modifiers.coinGain * state.perma.coin * state.stage.traffic.coin * (1 + coinAura) + bonusCoin;
   if (state.riskWave === e.spawnedWave) bounty *= 2; // "새벽 장사" 도박 보상
   if (def.bagCost) {
     bounty -= def.bagCost;

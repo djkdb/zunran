@@ -12,7 +12,7 @@ import { mergeUnits, choosePromote } from '../engine/mergeSystem';
 
 // 진열대 증축 만렙 엔진. 칸 번호를 직접 쓰는 테스트는 21칸이 다 열려 있어야 한다.
 function fullEngine(seed: number): Engine {
-  return new Engine({ seed, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: MAX_SHELF_LEVEL }) });
+  return new Engine({ stageId: 'alley', seed, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: MAX_SHELF_LEVEL }) });
 }
 
 function runFor(engine: Engine, seconds: number) {

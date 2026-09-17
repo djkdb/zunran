@@ -1,7 +1,7 @@
 import type { Enemy, GameState, Unit, UnitDef, Tier, Rarity, Floater } from '../types';
 import { UNIT_BY_ID } from '../data/units';
 import { ENEMY_BY_ID } from '../data/enemies';
-import { tierDmgMult, tierIntervalMult, tierRangeBonus, AISLE_BONUS } from '../config';
+import { tierDmgMult, tierIntervalMult, tierRangeBonus } from '../config';
 
 export function unitDef(u: Unit): UnitDef {
   return UNIT_BY_ID[u.defId];
@@ -21,7 +21,8 @@ export function dist2(ax: number, ay: number, bx: number, by: number): number {
 // 코너(줄) 배치 보너스. 슬롯의 row 로 결정된다.
 // perma.aisleMult 는 「진열대 재배치」 보상이 올린다 — 보너스의 '초과분'만 배로 늘린다.
 export function aisleBonus(state: GameState, u: Unit) {
-  const b = AISLE_BONUS[state.slots[u.slot].row] ?? AISLE_BONUS[0];
+  const list = state.geo.aisleBonus;
+  const b = list[state.slots[u.slot].row] ?? list[0];
   const k = state.perma.aisleMult;
   if (k === 1) return b;
   return {

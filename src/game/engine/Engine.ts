@@ -1,5 +1,6 @@
 import type { ChallengeSpec, FxEvent, GameAction, GameState, MetaEffects, Rarity, Tier, UISnapshot, UnitGroup, Unit } from '../types';
-import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, TOTAL_SLOTS, SLOT_UNLOCK_ORDER, MAX_TIER, MIXED_MERGE_TIER, PATH_LENGTH, drawCost, formatClock, EVENT_INTERVAL, isBossWave, AISLE_NAMES, AISLE_BONUS } from '../config';
+import { BASE_RARITY_ODDS, SELL_REFUND, MAX_TIER, MIXED_MERGE_TIER, drawCost, formatClock, EVENT_INTERVAL, isBossWave } from '../config';
+import { STAGE_BY_ID, DEFAULT_STAGE, buildGeometry, unlockOrderFor, type StageDef } from '../data/stages';
 import { UNIT_BY_ID, unitsOfRarity } from '../data/units';
 import { dupeWeight, PIN_GUARANTEE_DRAWS, PIN_TARGET_COPIES, EMPTY_ORDER, orderPrice, EPIC_PITY, type Order } from '../data/deck';
 import type { ShiftCondition } from '../data/shiftConditions';
@@ -28,6 +29,7 @@ export interface EngineOptions {
   challenge?: ChallengeSpec | null; // ZUNRAN DAILY 규칙
   order?: Order; // 오늘 발주 (지명·제외). 없으면 순수 랜덤
   condition?: ShiftCondition | null; // 오늘의 근무 조건 (3택 1)
+  stageId?: string; // 어느 지점에서 일하는가 (매장 구조·유동인구가 달라진다)
 }
 
 const FIXED_DT = 1 / 60;
@@ -44,14 +46,17 @@ export class Engine {
   constructor(opts: EngineOptions = {}) {
     const seed = opts.seed ?? randomSeed();
     const meta = opts.meta ?? metaEffects(DEFAULT_META_LEVELS);
-    this.state = createInitialState(seed, meta, opts.bestWave ?? 0);
+    const stage = STAGE_BY_ID[opts.stageId ?? DEFAULT_STAGE] ?? STAGE_BY_ID[DEFAULT_STAGE];
+    this.state = createInitialState(seed, meta, opts.bestWave ?? 0, stage);
     this.state.order = opts.order ?? EMPTY_ORDER;
     // 오늘의 근무 조건: spec 은 challenge 로 합쳐 들어오고, 여기서는 나머지를 적용한다.
     // 아직 증축하지 않은 칸을 잠근다. 가운데 열부터 시작해 바깥으로 열린다.
-    const openSlots = this.state.meta.slots ?? TOTAL_SLOTS;
-    const toLock = Math.max(0, TOTAL_SLOTS - openSlots);
-    for (let i = 0; i < toLock; i++) {
-      const idx = SLOT_UNLOCK_ORDER[SLOT_UNLOCK_ORDER.length - 1 - i];
+    // 지점마다 매장 크기가 다르므로 그 지점의 칸 수를 넘지 않는다.
+    const all = this.state.slots.length;
+    const openSlots = Math.min(all, this.state.meta.slots ?? all);
+    const order = unlockOrderFor(this.state.geo);
+    for (let i = 0; i < all - openSlots; i++) {
+      const idx = order[order.length - 1 - i];
       if (idx !== undefined) this.state.slots[idx].locked = true;
     }
 
@@ -494,6 +499,7 @@ export class Engine {
       waveTimer: s.waveTimer,
       waveDuration: s.waveDuration,
       waveTheme: s.waveTheme,
+      stageName: s.stage.name,
       nextWaveTheme: isBossWave(s.wave + 1) ? 'mixed' : (s.themeSchedule[s.wave + 1] ?? 'mixed'),
       survivedSec: s.realTime,
       hp: s.hp,
@@ -508,7 +514,7 @@ export class Engine {
       speed: s.speed,
       paused: s.paused,
       enemyCount: s.enemies.length,
-      nearCheckout: s.enemies.filter((e) => !e.dead && !e.reached && e.dist > PATH_LENGTH * 0.78).length,
+      nearCheckout: s.enemies.filter((e) => !e.dead && !e.reached && e.dist > s.geo.length * 0.78).length,
       bossAlive: !!boss,
       bossHp: boss?.hp ?? 0,
       bossMaxHp: boss?.maxHp ?? 0,
@@ -523,8 +529,8 @@ export class Engine {
             kills: sel.kills,
             damage: Math.round(sel.damage),
             sellPrice: sellPrice(sel),
-            aisle: AISLE_NAMES[s.slots[sel.slot].row],
-            aisleBonus: AISLE_BONUS[s.slots[sel.slot].row].label,
+            aisle: s.geo.aisleNames[s.slots[sel.slot].row],
+            aisleBonus: s.geo.aisleBonus[s.slots[sel.slot].row].label,
             groupCount: s.units.filter((u) => u.defId === sel.defId && u.tier === sel.tier).length,
           }
         : null,
@@ -593,7 +599,8 @@ function groupUnits(s: GameState): UnitGroup[] {
   return groups;
 }
 
-function createInitialState(seed: number, meta: MetaEffects, bestWave: number): GameState {
+function createInitialState(seed: number, meta: MetaEffects, bestWave: number, stage: StageDef): GameState {
+  const geo = buildGeometry(stage);
   const rng = createRng(seed);
   return {
     phase: 'playing',
@@ -626,7 +633,9 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number): 
     bestWaveRecord: bestWave,
     recordAnnounced: false,
     units: [],
-    slots: SLOT_POSITIONS.map((p, i) => ({ index: i, x: p.x, y: p.y, row: p.row, unitId: null })),
+    stage,
+    geo,
+    slots: geo.slots.map((p, i) => ({ index: i, x: p.x, y: p.y, row: p.row, unitId: null })),
     perma: basePerma(),
     rewardOffers: [],
     promoteChoice: null,

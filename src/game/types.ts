@@ -529,6 +529,8 @@ export interface GameState {
   shake: number;
   nextId: number;
   meta: MetaEffects;
+  stage: import('./data/stages').StageDef;
+  geo: import('./data/stages').StageGeometry;
 
   hitstop: number; // 남은 히트스톱 (초). 이 동안 게임 시간이 멈춘다 — 타격이 묵직해진다.
   order: { pins: string[]; bans: string[] }; // 오늘 발주. 뽑기 풀은 항상 전체다.
@@ -587,6 +589,7 @@ export interface UISnapshot {
   waveDuration: number;
   waveTheme: import('./data/waves').WaveTheme;
   nextWaveTheme: import('./data/waves').WaveTheme;
+  stageName: string;
   survivedSec: number;
   hp: number;
   maxHp: number;

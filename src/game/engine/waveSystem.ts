@@ -9,7 +9,7 @@ import { sfx, addFloater } from './helpers';
 
 export function startWave(state: GameState, wave: number): void {
   state.wave = wave;
-  const plan = buildWave(wave, state.rng, state.challenge?.enemyCountMult ?? 1, state.themeSchedule[wave] ?? 'mixed');
+  const plan = buildWave(wave, state.rng, state.challenge?.enemyCountMult ?? 1, state.themeSchedule[wave] ?? 'mixed', state.stage.traffic);
   // "새벽 장사" 도박을 골랐다면 이 웨이브만 손님이 확 늘어난다 (보상은 economy 에서 2배)
   if (state.riskWave === wave) {
     const extra = plan.entries
@@ -30,7 +30,7 @@ export function startWave(state: GameState, wave: number): void {
   state.waveReached = false;
   state.stats.bestWave = Math.max(state.stats.bestWave ?? 0, wave);
   if (wave > 1) {
-    const income = Math.round(waveIncome(wave) * state.modifiers.coinGain * state.perma.incomeMult);
+    const income = Math.round(waveIncome(wave) * state.modifiers.coinGain * state.perma.incomeMult * state.stage.traffic.coin);
     addCoins(state, income);
     addFloater(state, { x: 320, y: 60, text: `시급 +${income}원`, color: '#fde047', size: 13, life: 1.3 });
   }
@@ -124,7 +124,7 @@ export function updateWave(state: GameState, dt: number): void {
     if (allDead) {
       state.waveCleared = true;
       if (!state.waveReached) {
-        const bonus = Math.round(waveClearBonus(state.wave) * state.modifiers.coinGain);
+        const bonus = Math.round(waveClearBonus(state.wave) * state.modifiers.coinGain * state.stage.traffic.coin);
         addCoins(state, bonus);
         state.fx.push({ type: 'banner', text: `웨이브 ${state.wave} 클리어`, sub: `+${bonus}원`, style: 'clear', dur: 1.4 });
         addFloater(state, { x: 320, y: 560, text: `+${bonus}원 웨이브 클리어`, color: '#fde047', size: 15, life: 1.4 });

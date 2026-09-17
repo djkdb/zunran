@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { DailyRecord, SaveData } from '../game/save/storage';
+import { STAGES, STAGE_BY_ID, stageUnlocked } from '../game/data/stages';
 import type { DailySet } from '../game/daily';
 import { META_UPGRADES } from '../game/save/meta';
 import { ACHIEVEMENTS, totalAchievementReward } from '../game/data/achievements';
@@ -130,6 +131,40 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
               <Icon name="store" size={26} strokeWidth={2.2} />
               야간 근무 시작
             </button>
+
+            {/* 지점 안내. 첫 판을 깨고 "이게 다야?" 하고 떠나지 않도록
+                앞에 어떤 지점이 있는지 시작 화면에서부터 보여준다. */}
+            <div className="branch-strip">
+              <div className="branch-strip-head">
+                <span className="px">BRANCH</span>
+                <span className="branch-open">
+                  {STAGES.filter((st) => stageUnlocked(st, save.bestByStage)).length} / {STAGES.length} 지점
+                </span>
+              </div>
+              <div className="branch-row">
+                {STAGES.map((st) => {
+                  const open = stageUnlocked(st, save.bestByStage);
+                  const cur = save.stageId === st.id;
+                  return (
+                    <span key={st.id} className={`branch-pill ${open ? '' : 'locked'} ${cur ? 'cur' : ''}`}>
+                      {/* 잠긴 지점도 이름을 보여준다. '???' 로 가리면
+                          "이게 다야?" 하고 떠날 뿐, 가보고 싶어지지 않는다. */}
+                      {st.name}
+                      {open ? <b className="px">{save.bestByStage[st.id] ?? 0}</b> : <i className="branch-locked px">잠김</i>}
+                    </span>
+                  );
+                })}
+              </div>
+              <div className="branch-note">
+                {(() => {
+                  const next = STAGES.find((st) => !stageUnlocked(st, save.bestByStage));
+                  if (!next) return '모든 지점을 열었습니다. 이제 기록 싸움입니다.';
+                  const from = STAGE_BY_ID[next.unlockAfter!];
+                  const have = save.bestByStage[next.unlockAfter!] ?? 0;
+                  return `다음 지점은 ${from?.name}에서 ${next.unlockWave}웨이브 · 지금 ${have}`;
+                })()}
+              </div>
+            </div>
 
             {/* ZUNRAN DAILY — 오늘의 규칙 + 오늘의 미션 */}
             <div className="daily-card">

@@ -51,7 +51,13 @@ export interface WavePlan {
 }
 
 // 웨이브 번호로 스폰 계획을 만든다. 순수 함수 (RNG 만 사용) → 시뮬레이션 재현 가능.
-export function buildWave(wave: number, rng: RNG, countMult = 1, themeOf: WaveTheme = 'mixed'): WavePlan {
+export function buildWave(
+  wave: number,
+  rng: RNG,
+  countMult = 1,
+  themeOf: WaveTheme = 'mixed',
+  traffic: { count: number; weights: Record<string, number> } = { count: 1, weights: {} },
+): WavePlan {
   const entries: SpawnEntry[] = [];
   const boss = isBossWave(wave) ? bossForWave(wave) : undefined;
   const theme = boss ? 'mixed' : themeOf;
@@ -81,7 +87,7 @@ export function buildWave(wave: number, rng: RNG, countMult = 1, themeOf: WaveTh
   // 총 개체 수. 1.8w 로 두었더니 웨이브 12까지 체력이 97~100에서 움직이지 않았다 —
   // 첫 4분이 "잃을 것도 없는" 시간이 된다 (docs/AUDIT.md 문제 1·6절).
   // 2.3w 로 올려 초반부터 실제로 손님이 밀려오게 한다.
-  let total = Math.round((4 + 2.3 * Math.min(wave, 40) + Math.max(0, wave - 40) * 1) * countMult);
+  let total = Math.round((4 + 2.3 * Math.min(wave, 40) + Math.max(0, wave - 40) * 1) * countMult * traffic.count);
   // 초반 보정. 웨이브 12까지 손님 수를 더 올린다.
   // 실제로 브라우저에서 세 판을 해 보니 14웨이브까지 체력이 100에서 움직이지 않았다.
   // 7분짜리 게임의 절반이 무위험 구간이라는 뜻이다. 경제를 고치면서 초반에 유닛이
@@ -117,6 +123,8 @@ export function buildWave(wave: number, rng: RNG, countMult = 1, themeOf: WaveTh
     // 가중치 3짜리 단체 손님이 머릿수의 17.7% 를 먹는다 (기본 손님은 5.9%).
     // 어느 밤이든 사실상 단체 손님 웨이브가 된다. 묶음 크기로 나눠 균형을 맞춘다.
     if (e.groupSize) w /= (e.groupSize[0] + e.groupSize[1]) / 2;
+    // 지점별 유동인구. 시골은 기본 손님 위주, 술집가는 취한 손님과 단체가 쏟아진다.
+    w *= traffic.weights[e.id] ?? 1;
     return { def: e, w };
   });
   const sumW = weighted.reduce((s, x) => s + x.w, 0);

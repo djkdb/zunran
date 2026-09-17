@@ -1,6 +1,7 @@
 import type { Enemy, GameState, OnHitEffect, Unit } from '../types';
 import { ENEMY_BY_ID } from '../data/enemies';
-import { PATH_LENGTH, pathPos, enemyHpScale, enemyDamageScale, MAX_ENEMIES_ON_FIELD, LOW_HP_THRESHOLD, formatClock, armorAt, ARMOR_FLOOR } from '../config';
+import { enemyHpScale, enemyDamageScale, MAX_ENEMIES_ON_FIELD, LOW_HP_THRESHOLD, formatClock, armorAt, ARMOR_FLOOR } from '../config';
+import { geoPos } from '../data/stages';
 import { addFloater, sfx, unitDef, auraRadius, auraValue, dist2, isTargetable } from './helpers';
 import { rewardKill } from './economy';
 import { BOSS_INTRO } from '../data/dialogue';
@@ -17,8 +18,8 @@ export function spawnEnemy(
   const def = ENEMY_BY_ID[defId];
   if (!def) return null;
   const wave = opts.wave ?? state.wave;
-  const hp = Math.round(def.hp * enemyHpScale(wave) * (opts.hpMult ?? 1) * (state.challenge?.enemyHpMult ?? 1));
-  const pos = pathPos(opts.dist ?? 0);
+  const hp = Math.round(def.hp * enemyHpScale(wave) * (opts.hpMult ?? 1) * (state.challenge?.enemyHpMult ?? 1) * state.stage.traffic.hp);
+  const pos = geoPos(state.geo, opts.dist ?? 0);
   const e: Enemy = {
     id: state.nextId++,
     defId,
@@ -256,7 +257,7 @@ export function updateEnemies(state: GameState, dt: number): void {
     // 상태이상: 정지
     if (e.stun > 0) {
       e.stun -= dt;
-      updatePos(e);
+      updatePos(state, e);
       continue;
     }
 
@@ -323,7 +324,7 @@ export function updateEnemies(state: GameState, dt: number): void {
         break;
       }
       case 'linger': {
-        if (e.stateFlag === 0 && e.dist >= b.atDist) {
+        if (e.stateFlag === 0 && e.dist >= state.geo.lingerDist) {
           e.stateFlag = 1;
           e.stateTimer = 0;
           e.bubble = { text: '물 끓는 중…', until: state.time + b.duration };
@@ -459,17 +460,17 @@ export function updateEnemies(state: GameState, dt: number): void {
 
     if (move) e.dist += speed * dt;
     if (speed < 0 && e.dist < -30) e.dist = -30; // 뒷걸음질만 클램프 (스폰 간격은 보존)
-    updatePos(e);
+    updatePos(state, e);
     if (speed < 0) e.facing = e.facing === 1 ? -1 : 1;
 
     if (e.bubble && e.bubble.until < state.time) e.bubble = undefined;
 
-    if (e.dist >= PATH_LENGTH) reachCheckout(state, e);
+    if (e.dist >= state.geo.length) reachCheckout(state, e);
   }
 }
 
-function updatePos(e: Enemy): void {
-  const p = pathPos(e.dist);
+function updatePos(state: GameState, e: Enemy): void {
+  const p = geoPos(state.geo, e.dist);
   e.x = p.x;
   e.y = p.y;
   e.facing = p.facing;

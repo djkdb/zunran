@@ -7,6 +7,7 @@ import { armorAt, ARMOR_FLOOR, enemyHpScale, drawCost, START_SLOTS, MAX_SHELF_LE
 import { metaEffects, DEFAULT_META_LEVELS } from '../save/meta';
 import { orderPrice } from '../data/deck';
 import { buildThemeSchedule, buildWave, THEME_INFO, type WaveTheme } from '../data/waves';
+import { STAGES, STAGE_BY_ID, buildGeometry, geoPos, stageUnlocked, maxSlotsOf } from '../data/stages';
 import { createRng } from '../engine/rng';
 import { rollOffers } from '../engine/rewardSystem';
 import { REWARD_CARDS, REWARD_BY_ID } from '../data/rewards';
@@ -323,29 +324,29 @@ describe('본사 발주 가격 (직접 플레이에서 잡은 것)', () => {
 
 describe('진열대 증축 (메타 강화)', () => {
   it('강화 0레벨이면 가운데 9칸만 열려 있다', () => {
-    const engine = new Engine({ seed: 40, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: 0 }) });
+    const engine = new Engine({ stageId: 'alley', seed: 40, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: 0 }) });
     const open = engine.state.slots.filter((sl) => !sl.locked);
     expect(open).toHaveLength(START_SLOTS);
     expect(engine.snapshot().totalSlots).toBe(START_SLOTS);
   });
 
   it('세 줄(코너)이 처음부터 모두 열려 있다 — 첫 판부터 "어디에 둘까"가 있어야 한다', () => {
-    const engine = new Engine({ seed: 41, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: 0 }) });
+    const engine = new Engine({ stageId: 'alley', seed: 41, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: 0 }) });
     const rows = new Set(engine.state.slots.filter((sl) => !sl.locked).map((sl) => sl.row));
     expect(rows).toEqual(new Set([0, 1, 2]));
   });
 
   it('레벨마다 한 칸씩 열리고, 만렙이면 전부 열린다', () => {
     for (const lv of [0, 1, 5, MAX_SHELF_LEVEL]) {
-      const engine = new Engine({ seed: 42, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: lv }) });
+      const engine = new Engine({ stageId: 'alley', seed: 42, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: lv }) });
       expect(engine.state.slots.filter((sl) => !sl.locked)).toHaveLength(Math.min(TOTAL_SLOTS, START_SLOTS + lv));
     }
-    const full = new Engine({ seed: 43, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: MAX_SHELF_LEVEL }) });
+    const full = new Engine({ stageId: 'alley', seed: 43, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: MAX_SHELF_LEVEL }) });
     expect(full.state.slots.some((sl) => sl.locked)).toBe(false);
   });
 
   it('잠긴 칸에는 유닛이 들어가지 않는다', () => {
-    const engine = new Engine({ seed: 44, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: 0 }) });
+    const engine = new Engine({ stageId: 'alley', seed: 44, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: 0 }) });
     engine.state.coins = 999999;
     for (let i = 0; i < START_SLOTS; i++) expect(engine.dispatch({ type: 'DRAW' }).ok).toBe(true);
     expect(engine.dispatch({ type: 'DRAW' }).ok).toBe(false); // 9칸이 다 찼다
@@ -357,7 +358,7 @@ describe('진열대 증축 (메타 강화)', () => {
   it('강화가 실제로 판을 바꾼다 — 칸이 많을수록 더 멀리 간다', () => {
     // 같은 시드로 0레벨과 만렙을 돌려 비교한다
     const run = (shelves: number) => {
-      const engine = new Engine({ seed: 77, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves }) });
+      const engine = new Engine({ stageId: 'alley', seed: 77, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves }) });
       const s = engine.state;
       let t = 0;
       while (s.phase !== 'gameover' && s.wave <= 60 && t < 1800) {
@@ -376,5 +377,83 @@ describe('진열대 증축 (메타 강화)', () => {
       return s.wave;
     };
     expect(run(MAX_SHELF_LEVEL)).toBeGreaterThan(run(0));
+  });
+});
+
+describe('지점(스테이지)', () => {
+  it('지점마다 매장 구조가 다르다', () => {
+    const sizes = STAGES.map((st) => maxSlotsOf(st));
+    expect(new Set(sizes).size).toBeGreaterThan(1);
+    const lengths = STAGES.map((st) => Math.round(buildGeometry(st).length));
+    expect(new Set(lengths).size).toBe(STAGES.length);
+  });
+
+  it('경로는 입구에서 시작해 계산대에서 끝난다', () => {
+    for (const st of STAGES) {
+      const geo = buildGeometry(st);
+      expect(geo.length).toBeGreaterThan(1000);
+      expect(geoPos(geo, 0).y).toBeLessThan(0); // 화면 밖 입구
+      const end = geoPos(geo, geo.length);
+      expect(Math.abs(end.x - 335)).toBeLessThan(2); // 계산대
+    }
+  });
+
+  it('진열대 줄마다 배치 보너스가 있다', () => {
+    for (const st of STAGES) {
+      expect(st.aisleBonus).toHaveLength(st.rows.length);
+      expect(st.aisleNames).toHaveLength(st.rows.length);
+    }
+  });
+
+  it('첫 지점은 처음부터 열려 있고, 나머지는 앞 지점 기록으로 열린다', () => {
+    expect(stageUnlocked(STAGES[0], {})).toBe(true);
+    for (const st of STAGES.slice(1)) {
+      expect(stageUnlocked(st, {})).toBe(false);
+      expect(stageUnlocked(st, { [st.unlockAfter!]: st.unlockWave })).toBe(true);
+      expect(stageUnlocked(st, { [st.unlockAfter!]: st.unlockWave - 1 })).toBe(false);
+    }
+  });
+
+  it('유동인구가 많은 지점일수록 손님이 많이 나온다', () => {
+    const headcount = (stageId: string) => {
+      const st = STAGE_BY_ID[stageId];
+      let n = 0;
+      for (let seed = 0; seed < 20; seed++) {
+        for (const e of buildWave(15, createRng(seed), 1, 'mixed', st.traffic).entries) n += e.count;
+      }
+      return n;
+    };
+    expect(headcount('downtown')).toBeGreaterThan(headcount('alley'));
+    expect(headcount('alley')).toBeGreaterThan(headcount('country'));
+  });
+
+  it('술집가는 취한 손님과 단체 손님이 몰린다', () => {
+    const share = (stageId: string) => {
+      const st = STAGE_BY_ID[stageId];
+      let hit = 0;
+      let all = 0;
+      for (let seed = 0; seed < 25; seed++) {
+        for (const e of buildWave(15, createRng(seed), 1, 'mixed', st.traffic).entries) {
+          all += e.count;
+          if (/drunk|party|student/.test(e.defId)) hit += e.count;
+        }
+      }
+      return hit / all;
+    };
+    expect(share('downtown')).toBeGreaterThan(share('country') * 1.5);
+  });
+
+  it('지점을 지정하면 그 매장 구조로 판이 열린다', () => {
+    for (const st of STAGES) {
+      const engine = new Engine({ seed: 5, stageId: st.id });
+      expect(engine.state.slots).toHaveLength(maxSlotsOf(st));
+      expect(engine.state.geo.stageId).toBe(st.id);
+      expect(engine.snapshot().stageName).toBe(st.name);
+    }
+  });
+
+  it('힘든 지점일수록 수당 배율이 크다', () => {
+    const mults = STAGES.map((st) => st.scoreMult);
+    for (let i = 1; i < mults.length; i++) expect(mults[i]).toBeGreaterThan(mults[i - 1]);
   });
 });

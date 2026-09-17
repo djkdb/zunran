@@ -4067,3 +4067,199 @@ button:disabled {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.45; }
 }
+
+/* ───────────── 지점 선택 ───────────── */
+.stage-screen {
+  padding: 16px max(14px, env(safe-area-inset-right)) 28px max(14px, env(safe-area-inset-left));
+  overflow-y: auto;
+}
+.screen-head {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+.screen-kicker {
+  font-size: 9px;
+  color: var(--mint);
+  letter-spacing: 0.18em;
+}
+.screen-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  margin: 2px 0 4px;
+}
+.screen-sub {
+  font-size: 12px;
+  opacity: 0.72;
+  margin: 0;
+  line-height: 1.4;
+}
+.back-btn {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border: 2px solid var(--line);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--ink);
+}
+.stage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.stage-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 13px 11px;
+  border: 2px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.stage-card.current {
+  border-color: var(--mint);
+}
+.stage-card.locked {
+  opacity: 0.55;
+  cursor: default;
+}
+.stage-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.stage-name {
+  font-size: 17px;
+  font-weight: 700;
+  flex: 1;
+}
+.stage-pay {
+  font-size: 10px;
+  color: var(--gold);
+}
+.stage-sub {
+  font-size: 12px;
+  opacity: 0.66;
+}
+.stage-map {
+  width: 100%;
+  height: auto;
+  margin: 2px 0;
+}
+.stage-map-bg {
+  fill: rgba(0, 0, 0, 0.35);
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.stage-map-aisle {
+  stroke: rgba(79, 227, 208, 0.35);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+.stage-map-slot {
+  fill: rgba(239, 234, 255, 0.28);
+}
+.stage-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 9.5px;
+  opacity: 0.8;
+}
+.stage-stats .hot {
+  color: var(--hot);
+  opacity: 1;
+}
+.stage-stats .calm {
+  color: var(--mint);
+  opacity: 1;
+}
+.stage-desc {
+  font-size: 11.5px;
+  line-height: 1.45;
+  opacity: 0.78;
+}
+.stage-foot {
+  margin-top: 2px;
+  min-height: 16px;
+}
+.stage-best {
+  font-size: 10px;
+  color: var(--gold);
+}
+.stage-new {
+  font-size: 10px;
+  opacity: 0.6;
+}
+.stage-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--mint);
+}
+
+/* 시작 화면의 지점 안내 — 앞에 뭐가 있는지 처음부터 보이게 */
+.branch-strip {
+  border: 2px solid var(--line);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.28);
+  padding: 9px 11px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.branch-strip-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 9px;
+  color: var(--mint);
+  letter-spacing: 0.14em;
+}
+.branch-open {
+  font-family: var(--font-px);
+  color: var(--gold);
+  letter-spacing: 0;
+}
+.branch-row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.branch-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  padding: 3px 7px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+}
+.branch-pill.cur {
+  border-color: var(--mint);
+  color: var(--mint);
+}
+.branch-pill.locked {
+  opacity: 0.42;
+  letter-spacing: 0.1em;
+}
+.branch-pill b {
+  font-size: 9px;
+  color: var(--gold);
+}
+.branch-note {
+  font-size: 10.5px;
+  opacity: 0.7;
+  line-height: 1.35;
+}
+.branch-locked {
+  font-size: 8.5px;
+  font-style: normal;
+  opacity: 0.7;
+}

@@ -16,6 +16,7 @@ export interface UseGameOptions {
   muted: boolean;
   autoMerge: boolean;
   autoSell: boolean;
+  stageId?: string;
   order?: { pins: string[]; bans: string[] };
   condition?: ShiftCondition | null;
   challenge?: ChallengeSpec | null;
@@ -91,7 +92,7 @@ export function useGame(opts: UseGameOptions) {
 
   useEffect(() => {
     const canvas = canvasRef.current!;
-    const engine = new Engine({ meta: opts.meta, bestWave: opts.bestWave, order: opts.order, condition: opts.condition, challenge: opts.challenge ?? null });
+    const engine = new Engine({ meta: opts.meta, bestWave: opts.bestWave, order: opts.order, condition: opts.condition, challenge: opts.challenge ?? null, stageId: opts.stageId });
     const renderer = new Renderer(canvas);
     engineRef.current = engine;
     rendererRef.current = renderer;

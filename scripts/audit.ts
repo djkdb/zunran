@@ -47,11 +47,12 @@ interface RunLog {
 // META_LEVEL 환경변수로 메타 강화 레벨을 지정한다 (기본 0 = 첫 판 상태).
 // 'veteran' 은 천장이 없어 무한이므로 따로 잡는다.
 const META_LEVEL = Number(process.env.META_LEVEL ?? 0);
+const STAGE = process.env.STAGE; // 지점 id (없으면 기준 지점)
 
 function runOnce(seed: number, strategy: Strategy, maxWave = 80): RunLog {
   const levels = { ...DEFAULT_META_LEVELS } as Record<MetaUpgradeId, number>;
   for (const k of Object.keys(levels) as MetaUpgradeId[]) levels[k] = META_LEVEL;
-  const engine = new Engine({ seed, meta: metaEffects(levels) });
+  const engine = new Engine({ seed, meta: metaEffects(levels), stageId: STAGE });
   const s = engine.state;
   const log: RunLog = {
     wave: 0, time: 0, diedOnBoss: false, diedWave: 0, kills: 0, draws: 0, merges: 0, recipes: 0,
