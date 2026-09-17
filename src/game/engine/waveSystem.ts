@@ -30,7 +30,7 @@ export function startWave(state: GameState, wave: number): void {
   state.waveReached = false;
   state.stats.bestWave = Math.max(state.stats.bestWave ?? 0, wave);
   if (wave > 1) {
-    const income = Math.round(waveIncome(wave) * state.modifiers.coinGain);
+    const income = Math.round(waveIncome(wave) * state.modifiers.coinGain * state.perma.incomeMult);
     addCoins(state, income);
     addFloater(state, { x: 320, y: 60, text: `시급 +${income}원`, color: '#fde047', size: 13, life: 1.3 });
   }

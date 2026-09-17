@@ -12,7 +12,7 @@ export function useSkill(state: GameState, skill: 'shutter' | 'dump'): { ok: boo
   if (alive.length === 0) return { ok: false, reason: '아직 손님이 없어요.' };
 
   if (skill === 'shutter') {
-    state.skills.shutter = SHUTTER_COOLDOWN;
+    state.skills.shutter = SHUTTER_COOLDOWN * state.perma.skillCdMult;
     for (const e of alive) {
       const def = ENEMY_BY_ID[e.defId];
       if (!def.immune?.includes('stun')) e.stun = Math.max(e.stun, SHUTTER_STUN);
@@ -23,7 +23,7 @@ export function useSkill(state: GameState, skill: 'shutter' | 'dump'): { ok: boo
     state.fx.push({ type: 'flash', color: '#1c6fb0' });
     sfx(state, 'warning');
   } else {
-    state.skills.dump = DUMP_COOLDOWN;
+    state.skills.dump = DUMP_COOLDOWN * state.perma.skillCdMult;
     const dmg = DUMP_DAMAGE_BASE * enemyHpScale(state.wave) * 0.55;
     for (const e of alive) {
       damageEnemy(state, e, dmg, null, undefined);

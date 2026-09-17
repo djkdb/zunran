@@ -6,6 +6,8 @@ import { UNIT_BY_ID } from '../data/units';
 import { armorAt, ARMOR_FLOOR, enemyHpScale } from '../config';
 import { buildThemeSchedule, buildWave, THEME_INFO, type WaveTheme } from '../data/waves';
 import { createRng } from '../engine/rng';
+import { rollOffers } from '../engine/rewardSystem';
+import { REWARD_CARDS, REWARD_BY_ID } from '../data/rewards';
 
 describe('장갑 — 한 방이 큰 공격을 요구한다', () => {
   it('같은 총 피해라도 잘게 나눠 때리면 장갑에 막힌다', () => {
@@ -134,5 +136,65 @@ describe('웨이브 테마', () => {
     const plan = buildWave(20, createRng(1), 1, 'swarm');
     expect(plan.theme).toBe('mixed');
     expect(plan.boss).toBeTruthy();
+  });
+});
+
+describe('보상 카드 — 숫자 증가와 플레이 변화의 분리', () => {
+  it('3택에는 항상 플레이 방식을 바꾸는 카드가 최소 1장 들어간다', () => {
+    for (let seed = 0; seed < 40; seed++) {
+      const engine = new Engine({ seed });
+      engine.state.wave = 12;
+      const offers = rollOffers(engine.state, 3);
+      expect(offers.length).toBeGreaterThan(0);
+      expect(offers.some((o) => o.kind === 'build')).toBe(true);
+    }
+  });
+
+  it('같은 카드가 3택에 두 번 들어가지 않는다', () => {
+    for (let seed = 0; seed < 40; seed++) {
+      const engine = new Engine({ seed });
+      engine.state.wave = 15;
+      const offers = rollOffers(engine.state, 3);
+      expect(new Set(offers.map((o) => o.defId)).size).toBe(offers.length);
+    }
+  });
+
+  it('모든 보상 카드에 kind 가 있고, build 카드가 충분히 있다', () => {
+    for (const c of REWARD_CARDS) expect(['stat', 'build']).toContain(c.kind);
+    expect(REWARD_CARDS.filter((c) => c.kind === 'build').length).toBeGreaterThanOrEqual(8);
+  });
+
+  it('전환 카드는 얻는 것과 잃는 것이 함께 있다', () => {
+    const engine = new Engine({ seed: 3 });
+    const s = engine.state;
+    s.wave = 12;
+    REWARD_BY_ID.regulars.apply({
+      state: s,
+      rng: s.rng,
+      addCoins: () => {},
+      grantUnit: () => null,
+      upgradeRandomUnit: () => null,
+      banner: () => {},
+    });
+    expect(s.perma.roleDmg.dps).toBeGreaterThan(1);
+    expect(s.perma.roleDmg.aoe).toBeLessThan(1);
+  });
+
+  it('「무인 운영」은 유닛이 있는 칸을 막지 않는다', () => {
+    const engine = new Engine({ seed: 4 });
+    const s = engine.state;
+    s.wave = 12;
+    for (let i = 0; i < 6; i++) engine.dispatch({ type: 'DRAW' });
+    const occupied = s.slots.filter((sl) => sl.unitId !== null).map((sl) => sl.index);
+    REWARD_BY_ID.unmanned.apply({
+      state: s,
+      rng: s.rng,
+      addCoins: () => {},
+      grantUnit: () => null,
+      upgradeRandomUnit: () => null,
+      banner: () => {},
+    });
+    for (const i of occupied) expect(s.slots[i].blocked).toBeFalsy();
+    expect(s.slots.filter((sl) => sl.blocked).length).toBe(3);
   });
 });

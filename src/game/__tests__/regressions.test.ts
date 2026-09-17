@@ -153,7 +153,7 @@ describe('보상 · 긴급 스킬 · 콤보', () => {
       s.hp = 60;
       s.skills = { shutter: 10, dump: 20 };
       s.phase = 'reward';
-      s.rewardOffers = [{ defId: card.id, name: card.name, desc: card.desc, icon: card.icon, tone: card.tone }];
+      s.rewardOffers = [{ defId: card.id, name: card.name, desc: card.desc, icon: card.icon, tone: card.tone, kind: card.kind }];
       expect(engine.dispatch({ type: 'CHOOSE_REWARD', defId: card.id }).ok).toBe(true);
       expect(s.phase).toBe('playing');
       expect(Number.isFinite(s.hp)).toBe(true);

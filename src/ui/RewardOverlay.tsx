@@ -15,12 +15,14 @@ export function RewardOverlay({ snap, act }: { snap: UISnapshot; act: (a: GameAc
         </div>
         <div className="reward-cards">
           {snap.rewardOffers.map((o) => (
-            <button key={o.defId} className={`reward-card tone-${o.tone}`} onClick={() => act({ type: 'CHOOSE_REWARD', defId: o.defId })}>
+            <button key={o.defId} className={`reward-card tone-${o.tone} kind-${o.kind}`} onClick={() => act({ type: 'CHOOSE_REWARD', defId: o.defId })}>
               <span className="reward-icon">
                 <Icon name={o.icon as IconName} size={26} strokeWidth={2.2} />
               </span>
               <span className="reward-body">
-                <span className="reward-tone">{TONE_LABEL[o.tone]}</span>
+                <span className="reward-tone">
+                  {o.kind === 'build' ? '판이 바뀐다' : TONE_LABEL[o.tone]}
+                </span>
                 <span className="reward-name">{o.name}</span>
                 <span className="reward-desc">{o.desc}</span>
               </span>

@@ -3910,3 +3910,12 @@ button:disabled {
   line-height: 1.35;
   opacity: 0.78;
 }
+
+/* 보상 카드: 숫자 증가와 플레이 변화를 눈으로 구분한다 */
+.reward-card.kind-build {
+  border-color: var(--gold);
+}
+.reward-card.kind-build .reward-tone {
+  color: var(--gold);
+  letter-spacing: 0.06em;
+}

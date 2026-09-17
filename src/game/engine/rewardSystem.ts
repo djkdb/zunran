@@ -19,6 +19,10 @@ export function basePerma(): PermaBuffs {
     auraMult: 1,
     legendaryOdds: 0,
     orderDiscount: 0,
+    incomeMult: 1,
+    aisleMult: 1,
+    skillCdMult: 1,
+    slowMult: 1,
   };
 }
 
@@ -30,7 +34,10 @@ export function rollOffers(state: GameState, count = 3): RewardOffer[] {
   const picked: RewardOffer[] = [];
   const used = new Set<string>();
   for (let i = 0; i < count && picked.length < pool.length; i++) {
-    const candidates = pool.filter((c) => !used.has(c.id));
+    // 3택에는 '플레이 방식이 바뀌는' 카드가 최소 한 장 들어간다.
+    // 예전에는 19장이 사실상 전부 숫자 증가라, 세 장을 봐도 고민할 게 없었다.
+    const needBuild = i === count - 1 && !picked.some((p) => p.kind === 'build');
+    const candidates = pool.filter((c) => !used.has(c.id) && (!needBuild || c.kind === 'build'));
     if (candidates.length === 0) break;
     const weights = candidates.map((c) => {
       const taken = state.rewardsTaken.filter((t) => t === c.id).length;
@@ -47,7 +54,7 @@ export function rollOffers(state: GameState, count = 3): RewardOffer[] {
       }
     }
     used.add(chosen.id);
-    picked.push({ defId: chosen.id, name: chosen.name, desc: chosen.desc, icon: chosen.icon, tone: chosen.tone });
+    picked.push({ defId: chosen.id, name: chosen.name, desc: chosen.desc, icon: chosen.icon, tone: chosen.tone, kind: chosen.kind });
   }
   return picked;
 }

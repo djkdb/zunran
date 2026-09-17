@@ -159,7 +159,9 @@ export function applySlow(state: GameState, e: Enemy, pct: number, dur: number):
   const def = ENEMY_BY_ID[e.defId];
   if (def.immune?.includes('slow')) return;
   const until = state.time + dur;
-  if (pct >= e.slow.pct || e.slow.until <= state.time) e.slow = { pct, until };
+  // 「얼음 매장」 보상이 모든 감속을 키운다. 상한 80%는 그대로 둔다.
+  const p = Math.min(0.8, pct * state.perma.slowMult);
+  if (p >= e.slow.pct || e.slow.until <= state.time) e.slow = { pct: p, until };
   else e.slow.until = Math.max(e.slow.until, until);
 }
 

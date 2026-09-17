@@ -117,7 +117,7 @@ export function BottomPanel({ snap, act, denied }: Props) {
           disabled={!snap.skillReady.shutter || snap.phase !== 'playing'}
           onClick={() => act({ type: 'USE_SKILL', skill: 'shutter' })}
         >
-          <span className="skill-cd" style={{ width: `${snap.skillReady.shutter ? 0 : (snap.shutterCd / 45) * 100}%` }} />
+          <span className="skill-cd" style={{ width: `${snap.skillReady.shutter ? 0 : (snap.shutterCd / (45 * snap.perma.skillCdMult)) * 100}%` }} />
           <Icon name="store" size={18} strokeWidth={2.4} />
           <span className="skill-text">
             <b>셔터 내려</b>
@@ -129,7 +129,7 @@ export function BottomPanel({ snap, act, denied }: Props) {
           disabled={!snap.skillReady.dump || snap.phase !== 'playing'}
           onClick={() => act({ type: 'USE_SKILL', skill: 'dump' })}
         >
-          <span className="skill-cd" style={{ width: `${snap.skillReady.dump ? 0 : (snap.dumpCd / 70) * 100}%` }} />
+          <span className="skill-cd" style={{ width: `${snap.skillReady.dump ? 0 : (snap.dumpCd / (70 * snap.perma.skillCdMult)) * 100}%` }} />
           <Icon name="boss" size={18} strokeWidth={2.4} />
           <span className="skill-text">
             <b>폐기 처리</b>

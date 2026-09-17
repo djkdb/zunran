@@ -19,8 +19,17 @@ export function dist2(ax: number, ay: number, bx: number, by: number): number {
 }
 
 // 코너(줄) 배치 보너스. 슬롯의 row 로 결정된다.
+// perma.aisleMult 는 「진열대 재배치」 보상이 올린다 — 보너스의 '초과분'만 배로 늘린다.
 export function aisleBonus(state: GameState, u: Unit) {
-  return AISLE_BONUS[state.slots[u.slot].row] ?? AISLE_BONUS[0];
+  const b = AISLE_BONUS[state.slots[u.slot].row] ?? AISLE_BONUS[0];
+  const k = state.perma.aisleMult;
+  if (k === 1) return b;
+  return {
+    label: b.label,
+    dmg: 1 + (b.dmg - 1) * k,
+    atkSpeed: 1 + (b.atkSpeed - 1) * k,
+    range: b.range * k,
+  };
 }
 
 // ZUNRAN DAILY 의 코너별 공격력 배율 (예: "음료의 밤" = 음료 코너 ×2)
@@ -34,7 +43,7 @@ export function aisleChallengeMult(state: GameState, u: Unit): number {
 export function auraValue(state: GameState, def: UnitDef, tier: Tier): number {
   if (!def.aura) return 0;
   const v = def.aura.value * (1 + 0.4 * (tier - 1)) * state.perma.auraMult;
-  return def.aura.kind === 'enemySlow' ? Math.min(0.8, v) : v;
+  return def.aura.kind === 'enemySlow' ? Math.min(0.8, v * state.perma.slowMult) : v;
 }
 export function auraRadius(def: UnitDef, tier: Tier): number {
   if (!def.aura) return 0;

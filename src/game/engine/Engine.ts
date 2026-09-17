@@ -237,6 +237,11 @@ export class Engine {
       if (rarity !== 'epic' && rarity !== 'legendary') {
         if (s.sinceEpic >= EPIC_PITY - 1) rarity = 'epic';
       }
+      // 「박스 입고」 보상: 남은 횟수만큼 희귀 이상 확정
+      if (s.guaranteedRareDraws > 0) {
+        s.guaranteedRareDraws--;
+        if (rarity === 'common') rarity = 'rare';
+      }
     }
     if (rarity === 'epic' || rarity === 'legendary') s.sinceEpic = 0;
     else s.sinceEpic++;
@@ -575,6 +580,7 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number): 
     coins: meta.startCoins,
     drawCount: 0,
     sinceEpic: 0,
+    guaranteedRareDraws: 0,
     freeDraws: meta.freeDraws,
     wave: 0,
     waveTimer: 0,

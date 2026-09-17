@@ -414,6 +414,10 @@ export interface PermaBuffs {
   auraMult: number; // 지원 유닛 오라 배율
   legendaryOdds: number; // 뽑기 전설 확률에 더해지는 값
   orderDiscount: number; // 본사 발주 비용 할인 (0.4 = -40%)
+  incomeMult: number; // 웨이브 시급 배율
+  aisleMult: number; // 코너 배치 보너스 배율 (1 = 기본)
+  skillCdMult: number; // 긴급 스킬 쿨다운 배율
+  slowMult: number; // 모든 감속 효과 배율
 }
 
 export type RewardTone = 'normal' | 'good' | 'best';
@@ -433,6 +437,10 @@ export interface RewardCardDef {
   desc: string;
   icon: string; // ui/Icon 의 IconName
   tone: RewardTone;
+  // stat: 숫자가 올라간다 / build: 플레이 방식이 바뀐다.
+  // 이전 보상 19장은 사실상 전부 stat 이었다 — 판을 바꾸는 카드가 nightRush 하나뿐이었다
+  // (docs/AUDIT.md 4-3). 3택에는 항상 build 가 최소 한 장 들어간다.
+  kind: 'stat' | 'build';
   weight: number;
   minWave?: number;
   /** 지금 이 판에서 고를 수 있는 카드인지 (예: 유닛이 있어야 하는 카드) */
@@ -442,6 +450,7 @@ export interface RewardCardDef {
 
 export interface RewardOffer {
   defId: string;
+  kind: 'stat' | 'build';
   name: string;
   desc: string;
   icon: string;
@@ -464,6 +473,7 @@ export interface GameState {
   drawCount: number;
   freeDraws: number;
   sinceEpic: number; // 에픽 소프트 천장: 에픽 이상이 안 나온 연속 뽑기 수
+  guaranteedRareDraws: number; // 남은 '희귀 이상 확정' 뽑기 수
 
   wave: number;
   waveTimer: number;
