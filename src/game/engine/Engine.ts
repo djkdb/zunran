@@ -1,7 +1,7 @@
 import type { ChallengeSpec, FxEvent, GameAction, GameState, MetaEffects, Rarity, Tier, UISnapshot, UnitGroup, Unit } from '../types';
 import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, MAX_TIER, drawCost, formatClock, EVENT_INTERVAL, isBossWave, AISLE_NAMES, AISLE_BONUS } from '../config';
 import { UNIT_BY_ID, unitsOfRarity } from '../data/units';
-import { isDeckRarity } from '../data/deck';
+import { isDeckRarity, DECK_BIAS } from '../data/deck';
 import { basePerma, chooseReward } from './rewardSystem';
 import { useSkill, tickSkills } from './skillSystem';
 import { ENEMY_BY_ID } from '../data/enemies';
@@ -196,9 +196,9 @@ export class Engine {
     else if (r < (acc += odds.epic)) rarity = 'epic';
     else if (r < (acc += odds.rare)) rarity = 'rare';
     let candidates = unitsOfRarity(rarity);
-    // 덱: 이 등급에 슬롯이 있으면 덱에 넣은 유닛만 나온다.
-    // 덱이 비었거나(시뮬레이터) 해당 등급이 비면 전체 풀로 되돌린다 — 뽑기가 막히면 안 된다.
-    if (isDeckRarity(rarity) && s.deck.length > 0) {
+    // 덱은 '가둠'이 아니라 '발주'다. 덱에 넣은 것이 더 자주 나올 뿐,
+    // 안 넣은 것도 나온다 — 그래야 매 뽑기의 "뭐 나올까?"가 살아 있다.
+    if (isDeckRarity(rarity) && s.deck.length > 0 && s.rng.next() < DECK_BIAS) {
       const inDeck = candidates.filter((d) => s.deck.includes(d.id));
       if (inDeck.length > 0) candidates = inDeck;
     }

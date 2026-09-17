@@ -89,8 +89,8 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
 
             <button className="deck-bar" onClick={() => setDeckOpen(true)}>
               <span className="deck-bar-label">
-                덱
-                <span className="px">{deck.length}장</span>
+                오늘 발주
+                <span className="px">{deck.length}종</span>
               </span>
               <span className="deck-bar-units">
                 {DECK_SLOTS.flatMap(({ rarity }) => deckOfRarity(deck, rarity)).map((id) => (

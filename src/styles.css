@@ -3460,3 +3460,60 @@ button:disabled {
 @media (prefers-reduced-motion: reduce) {
   .recipe-btn.ready { animation: none; }
 }
+
+/* ───────── 발주로 노릴 수 있는 조합 ───────── */
+.deck-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+.deck-plan-head {
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--dim);
+  margin-bottom: 2px;
+}
+.deck-plan-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  background: var(--sunk);
+  opacity: 0.6;
+}
+.deck-plan-row.on {
+  opacity: 1;
+  background: var(--panel);
+  box-shadow: inset 3px 0 0 var(--pink);
+}
+.deck-plan-name {
+  flex: none;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+}
+.deck-plan-row.on .deck-plan-name {
+  color: var(--pink);
+}
+.deck-plan-hint {
+  flex: 1;
+  min-width: 0;
+  font-size: 9.5px;
+  color: var(--off);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.deck-plan-count {
+  flex: none;
+  font-family: var(--font-px);
+  font-size: 11px;
+  color: var(--off);
+}
+.deck-plan-row.on .deck-plan-count {
+  color: var(--pink);
+}
+.deck-sub b {
+  color: var(--mint);
+}

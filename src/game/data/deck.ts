@@ -53,3 +53,13 @@ export function normalizeDeck(deck: string[], unlocked: string[]): string[] {
 export function isDeckComplete(deck: string[]): boolean {
   return DECK_SLOTS.every(({ rarity, count }) => deckOfRarity(deck, rarity).length === count);
 }
+
+// 덱을 "가둠"이 아니라 "발주"로 다룬다.
+//
+// 덱 안의 유닛만 나오게 하면 판 안의 다양성이 13.8종 → 8.2종으로 떨어져서
+// "뭐 나올까?" 하는 랜덤 디펜스의 핵심 재미가 죽는다(실측).
+// 대신 덱에 넣은 것이 '더 자주' 나오게만 한다. 발주는 넣었지만 본사가
+// 다른 것도 섞어 보내는 편의점 사정과도 맞는다.
+//
+// DECK_BIAS = 덱에 든 유닛이 뽑힐 확률. 나머지는 같은 등급 전체에서 고른다.
+export const DECK_BIAS = 0.72;

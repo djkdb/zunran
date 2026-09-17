@@ -6,6 +6,8 @@ import { RARITY_COLOR, RARITY_LABEL } from '../game/config';
 import type { Rarity } from '../game/types';
 import { UnitIcon } from './UnitIcon';
 import { Icon } from './Icon';
+import { RECIPES, recipeResultName } from '../game/data/recipes';
+import { DECK_BIAS } from '../game/data/deck';
 
 interface Props {
   deck: string[];
@@ -14,7 +16,15 @@ interface Props {
   onClose: () => void;
 }
 
-// 런 전에 덱을 짜는 화면. 등급마다 칸이 정해져 있어서 "어떤 일반을 쓸까"가 매번 선택이 된다.
+// 발주 화면.
+//
+// 이건 '덱'이 아니다. 넣은 유닛만 나오게 가두면 판 안의 다양성이 13.8종 → 8.2종으로
+// 떨어져 랜덤 디펜스의 재미가 죽는다(실측). 그래서 넣은 것이 '더 자주' 올 뿐이고,
+// 안 넣은 것도 온다.
+//
+// 그럼 왜 하느냐 — 조합 레시피를 노리기 위해서다. 발주 없이는 레시피 4개 중 3개가
+// 완성률 0~3% 로 사실상 불가능하고, 재료를 발주에 넣으면 45~83% 가 된다.
+// 그래서 이 화면은 "무엇을 노릴 수 있는지"를 같이 보여준다.
 export function DeckScreen({ deck, bestWave, onChange, onClose }: Props) {
   const byRarity = useMemo(
     () => DECK_SLOTS.map(({ rarity, count }) => ({ rarity, count, picked: deckOfRarity(deck, rarity), pool: unitsOfRarity(rarity) })),
@@ -33,8 +43,10 @@ export function DeckScreen({ deck, bestWave, onChange, onClose }: Props) {
     <div className="deck">
       <div className="deck-head">
         <div>
-          <div className="deck-title">덱 구성</div>
-          <div className="deck-sub">여기 넣은 유닛만 뽑기에서 나옵니다. 합성 승급도 덱 안에서 나옵니다.</div>
+          <div className="deck-title">오늘 발주</div>
+          <div className="deck-sub">
+            넣은 물건이 <b>{Math.round(DECK_BIAS * 100)}%</b> 확률로 먼저 옵니다. 안 넣은 것도 옵니다 — 노리는 조합의 재료를 넣으세요.
+          </div>
         </div>
         <button className="deck-close" onClick={onClose} aria-label="닫기">
           <Icon name="check" size={18} strokeWidth={2.6} />
@@ -79,8 +91,26 @@ export function DeckScreen({ deck, bestWave, onChange, onClose }: Props) {
         </section>
       ))}
 
+      <section className="deck-plan">
+        <div className="deck-plan-head">이 발주로 노릴 수 있는 조합</div>
+        {RECIPES.map((r) => {
+          const have = r.materials.filter((m) => deck.includes(m.defId)).length;
+          const ready = have === r.materials.length;
+          return (
+            <div className={`deck-plan-row ${ready ? 'on' : ''}`} key={r.id}>
+              <UnitIcon defId={r.result} size={26} dim={!ready} />
+              <span className="deck-plan-name">{recipeResultName(r)}</span>
+              <span className="deck-plan-hint">{r.hint}</span>
+              <span className="deck-plan-count px">
+                {have}/{r.materials.length}
+              </span>
+            </div>
+          );
+        })}
+      </section>
+
       <div className="deck-note">
-        전설·특수 유닛은 덱과 무관하게 나옵니다. 잠긴 유닛은 최고 웨이브가 표시된 숫자에 닿으면 열립니다 (현재 최고 {bestWave || 0}).
+        특수 유닛은 발주와 무관합니다. 잠긴 물건은 최고 웨이브가 표시된 숫자에 닿으면 열립니다 (현재 최고 {bestWave || 0}).
       </div>
     </div>
   );
