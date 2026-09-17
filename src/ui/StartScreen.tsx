@@ -23,6 +23,7 @@ interface Props {
   onStart: (daily: boolean) => void;
   onBuy: (id: MetaUpgradeId) => void;
   onToggleMute: () => void;
+  onToggleHaptics: () => void;
   onSetNickname: (name: string) => void;
   onToggleRankOptIn: () => void;
   order: Order;
@@ -43,7 +44,8 @@ const TABS: { id: Tab; label: string; aria: string; icon: IconName }[] = [
   { id: 'history', label: '기록', aria: '근무 기록', icon: 'clock' },
 ];
 
-export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggleMute, onSetNickname, onToggleRankOptIn, order, onSetOrder, onReplayIntro, onReset }: Props) {
+export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggleMute,
+  onToggleHaptics, onSetNickname, onToggleRankOptIn, order, onSetOrder, onReplayIntro, onReset }: Props) {
   const [tab, setTab] = useState<Tab>('main');
   const [deckOpen, setDeckOpen] = useState(false);
   const upcoming = nextUnlock(save.bestWave);
@@ -71,6 +73,15 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
         <div className="title-block">
           <button className="title-mute" onClick={onToggleMute} aria-label={save.muted ? '소리 켜기' : '소리 끄기'} aria-pressed={save.muted}>
             <Icon name={save.muted ? 'mute' : 'sound'} size={16} strokeWidth={2.2} />
+          </button>
+          {/* 진동은 소리와 별개다 — 소리를 끄고 하는 사람이 대부분이라 손의 피드백이 남아야 한다 */}
+          <button
+            className={`title-mute title-haptics ${save.haptics ? '' : 'off'}`}
+            onClick={onToggleHaptics}
+            aria-label={save.haptics ? '진동 끄기' : '진동 켜기'}
+            aria-pressed={save.haptics}
+          >
+            <Icon name="gem" size={16} strokeWidth={2.2} />
           </button>
           <span className="title-sign">24H</span>
           <h1 className="title">편의점 야간근무</h1>

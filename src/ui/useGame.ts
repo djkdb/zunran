@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import { Engine } from '../game/engine/Engine';
 import { Renderer } from '../game/render/Renderer';
+import { vibe } from '../haptics';
 import { audio } from '../game/audio/sfx';
 import { UNIT_BY_ID } from '../game/data/units';
 import type { ShiftCondition } from '../game/data/shiftConditions';
@@ -135,8 +136,16 @@ export function useGame(opts: UseGameOptions) {
         renderer.handleFx(fx, engine.state);
         const newBanners: BannerItem[] = [];
         for (const f of fx) {
-          if (f.type === 'sfx') audio.play(f.id);
-          else if (f.type === 'banner') newBanners.push({ id: bannerId.current++, text: f.text, sub: f.sub, style: f.style, dur: f.dur ?? 2 });
+          if (f.type === 'sfx') {
+            audio.play(f.id);
+            // 소리를 끈 사람도 손으로는 느낄 수 있게, 진동은 음소거와 별개로 둔다.
+            if (f.id === 'legendary' || f.id === 'boss') vibe('big');
+            else if (f.id === 'damage') vibe('damage');
+            else if (f.id === 'gameover') vibe('gameover');
+            else if (f.id === 'mergeUp' || f.id === 'record') vibe('hit');
+          } else if (f.type === 'banner') {
+            newBanners.push({ id: bannerId.current++, text: f.text, sub: f.sub, style: f.style, dur: f.dur ?? 2 });
+          }
         }
         if (newBanners.length) pushBanners(newBanners);
       }

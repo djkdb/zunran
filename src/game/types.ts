@@ -393,6 +393,8 @@ export type MetaUpgradeId =
   | 'epicChance'
   | 'coinGain'
   | 'mergeLuck'
+  | 'orderDiscount'
+  | 'armorPierce'
   | 'veteran';
 
 export interface MetaEffects {
@@ -405,6 +407,8 @@ export interface MetaEffects {
   coinGainMult: number;
   freeDraws: number;
   mergePromoteBonus: number; // 합성 시 상위 등급 승급 확률 +(0.01 = +1%p)
+  orderDiscount: number; // 본사 발주 비용 할인 (0.05 = -5%)
+  armorPierce: number; // 손님 장갑 관통 (0.05 = 장갑 -5%)
   payMult: number; // 야간 수당 획득 배율 (판 안에는 영향 없음)
 }
 
@@ -578,6 +582,7 @@ export interface UISnapshot {
   waveTimer: number;
   waveDuration: number;
   waveTheme: import('./data/waves').WaveTheme;
+  nextWaveTheme: import('./data/waves').WaveTheme;
   survivedSec: number;
   hp: number;
   maxHp: number;

@@ -17,6 +17,8 @@ interface Props {
   needName: boolean; // 이름을 아직 안 정해서 전송을 보류 중
   onSubmitName: (name: string) => void;
   onRestart: () => void;
+  onPickAgain: () => void;
+  conditionName: string | null;
   onMenu: () => void;
 }
 
@@ -40,7 +42,7 @@ function rankLine(rank: SubmitResult | null, optIn: boolean): string | null {
   }
 }
 
-export function GameOverScreen({ result, save, rank, needName, onSubmitName, onRestart, onMenu }: Props) {
+export function GameOverScreen({ result, save, rank, needName, onSubmitName, onRestart, onPickAgain, conditionName, onMenu }: Props) {
   const [copied, setCopied] = useState(false);
   const [cert, setCert] = useState(false);
   // 업적을 하나씩 띄운다 (한꺼번에 쏟아지면 안 읽힌다)
@@ -136,9 +138,16 @@ export function GameOverScreen({ result, save, rank, needName, onSubmitName, onR
           )}
 
           <div className="gameover-actions">
+            {/* 가장 흔한 다음 행동을 한 번에. 조건 고르기는 원할 때만 거친다. */}
             <button className="start-btn" onClick={onRestart}>
               <Icon name="restart" size={24} strokeWidth={2.4} />
-              다시 하기
+              <span className="restart-body">
+                바로 다시
+                {conditionName && <span className="restart-sub">{conditionName}</span>}
+              </span>
+            </button>
+            <button className="menu-btn" onClick={onPickAgain}>
+              근무 조건 다시 고르기
             </button>
             <button className="menu-btn cert-open" onClick={() => setCert(true)}>
               <Icon name="trophy" size={16} strokeWidth={2.2} />

@@ -97,7 +97,7 @@ export function damageEnemy(state: GameState, e: Enemy, rawAmount: number, sourc
   // 장갑: 한 방의 크기를 본다. 작게 여러 번 때리는 유닛은 거의 못 뚫고,
   // 한 방이 큰 유닛은 그대로 들어간다. 바닥(15%)이 있어 완전 무력화는 없다.
   if (def.armor) {
-    const armor = armorAt(def.armor, e.spawnedWave);
+    const armor = armorAt(def.armor, e.spawnedWave) * Math.max(0, 1 - state.meta.armorPierce);
     const blocked = amount - armor;
     if (blocked < amount * ARMOR_FLOOR) {
       if (amount > 0 && source) {

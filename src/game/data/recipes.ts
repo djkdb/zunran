@@ -23,9 +23,12 @@ export interface RecipeDef {
 }
 
 export const RECIPES: RecipeDef[] = [
-  // 규칙: 재료 구성이 덱 슬롯 안에 들어가야 한다 (일반 2 · 희귀 2 · 에픽 1 · 전설 1).
-  // 일반 3종을 요구하면 덱에 담을 수 없어 영영 완성되지 않는다 — 실제로 그렇게 만들었다가
-  // 30판 중 0판 완성이 나와 잡았다. recipes.test.ts 가 이 규칙을 지킨다.
+  // 규칙 1: 재료 구성이 지명(발주) 슬롯 안에 들어가야 한다.
+  //   일반 3종을 요구하면 담을 수 없어 영영 완성되지 않는다 — 실제로 그렇게 만들었다가
+  //   30판 중 0판 완성이 나와 잡았다. recipes.test.ts 가 이 규칙을 지킨다.
+  // 규칙 2: 2티어 이상을 요구하는 재료는 레시피당 하나만.
+  //   특정 유닛 2종을 동시에 2티어로 들고 있기가 너무 어려워 판당 0.47회까지 떨어졌었다.
+  //   대신 재료 수를 3개로 늘려 "모으는 과정"은 남긴다.
   {
     id: 'nightSnack',
     name: '야식 세트',
@@ -33,9 +36,10 @@ export const RECIPES: RecipeDef[] = [
     resultTier: 2,
     materials: [
       { defId: 'onigiri', minTier: 2 },
-      { defId: 'ramenShelf', minTier: 2 },
+      { defId: 'ramenShelf', minTier: 1 },
+      { defId: 'hotbar', minTier: 1 },
     ],
-    hint: '삼각김밥 + 라면 진열대 (둘 다 2티어)',
+    hint: '삼각김밥(2티어) + 라면 진열대 + 핫바 기계',
   },
   {
     id: 'caffeine',
@@ -44,9 +48,10 @@ export const RECIPES: RecipeDef[] = [
     resultTier: 2,
     materials: [
       { defId: 'coffee', minTier: 2 },
-      { defId: 'pos', minTier: 2 },
+      { defId: 'pos', minTier: 1 },
+      { defId: 'alba', minTier: 1 },
     ],
-    hint: '커피머신 + 포스기 (둘 다 2티어)',
+    hint: '커피머신(2티어) + 포스기 + 야간 알바생',
   },
   {
     id: 'unmanned',
@@ -55,10 +60,10 @@ export const RECIPES: RecipeDef[] = [
     resultTier: 2,
     materials: [
       { defId: 'cctv', minTier: 2 },
-      { defId: 'scanner', minTier: 2 },
+      { defId: 'scanner', minTier: 1 },
       { defId: 'parcel', minTier: 1 },
     ],
-    hint: 'CCTV + 바코드 스캐너 (2티어) + 택배 접수기',
+    hint: 'CCTV(2티어) + 바코드 스캐너 + 택배 접수기',
   },
   {
     id: 'coldZone',
@@ -67,10 +72,10 @@ export const RECIPES: RecipeDef[] = [
     resultTier: 2,
     materials: [
       { defId: 'fridge', minTier: 2 },
-      { defId: 'freezer', minTier: 2 },
+      { defId: 'freezer', minTier: 1 },
       { defId: 'slush', minTier: 1 },
     ],
-    hint: '냉장고 + 아이스크림 냉동고 (2티어) + 슬러시 기계',
+    hint: '냉장고(2티어) + 아이스크림 냉동고 + 슬러시 기계',
   },
 ];
 

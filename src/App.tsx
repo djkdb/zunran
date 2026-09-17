@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import type { Engine } from './game/engine/Engine';
+import { setHaptics, vibe } from './haptics';
 import type { MetaUpgradeId } from './game/types';
 import { loadSave, writeSave, resetSave, type DailyRecord, type RunRecord, type SaveData } from './game/save/storage';
 import { META_UPGRADES, metaEffects, metaPointsForRun } from './game/save/meta';
@@ -53,7 +54,11 @@ export interface RunResult {
 }
 
 export function App() {
-  const [save, setSave] = useState<SaveData>(() => loadSave());
+  const [save, setSave] = useState<SaveData>(() => {
+    const loaded = loadSave();
+    setHaptics(loaded.haptics);
+    return loaded;
+  });
   const [screen, setScreen] = useState<'start' | 'intro' | 'condition' | 'game'>('start');
   // 오늘의 근무 조건 (판 시작 직전 3택 1)
   const [condition, setCondition] = useState<ShiftCondition | null>(null);
@@ -82,6 +87,20 @@ export function App() {
     setRunSeed((Math.random() * 0x7fffffff) | 0);
     setScreen('condition');
   }, []);
+
+  // 같은 조건으로 바로 다시. 게임오버 → 조건 고르기 → 시작은 모바일에서 마찰이 크다.
+  const quickRestart = useCallback(() => {
+    if (!condition) {
+      beginRun(dailyMode);
+      return;
+    }
+    setResult(null);
+    setRank(null);
+    setPendingRun(null);
+    setRunSeed((Math.random() * 0x7fffffff) | 0);
+    setRunKey((k) => k + 1);
+    setScreen('game');
+  }, [condition, dailyMode, beginRun]);
 
   const pickCondition = useCallback((c: ShiftCondition) => {
     audio.play('click');
@@ -313,6 +332,13 @@ export function App() {
   const toggleAutoMerge = useCallback(() => persist({ ...save, autoMerge: !save.autoMerge }), [save, persist]);
   const toggleAutoSell = useCallback(() => persist({ ...save, autoSell: !save.autoSell }), [save, persist]);
 
+  const toggleHaptics = useCallback(() => {
+    const on = !save.haptics;
+    setHaptics(on);
+    if (on) vibe('tap');
+    persist({ ...save, haptics: on });
+  }, [save, persist]);
+
   const toggleMute = useCallback(() => {
     audio.unlock();
     const muted = !save.muted;
@@ -335,6 +361,7 @@ export function App() {
         onStart={startGame}
         onBuy={buy}
         onToggleMute={toggleMute}
+        onToggleHaptics={toggleHaptics}
         onSetNickname={setNickname}
         onToggleRankOptIn={toggleRankOptIn}
         order={order}
@@ -383,7 +410,9 @@ export function App() {
           rank={rank}
           needName={pendingRun !== null}
           onSubmitName={submitPendingRun}
-          onRestart={() => startGame(dailyMode)}
+          onRestart={quickRestart}
+          onPickAgain={() => startGame(dailyMode)}
+          conditionName={condition?.name ?? null}
           onMenu={() => setScreen('start')}
         />
       )}

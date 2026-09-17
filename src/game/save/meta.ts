@@ -32,6 +32,24 @@ export const META_UPGRADES: MetaUpgradeDef[] = [
     note: '3개를 합칠 때 더 좋은 등급이 나올 확률',
   },
   {
+    id: 'orderDiscount',
+    name: '본사 인맥',
+    icon: 'cash',
+    maxLevel: 10,
+    desc: (l) => `본사 발주 비용 -${l * 4}%`,
+    cost: (l) => 120 + l * 72,
+    note: '등급 지정 뽑기를 싸게 만든다',
+  },
+  {
+    id: 'armorPierce',
+    name: '요령',
+    icon: 'tag',
+    maxLevel: 10,
+    desc: (l) => `손님 장갑 -${l * 4}%`,
+    cost: (l) => 130 + l * 78,
+    note: '두꺼운 손님에게 잔매가 덜 막힌다',
+  },
+  {
     id: 'veteran',
     name: '연차',
     icon: 'cash',
@@ -51,6 +69,8 @@ export const DEFAULT_META_LEVELS: Record<MetaUpgradeId, number> = {
   epicChance: 0,
   coinGain: 0,
   mergeLuck: 0,
+  orderDiscount: 0,
+  armorPierce: 0,
   veteran: 0,
 };
 
@@ -65,6 +85,8 @@ export function metaEffects(levels: Record<MetaUpgradeId, number>): MetaEffects 
     coinGainMult: 1 + levels.coinGain * 0.03,
     freeDraws: 0,
     mergePromoteBonus: levels.mergeLuck * 0.007,
+    orderDiscount: levels.orderDiscount * 0.04,
+    armorPierce: levels.armorPierce * 0.04,
     payMult: 1 + levels.veteran * 0.03,
   };
 }

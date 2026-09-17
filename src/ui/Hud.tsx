@@ -1,6 +1,7 @@
 import type { UISnapshot } from '../game/types';
 import { formatTime } from '../game/config';
 import { Icon } from './Icon';
+import { THEME_INFO } from '../game/data/waves';
 
 // 아케이드 HUD: 한 장의 픽셀 프레임 안에 세 줄.
 // 1줄 시계·생존·코인 / 2줄 웨이브 / 3줄 매장 체력.
@@ -33,6 +34,23 @@ export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) 
             <div className="bar-fill" style={{ width: `${waveProgress * 100}%` }} />
           </div>
           <span className="hud-wave-timer px">{Math.ceil(snap.waveTimer)}s</span>
+        </div>
+
+        {/* 이번 웨이브가 무엇을 시험하는지, 다음엔 무엇이 오는지.
+            예고가 있어야 대비할 수 있고, 대비할 수 있어야 판단이 생긴다. */}
+        <div className="hud-row hud-theme-row">
+          {snap.waveTheme !== 'mixed' && (
+            <span className={`theme-chip now t-${snap.waveTheme}`}>
+              {THEME_INFO[snap.waveTheme].label} · {THEME_INFO[snap.waveTheme].hint}
+            </span>
+          )}
+          {snap.nextIsBoss ? (
+            <span className="theme-chip next t-boss">다음 · 보스</span>
+          ) : (
+            snap.nextWaveTheme !== 'mixed' && (
+              <span className={`theme-chip next t-${snap.nextWaveTheme}`}>다음 · {THEME_INFO[snap.nextWaveTheme].label}</span>
+            )
+          )}
         </div>
 
         <div className="hud-row">

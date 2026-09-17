@@ -73,6 +73,7 @@ export interface SaveData {
   metaPoints: number;
   metaLevels: Record<MetaUpgradeId, number>;
   muted: boolean;
+  haptics: boolean; // 진동 피드백 (지원하는 기기에서만)
   autoMerge: boolean;
   autoSell: boolean; // 칸이 꽉 찼을 때 합성 짝 없는 1티어 일반 유닛 자동 정리
   hintsSeen: boolean;
@@ -124,6 +125,7 @@ export function defaultSave(): SaveData {
     metaPoints: 0,
     metaLevels: { ...DEFAULT_META_LEVELS },
     muted: false,
+    haptics: true,
     autoMerge: false,
     autoSell: true,
     hintsSeen: false,
@@ -168,6 +170,7 @@ export function migrate(parsed: Partial<SaveData>): SaveData {
     secretsSeen: arr(parsed.secretsSeen),
     eventCounts: rec<number>(parsed.eventCounts),
     autoSell: typeof parsed.autoSell === 'boolean' ? parsed.autoSell : true,
+    haptics: typeof parsed.haptics === 'boolean' ? parsed.haptics : true,
     catVisits: typeof parsed.catVisits === 'number' ? parsed.catVisits : 0,
     totalMerges: typeof parsed.totalMerges === 'number' ? parsed.totalMerges : 0,
     totalBossKills: typeof parsed.totalBossKills === 'number' ? parsed.totalBossKills : 0,
