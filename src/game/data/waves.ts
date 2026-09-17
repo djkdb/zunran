@@ -83,7 +83,9 @@ export function buildWave(wave: number, rng: RNG, countMult = 1, themeOf: WaveTh
   // 2.3w 로 올려 초반부터 실제로 손님이 밀려오게 한다.
   let total = Math.round((4 + 2.3 * Math.min(wave, 40) + Math.max(0, wave - 40) * 1) * countMult);
   // 보스 웨이브 손님 수를 0.55배로 줄였더니 보스전이 오히려 쉬는 시간이 됐다 (docs/AUDIT.md 8절).
-  if (theme !== 'mixed') total = Math.round(total * 1.15);
+  // 빠른 손님은 개체가 약하다(담배 18, 뛰는 42). 수로 압박해야 테마가 산다.
+  if (theme === 'fast') total = Math.round(total * 1.3);
+  else if (theme !== 'mixed') total = Math.round(total * 1.15);
   if (boss) total = Math.round(total * 0.8);
   total = Math.max(3, total);
 
@@ -97,7 +99,10 @@ export function buildWave(wave: number, rng: RNG, countMult = 1, themeOf: WaveTh
     // 테마에 맞는 손님을 몰아준다. 웨이브가 하나의 문제를 내도록.
     // ×6 으로 두었더니 "무리 웨이브인데 무리만 40명" 같은 극단이 나와
     // 대응 못 한 판이 한 웨이브에 반 토막 났다. ×4 면 테마는 읽히고 극단은 준다.
-    if (theme === 'fast' && e.tags.includes('fast')) w *= 4;
+    // 'fast' 태그는 느슨하게 붙어 있다 — 화장실 손님(70)·야자 고딩(78)은
+    // 기본 손님(55)보다 조금 빠를 뿐인데 태그가 있어서 '급한 손님들' 테마가
+    // 웨이브당 -1.09 HP 로 무해해졌다. 태그가 아니라 실제 속도로 고른다.
+    if (theme === 'fast' && e.speed >= 100) w *= 4;
     if (theme === 'swarm' && e.swarm) w *= 4;
     if (theme === 'armor' && e.armor) w *= 4;
     // 가중치는 '뽑히는 횟수'인데 총량(total)은 머릿수다.

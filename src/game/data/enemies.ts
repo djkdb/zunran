@@ -29,7 +29,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     hp: 48,
     speed: 170,
     bounty: 8,
-    storeDamage: 1,
+    storeDamage: 2,
     size: 0.95,
     behavior: { kind: 'walk' },
     tags: ['fast'],
