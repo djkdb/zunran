@@ -86,7 +86,9 @@ export function buildWave(wave: number, rng: RNG, countMult = 1, themeOf: WaveTh
   // 실제로 브라우저에서 세 판을 해 보니 14웨이브까지 체력이 100에서 움직이지 않았다.
   // 7분짜리 게임의 절반이 무위험 구간이라는 뜻이다. 경제를 고치면서 초반에 유닛이
   // 빨리 쌓이게 된 결과라, 손님 쪽을 같이 올려 균형을 맞춘다.
-  if (wave <= 12) total = Math.round(total * (1.45 - wave * 0.02));
+  // ×1.45 로 시작했더니 30판 중 몇 판이 8웨이브에서 무너졌다.
+  // 배우는 구간에서 판이 끝나면 첫 판 플레이어는 이유를 모른다. 완만하게 낮춘다.
+  if (wave <= 12) total = Math.round(total * (1.28 - wave * 0.015));
   // 보스 웨이브 손님 수를 0.55배로 줄였더니 보스전이 오히려 쉬는 시간이 됐다 (docs/AUDIT.md 8절).
   // 빠른 손님은 개체가 약하다(담배 18, 뛰는 42). 수로 압박해야 테마가 산다.
   if (theme === 'fast') total = Math.round(total * 1.3);
