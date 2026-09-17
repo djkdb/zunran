@@ -21,9 +21,13 @@ export const ENEMY_DEFS: EnemyDef[] = [
   },
   {
     id: 'runner',
+    // 원래 속도 215 · 체력 60 · 가중치 5 였다. 경로 통과가 11.5초(기본 손님 45초의 1/4)인데
+    // 체력은 2배였고 머릿수의 11%를 차지해서, 실전에서 세 판 연속 사망 원인 1위였다.
+    // 반대로 150/42/3 까지 낮추니 초반 압력이 통째로 사라져 15웨이브까지 체력 100이 됐다.
+    // 170/48/4 는 그 사이다 — 초반에 몇 명은 새고, 감속 유닛을 갖추면 막힌다.
     name: '뛰는 손님',
-    hp: 60,
-    speed: 215,
+    hp: 48,
+    speed: 170,
     bounty: 8,
     storeDamage: 1,
     size: 0.95,
@@ -34,7 +38,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     sprite: 'e_runner',
     color: '#86efac',
     minWave: 2,
-    weight: 5,
+    weight: 4,
   },
   {
     id: 'cig',
@@ -356,7 +360,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     size: 1.05,
     behavior: { kind: 'walk' },
     tags: ['fast'],
-    immune: ['slow', 'knockback'],
+    immune: ['knockback'],
     lines: ['픽업이요!', '3분 남았어요', '주차 잠깐만요', '헬멧 안 벗어요'],
     deathLines: ['배달 취소…'],
     sprite: 'e_bike',
