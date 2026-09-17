@@ -1,4 +1,9 @@
-// 초반 웨이브에서 실제로 무슨 일이 일어나는가. 웨이브별 체력 손실과 계산대 도달 수.
+// 초반 곡선 계측기. 웨이브별 체력 손실과 계산대 앞 인원을 찍는다.
+// 실행: npx tsx scripts/earlycurve.ts
+//
+// 보는 것: 손실이 0 인 구간이 몇 웨이브나 이어지는가, 그러다 어디서 한 번에
+// 크게 맞는가. "얼마나 오래 버티는가" 만 보면 안 보이는 것들이다 —
+// 시골점은 12웨이브 동안 무피해다가 13웨이브에 32.5 를 맞고 있었다.
 import { Engine } from '../src/game/engine/Engine';
 import { metaEffects, DEFAULT_META_LEVELS } from '../src/game/save/meta';
 import type { MetaUpgradeId } from '../src/game/types';
