@@ -11,7 +11,6 @@ import { AchievementsScreen } from './AchievementsScreen';
 import { CodexScreen } from './CodexScreen';
 import { HistoryScreen } from './HistoryScreen';
 import { RankScreen } from './RankScreen';
-import { NicknameField } from './NicknameField';
 import { OrderScreen } from './OrderScreen';
 import { type Order } from '../game/data/deck';
 import { UnitIcon } from './UnitIcon';
@@ -102,14 +101,8 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
         <div className="start-content">
         {tab === 'main' && (
           <>
-            {/* 이름을 아직 안 정했으면 먼저 받는다. 기록이 '익명 알바'로 올라가 버리면 되돌리기 번거롭다. */}
-            {save.rankOptIn && !save.nickname && save.introSeen && (
-              <div className="nick-card">
-                <NicknameField value="" onSave={onSetNickname} label="랭킹에 올릴 이름" cta="저장" />
-                <div className="nick-hint">판이 끝나면 이 이름으로 랭킹에 올라갑니다. 나중에 바꿔도 됩니다.</div>
-              </div>
-            )}
-
+            {/* 이름 입력칸은 홈에서 뺐다. 제목 화면에 입력 폼이 있으면 게임이 아니라
+                가입 페이지처럼 보인다. 이름은 판이 끝난 뒤(결과 화면)와 랭킹 탭에서 받는다. */}
             {/* 출근 블록: 시작 버튼이 화면의 주인공이고, 준비물은 그 아래 한 줄로 붙는다.
                 예전에는 발주·해금·지점·데일리가 모두 같은 크기의 상자라
                 무엇을 눌러야 하는지가 안 보였다. */}
@@ -221,33 +214,24 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
               )}
             </div>
 
-            <div className="records">
+            {/* 기록은 아래 탭으로도 다 들어간다. 여기서 또 큰 버튼 네 개를 쌓으면
+                같은 입구가 두 번 나와서 홈이 메뉴판이 된다. 한 줄 띠로만 남긴다. */}
+            <div className="rec-strip">
               <button onClick={() => setTab('rank')}>
-                <span>최고 웨이브</span>
-                <b>{save.bestWave || '-'}</b>
+                최고 <b>{save.bestWave || '-'}</b>
               </button>
               <button onClick={() => setTab('ach')}>
-                <span>업적</span>
-                <b>
-                  {achCount}
-                  <i>/{ACHIEVEMENTS.length}</i>
-                </b>
+                업적 <b>{achCount}</b>
+                <i>/{ACHIEVEMENTS.length}</i>
               </button>
               <button onClick={() => setTab('history')}>
-                <span>총 근무</span>
-                <b>{save.totalPlays}</b>
+                근무 <b>{save.totalPlays}</b>
               </button>
               <button className={canAfford ? 'hot' : ''} onClick={() => setTab('shop')}>
-                <span>야간 수당</span>
-                <b>{save.metaPoints}</b>
+                {canAfford && <Icon name="cash" size={13} strokeWidth={2.6} />}
+                수당 <b>{save.metaPoints}</b>
               </button>
             </div>
-            {canAfford && (
-              <button className="shop-nudge" onClick={() => setTab('shop')}>
-                <Icon name="cash" size={15} strokeWidth={2.4} />
-                야간 수당으로 강화를 살 수 있습니다
-              </button>
-            )}
 
             {/* 규칙 설명은 아직 한 판도 안 해 본 사람에게만 보인다.
                 계속 남아 있으면 홈이 설명서가 된다. */}
