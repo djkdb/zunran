@@ -4,7 +4,7 @@ import { spawnEnemy, damageEnemy, knockbackAll } from '../engine/enemySystem';
 import { REWARD_CARDS } from '../data/rewards';
 import { unitDamage, unitInterval, unitRange } from '../engine/helpers';
 import { createUnit } from '../engine/unitFactory';
-import { PATH_LENGTH } from '../config';
+
 import { UNIT_BY_ID } from '../data/units';
 
 function step(engine: Engine, n = 1) {
@@ -38,7 +38,7 @@ describe('리뷰 회귀 테스트', () => {
     const engine = new Engine({ seed: 1 });
     const s = engine.state;
     s.spawnQueue = [];
-    const e = spawnEnemy(s, 'cig', { dist: PATH_LENGTH - 1 })!;
+    const e = spawnEnemy(s, 'cig', { dist: s.geo.length - 1 })!;
     expect(s.waveEnemyIds.has(e.id)).toBe(true);
     const coins = s.coins;
     step(engine, 5);

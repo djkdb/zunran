@@ -1,5 +1,4 @@
 import type { EnemyDef } from '../types';
-import { RAMEN_CORNER_DIST } from '../config';
 
 // 손님 정의. hp/speed 는 웨이브1 기준. 체력은 config.enemyHpScale 로 웨이브마다 증가.
 export const ENEMY_DEFS: EnemyDef[] = [
@@ -98,7 +97,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     bounty: 16,
     storeDamage: 3,
     size: 1,
-    behavior: { kind: 'linger', atDist: RAMEN_CORNER_DIST, duration: 6, growPerSec: 0.06 },
+    behavior: { kind: 'linger', duration: 6, growPerSec: 0.06 },
     tags: [],
     lines: ['물 끓는 중…', '김치 있어요?', '후루룩', '계란 하나 더'],
     sprite: 'e_ramen',

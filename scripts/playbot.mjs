@@ -10,6 +10,7 @@ const OUT = process.env.PLAY_OUT ?? '/tmp/playbot/';
 const URL = process.env.PLAY_URL ?? 'http://127.0.0.1:4173/';
 mkdirSync(OUT, { recursive: true });
 
+const STAGE_NAME = { country: '국도변 시골점', alley: '동네 골목점', downtown: '역앞 술집가점' };
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH });
 const results = [];
 const allErrs = [];
@@ -20,11 +21,19 @@ for (let run = 0; run < RUNS; run++) {
   page.on('console', (m) => { if (m.type() === 'error' && !/404/.test(m.text())) allErrs.push(m.text()); });
 
   await page.goto(URL, { waitUntil: 'networkidle' });
-  await page.evaluate(async () => {
+  // STAGE 를 주면 그 지점만 돌린다. 잠긴 지점은 저장 데이터를 심어서 연다.
+  const wantStage = process.env.STAGE ?? null;
+  await page.evaluate(async (stage) => {
     for (const r of (await navigator.serviceWorker?.getRegistrations?.()) ?? []) await r.unregister();
     for (const k of await caches.keys()) await caches.delete(k);
     localStorage.clear();
-  });
+    if (stage) {
+      localStorage.setItem(
+        'cvs-night-shift:v1',
+        JSON.stringify({ version: 5, introSeen: true, nickname: '점장봇', bestByStage: { country: 99, alley: 99 }, stageId: stage }),
+      );
+    }
+  }, wantStage);
   await page.reload({ waitUntil: 'networkidle' });
 
   // 시작 → 오프닝 → 이름 → 근무 조건
@@ -44,6 +53,18 @@ for (let run = 0; run < RUNS; run++) {
     await page.locator('body').click({ position: { x: 195, y: 700 } }).catch(() => {});
     await page.waitForTimeout(380);
   }
+  // 지점 선택 화면이 뜨면 원하는 지점을 고른다
+  const stageCards = page.locator('.stage-card:not(.locked)');
+  if (await stageCards.count()) {
+    let picked = false;
+    if (wantStage) {
+      const target = page.locator(`.stage-card:not(.locked)`).filter({ hasText: STAGE_NAME[wantStage] ?? '' });
+      if (await target.count()) { await target.first().click(); picked = true; }
+    }
+    if (!picked) await stageCards.first().click();
+    await page.waitForTimeout(500);
+  }
+
   // 근무 조건: 판마다 다른 걸 고른다
   const conds = await page.locator('button').all();
   const usable = [];
@@ -211,7 +232,7 @@ for (let run = 0; run < RUNS; run++) {
   });
   await page.screenshot({ path: `${OUT}${LABEL}-${run}-end.png` });
   results.push({ run, cond: condName, drawsDone, hpByWave, tierByWave, report, drawsBlocked, mergesDone, sellsDone, ordersDone, recipesDone, promotePicks, eventPicks, rewardCount, buildHeavy, rewardPicks, events });
-  console.log(`[${LABEL} ${run}] ${condName} | ${report.wave}웨이브 ${report.time} | MVP ${report.mvp} | 패배 ${report.cause} | 뽑기 ${drawsDone} 합성 ${mergesDone} 발주 ${ordersDone} 조합 ${recipesDone} | 칸막힘 ${drawsBlocked}`);
+  console.log(`[${LABEL} ${run}] ${STAGE_NAME[wantStage] ?? '기본'} · ${condName} | ${report.wave}웨이브 ${report.time} | MVP ${report.mvp} | 패배 ${report.cause} | 뽑기 ${drawsDone} 합성 ${mergesDone} 발주 ${ordersDone} 조합 ${recipesDone} | 칸막힘 ${drawsBlocked}`);
   console.log(`      체력: ${hpByWave.join(' ')}`);
   console.log(`      최고티어: ${tierByWave.join(' ')}`);
   await page.close();

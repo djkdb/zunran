@@ -120,7 +120,8 @@ export type BossPatternKind =
 export type EnemyBehavior =
   | { kind: 'walk' }
   | { kind: 'drunk'; wobbleEvery: number; backDur: number }
-  | { kind: 'linger'; atDist: number; duration: number; growPerSec: number }
+  // 머무는 위치는 지점마다 다르므로 데이터가 아니라 기하(geo.lingerDist)에서 읽는다
+  | { kind: 'linger'; duration: number; growPerSec: number }
   | { kind: 'askPrice'; every: number; stopDur: number; blockRadius: number }
   | { kind: 'charger'; every: number; disableDur: number; radius: number }
   | { kind: 'panic'; speedUp: number; dur: number }

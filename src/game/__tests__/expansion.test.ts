@@ -10,7 +10,7 @@ import { getDaily, dailySeed, dateKey } from '../daily';
 import { pickRunTitle } from '../data/runTitles';
 import { EVENT_DEFS, RARE_EVENT_IDS } from '../data/events';
 import { UNIT_BY_ID } from '../data/units';
-import { PATH_LENGTH } from '../config';
+
 
 function run(engine: Engine, seconds: number) {
   for (let i = 0; i < Math.round(seconds * 10); i++) {
@@ -198,7 +198,7 @@ describe('보고서', () => {
     const engine = new Engine({ seed: 11 });
     const s = engine.state;
     s.spawnQueue = [];
-    spawnEnemy(s, 'cig', { dist: PATH_LENGTH - 1 });
+    spawnEnemy(s, 'cig', { dist: s.geo.length - 1 });
     run(engine, 1);
     expect(s.stats.reached).toBe(1);
     expect(s.stats.reachedBy.cig).toBe(1);

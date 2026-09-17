@@ -4,72 +4,11 @@ import type { Rarity, Tier } from './types';
 export const FIELD_W = 640;
 export const FIELD_H = 640;
 
-// 손님 이동 경로 (S자). 입구(좌상) → 음료 코너 → 과자 코너 → 라면 코너 → 계산대.
-// 픽셀 좌표는 640x640 논리 좌표계.
-export const PATH: { x: number; y: number }[] = [
-  { x: 52, y: -30 }, // 화면 밖 입구
-  { x: 52, y: 118 }, // 음료 코너 진입
-  { x: 588, y: 118 }, // 음료 코너 끝
-  { x: 588, y: 276 }, // 과자 코너로 내려감
-  { x: 52, y: 276 }, // 과자 코너 끝
-  { x: 52, y: 434 }, // 라면 코너로
-  { x: 588, y: 434 }, // 라면 코너 끝
-  { x: 588, y: 582 }, // 계산대 줄
-  { x: 335, y: 582 }, // 계산대
-];
-
-export const AISLE_NAMES = ['음료 코너', '과자 코너', '라면 코너'];
-
-// 코너(진열대 줄)마다 배치 보너스를 준다 — "어디에 둘까"가 의미를 갖게.
-// 0열 = 입구에 가까운 음료 코너, 2열 = 계산대 바로 앞 라면 코너.
-export const AISLE_BONUS: { label: string; dmg: number; atkSpeed: number; range: number }[] = [
-  { label: '사거리 +18', dmg: 1, atkSpeed: 1, range: 18 },
-  { label: '공격속도 +12%', dmg: 1, atkSpeed: 1.12, range: 0 },
-  { label: '공격력 +22%', dmg: 1.22, atkSpeed: 1, range: 0 },
-];
-
-// 경로 누적 길이 (dist → 좌표 변환용)
-export const PATH_SEGMENTS = (() => {
-  const segs: { x0: number; y0: number; x1: number; y1: number; len: number; start: number }[] = [];
-  let acc = 0;
-  for (let i = 0; i < PATH.length - 1; i++) {
-    const a = PATH[i];
-    const b = PATH[i + 1];
-    const len = Math.hypot(b.x - a.x, b.y - a.y);
-    segs.push({ x0: a.x, y0: a.y, x1: b.x, y1: b.y, len, start: acc });
-    acc += len;
-  }
-  return segs;
-})();
-export const PATH_LENGTH = PATH_SEGMENTS.reduce((s, seg) => s + seg.len, 0);
-
-// 라면 코너 시작 지점 (라면 손님이 머무는 곳)
-export const RAMEN_CORNER_DIST = (() => {
-  // 라면 코너(세 번째 가로 통로)의 중간 지점
-  const seg = PATH_SEGMENTS[5];
-  return seg.start + seg.len * 0.5;
-})();
-
-export function pathPos(dist: number): { x: number; y: number; facing: 1 | -1 } {
-  if (dist <= 0) {
-    return { x: PATH[0].x, y: PATH[0].y + dist, facing: 1 };
-  }
-  for (const seg of PATH_SEGMENTS) {
-    if (dist <= seg.start + seg.len) {
-      const t = (dist - seg.start) / seg.len;
-      const facing: 1 | -1 = seg.x1 >= seg.x0 ? 1 : -1;
-      return { x: seg.x0 + (seg.x1 - seg.x0) * t, y: seg.y0 + (seg.y1 - seg.y0) * t, facing };
-    }
-  }
-  const last = PATH[PATH.length - 1];
-  return { x: last.x, y: last.y, facing: -1 };
-}
-
-// 유닛 슬롯: 진열대 3줄 × 7칸 = 21칸. 통로 사이에 위치.
-export const SLOT_ROWS = [197, 355, 510];
-export const SLOT_COLS = [118, 186, 254, 322, 390, 458, 526];
-export const SLOT_POSITIONS = SLOT_ROWS.flatMap((y, row) => SLOT_COLS.map((x) => ({ x, y, row })));
-export const TOTAL_SLOTS = SLOT_POSITIONS.length;
+// 진열대 상한. 실제 배치(줄 수·칸 수·좌표)는 지점마다 다르다 (data/stages.ts).
+// 여기 남은 값은 "가장 큰 매장이 몇 칸인가" — 증축 단계 수를 정하는 기준이다.
+export const MAX_ROWS = 3;
+export const MAX_COLS = 7;
+export const TOTAL_SLOTS = MAX_ROWS * MAX_COLS;
 
 // ───────────── 진열대 증축 ─────────────
 // 처음부터 21칸을 다 주면 메타 강화가 체감되지 않는다.
@@ -77,14 +16,10 @@ export const TOTAL_SLOTS = SLOT_POSITIONS.length;
 // 로그라이트의 계약은 "처음엔 벽에 부딪히고, 벌어서 강화하면 뚫린다"인데
 // 그 벽이 없었다. 칸은 눈에 보이는 성장이라 이 역할에 가장 맞는다.
 //
-// 가운데 열부터 시작해서 바깥으로 넓힌다. 세 코너(줄)는 처음부터 모두 열려 있어야
-// "어디에 둘까"라는 결정이 첫 판부터 존재한다.
+// 가운데 열부터 시작해서 바깥으로 넓힌다 (순서는 stages.ts 의 unlockOrderFor).
+// 모든 줄(코너)은 처음부터 열려 있어야 "어디에 둘까"라는 결정이 첫 판부터 존재한다.
 export const START_SLOTS = 9; // 가운데 3열 × 3줄
-const UNLOCK_COLS = [1, 5, 0, 6]; // 시작 열(3·2·4) 다음에 열리는 순서
-export const SLOT_UNLOCK_ORDER: number[] = UNLOCK_COLS.flatMap((col) =>
-  SLOT_ROWS.map((_, row) => row * SLOT_COLS.length + col),
-);
-export const MAX_SHELF_LEVEL = SLOT_UNLOCK_ORDER.length; // 9 → 12 + 9 = 21칸
+export const MAX_SHELF_LEVEL = TOTAL_SLOTS - START_SLOTS; // 9 → 21칸까지 12단계
 export const SLOT_HIT_RADIUS = 34;
 
 // ───────────── 경제 ─────────────
@@ -269,7 +204,6 @@ export const EVENT_INTERVAL: [number, number] = [32, 48];
 
 // ───────────── 기타 ─────────────
 export const PROJECTILE_SPEED = 420;
-export const CHECKOUT_POS = { x: 335, y: 600 };
 export const LOW_HP_THRESHOLD = 0.25;
 export const MAX_ENEMIES_ON_FIELD = 140; // 성능 보호: 초과분은 스폰 지연
 

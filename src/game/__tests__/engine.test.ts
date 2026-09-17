@@ -6,7 +6,11 @@ import { ENEMY_DEFS } from '../data/enemies';
 import { EVENT_DEFS } from '../data/events';
 import { buildWave } from '../data/waves';
 import { createRng } from '../engine/rng';
-import { pathPos, PATH_LENGTH, TOTAL_SLOTS, MAX_SHELF_LEVEL, formatClock, THREE_AM_WAVE } from '../config';
+import { TOTAL_SLOTS, MAX_SHELF_LEVEL, formatClock, THREE_AM_WAVE } from '../config';
+import { buildGeometry, geoPos, STAGE_BY_ID } from '../data/stages';
+
+// 경로는 지점마다 다르다. 테스트는 기준 지점(동네 골목점)으로 고정한다.
+const REF_GEO = buildGeometry(STAGE_BY_ID.alley);
 import { createUnit } from '../engine/unitFactory';
 import { mergeUnits, choosePromote } from '../engine/mergeSystem';
 
@@ -40,8 +44,8 @@ describe('데이터 무결성', () => {
     expect(new Set(EVENT_DEFS.map((u) => u.id)).size).toBe(EVENT_DEFS.length);
   });
   it('경로/시계', () => {
-    expect(pathPos(0).x).toBe(52);
-    expect(pathPos(PATH_LENGTH).x).toBe(335);
+    expect(geoPos(REF_GEO, 0).x).toBe(52);
+    expect(geoPos(REF_GEO, REF_GEO.length).x).toBe(335);
     expect(formatClock(1, 0, 22)).toBe('12:00 AM');
     expect(formatClock(THREE_AM_WAVE, 0, 22)).toBe('03:00 AM');
   });
