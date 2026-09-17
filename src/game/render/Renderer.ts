@@ -528,6 +528,18 @@ export class Renderer {
       ctx.textAlign = 'center';
       ctx.fillText('🔧', 0, -w / 2);
     }
+    // 잠금 자물쇠 — 카드를 열지 않아도 어느 유닛이 잠겼는지 보여야 한다
+    if (u.pinned) {
+      ctx.fillStyle = '#120e24';
+      ctx.fillRect(15, -w + 4, 11, 11);
+      ctx.fillStyle = '#4fe3d0';
+      ctx.fillRect(16, -w + 8, 9, 6);
+      ctx.strokeStyle = '#4fe3d0';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(20.5, -w + 8, 2.6, Math.PI, 0);
+      ctx.stroke();
+    }
     if (selected) {
       ctx.strokeStyle = '#ffd84d';
       ctx.lineWidth = 2.5;

@@ -76,7 +76,10 @@ export const STAGES: StageDef[] = [
       { label: '공격력 +22%', dmg: 1.22, atkSpeed: 1, range: 0 },
     ],
     lingerRow: 1,
-    traffic: { count: 0.5, hp: 0.78, coin: 1.5, weights: { basic: 1.4, runner: 0.7, party: 0.4, drunkSquad: 0.4, student: 0.4 } },
+    // 유동인구 0.5 는 한산함을 넘어 '아무 일도 안 일어남' 이었다.
+    // 24판 실측: 1~12웨이브 체력 손실이 거의 0이고 13웨이브에 32.5 를 한 번에 맞았다.
+    // 조금 올려 초반에도 잔물결이 있게 한다. 객단가는 그만큼 낮춘다 — 벌이는 그대로.
+    traffic: { count: 0.62, hp: 0.78, coin: 1.28, weights: { basic: 1.4, runner: 0.7, party: 0.4, drunkSquad: 0.4, student: 0.4 } },
     scoreMult: 0.8,
     tint: null,
   },

@@ -37,6 +37,7 @@ export function sellCandidate(groups: UnitGroup[]): number | null {
   let best: { id: number; price: number } | null = null;
   for (const g of groups) {
     if (g.count !== 1) continue;
+    if (g.pinned) continue; // 잠근 유닛은 자동 정리가 건드리지 않는다
     const def = UNIT_BY_ID[g.defId];
     if (!def || def.rarity === 'legendary' || def.rarity === 'special') continue;
     const price = SELL_REFUND[def.rarity] * Math.pow(2.2, g.tier - 1);

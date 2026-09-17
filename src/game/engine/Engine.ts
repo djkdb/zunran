@@ -12,7 +12,7 @@ import { createRng, randomSeed } from './rng';
 import { updateEnemies } from './enemySystem';
 import { updateUnits } from './unitSystem';
 import { buildThemeSchedule } from '../data/waves';
-import { updateWave, startWave } from './waveSystem';
+import { updateWave, startWave, skipPrep } from './waveSystem';
 import { updateEvents, baseModifiers, recomputeModifiers, chooseEvent } from './eventSystem';
 import { mergeUnits, choosePromote, canMerge, canTierMerge, mergeByTier, tierMergeCandidates, announceLegendary } from './mergeSystem';
 import { createUnit } from './unitFactory';
@@ -67,7 +67,9 @@ export class Engine {
     // (실측: 시골점 증축 8단계와 12단계의 결과가 소수점까지 같았다).
     // 칸을 더 못 놓는 대신 놓은 칸이 진해진다 — 좁고 진한 가게라는 정체성과도 맞는다.
     const surplus = Math.max(0, START_SLOTS + (this.state.meta.shelfLevel ?? 0) - all);
-    if (surplus > 0) this.state.perma.aisleMult += surplus * 0.09;
+    // 단계당 +9% 로는 시골점 증축 8단계와 12단계가 26 ↔ 25 로 평평했다.
+    // 칸 하나가 주는 화력에 견주려면 이 정도는 되어야 한다.
+    if (surplus > 0) this.state.perma.aisleMult += surplus * 0.16;
     this.state.shelfSurplus = surplus;
 
     const cond = opts.condition ?? null;
@@ -193,6 +195,15 @@ export class Engine {
         return this.sellJunk();
       case 'MERGE_BUY':
         return this.mergeBuy(action.defId);
+      case 'SKIP_PREP':
+        return { ok: skipPrep(s) };
+      case 'TOGGLE_PIN': {
+        const u = s.units.find((x) => x.id === action.unitId);
+        if (!u) return { ok: false };
+        u.pinned = !u.pinned;
+        this.snapshotDirty = true;
+        return { ok: true };
+      }
       case 'CHOOSE_PROMOTE':
         return { ok: choosePromote(s, action.defId) };
       case 'CHOOSE_EVENT':
@@ -429,6 +440,7 @@ export class Engine {
     const count = new Map<string, number>();
     for (const u of s.units) if (u.tier === 1) count.set(u.defId, (count.get(u.defId) ?? 0) + 1);
     return s.units.filter((u) => {
+      if (u.pinned) return false; // 잠근 유닛은 건드리지 않는다
       if (u.tier !== 1 || (count.get(u.defId) ?? 0) !== 1) return false;
       const r = UNIT_BY_ID[u.defId].rarity;
       return r === 'common' || r === 'rare';
@@ -573,6 +585,7 @@ export class Engine {
       clock: formatClock(s.wave, s.waveElapsed, s.waveDuration),
       wave: s.wave,
       waveTimer: s.waveTimer,
+      prep: s.prep,
       waveDuration: s.waveDuration,
       waveTheme: s.waveTheme,
       stageName: s.stage.name,
@@ -605,6 +618,7 @@ export class Engine {
             kills: sel.kills,
             damage: Math.round(sel.damage),
             sellPrice: sellPrice(sel),
+            pinned: !!sel.pinned,
             aisle: s.geo.aisleNames[s.slots[sel.slot].row],
             aisleBonus: s.geo.aisleBonus[s.slots[sel.slot].row].label,
             groupCount: s.units.filter((u) => u.defId === sel.defId && u.tier === sel.tier).length,
@@ -656,11 +670,13 @@ function groupUnits(s: GameState): UnitGroup[] {
     const key = `${u.defId}|${u.tier}`;
     let g = map.get(key);
     if (!g) {
-      g = { defId: u.defId, tier: u.tier, count: 0, unitIds: [], mergeable: false };
+      g = { defId: u.defId, tier: u.tier, count: 0, unitIds: [], mergeable: false, pinned: true };
       map.set(key, g);
     }
     g.count++;
-    g.unitIds.push(u.id);
+    // 잠기지 않은 개체를 앞에 둔다. 판매/정리가 고르는 첫 개체가 잠긴 것이면 안 된다.
+    if (u.pinned) g.unitIds.push(u.id);
+    else { g.unitIds.unshift(u.id); g.pinned = false; }
   }
   const rank: Record<Rarity, number> = { common: 0, rare: 1, epic: 2, special: 3, legendary: 4 };
   const groups = [...map.values()];
@@ -697,6 +713,7 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number, s
     freeDraws: meta.freeDraws,
     wave: 0,
     waveTimer: 0,
+    prep: 0,
     waveDuration: 1,
     waveTheme: 'mixed',
     themeSchedule: [],

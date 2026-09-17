@@ -138,6 +138,17 @@ export function isBossWave(w: number): boolean {
   return w >= 10 && w % 10 === 0;
 }
 
+// 보스와 새벽 3시 앞의 준비 시간.
+//
+// 시골점을 24판 재 보니 1~12웨이브 체력 손실이 거의 0인데 13웨이브(새벽 3시)에
+// 한 번에 32.5 가 빠졌다. 예고는 있었지만 대비할 시간이 없었다 — 웨이브가
+// 끊김 없이 이어져서, 「다음 · 보스」를 읽어도 할 수 있는 게 없었다.
+// 예고 → 대비 → 시험 의 순서를 만든다.
+export const PREP_SECONDS = 8;
+export function needsPrep(wave: number): boolean {
+  return wave > 1 && (isBossWave(wave) || wave === THREE_AM_WAVE);
+}
+
 // 체력 스케일: 웨이브 10 ≈ 7.6x, 20 ≈ 24x, 30 ≈ 51x, 40 ≈ 87x, 이후 x1.07/웨이브
 // (보상 카드로 유닛이 훨씬 강해지므로 그만큼 손님도 단단해야 한다)
 // (시뮬레이션 결과 중반이 너무 쉬워 2차항을 0.011 → 0.019 로 올림)

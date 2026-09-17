@@ -6,8 +6,9 @@ import type { Tier } from '../types';
 import { ENEMY_DEFS } from '../data/enemies';
 import { EVENT_DEFS } from '../data/events';
 import { buildWave } from '../data/waves';
+import { startWave } from '../engine/waveSystem';
 import { createRng } from '../engine/rng';
-import { TOTAL_SLOTS, MAX_SHELF_LEVEL, MAX_TIER, START_SLOTS, formatClock, THREE_AM_WAVE } from '../config';
+import { TOTAL_SLOTS, MAX_SHELF_LEVEL, MAX_TIER, START_SLOTS, needsPrep, PREP_SECONDS, formatClock, THREE_AM_WAVE } from '../config';
 import { buildGeometry, geoPos, STAGE_BY_ID, maxSlotsOf } from '../data/stages';
 
 // 경로는 지점마다 다르다. 테스트는 기준 지점(동네 골목점)으로 고정한다.
@@ -16,6 +17,7 @@ import { createUnit } from '../engine/unitFactory';
 import { mergeUnits, choosePromote } from '../engine/mergeSystem';
 import { REWARD_CARDS } from '../data/rewards';
 import { chooseReward } from '../engine/rewardSystem';
+import { sellCandidate } from '../../ui/useGame';
 
 // 진열대 증축 만렙 엔진. 칸 번호를 직접 쓰는 테스트는 21칸이 다 열려 있어야 한다.
 function fullEngine(seed: number): Engine {
@@ -430,5 +432,78 @@ describe('좁은 지점의 남는 증축', () => {
     const e = new Engine({ stageId: 'alley', seed: 2, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: MAX_SHELF_LEVEL }) });
     expect(e.state.shelfSurplus).toBe(0);
     expect(e.state.perma.aisleMult).toBe(1);
+  });
+});
+
+describe('유닛 잠금', () => {
+  it('잠근 유닛은 정리에도 자동 판매에도 안 걸린다', () => {
+    const engine = fullEngine(21);
+    const s = engine.state;
+    // 짝 없는 1티어 셋 = 원래라면 전부 정리 대상
+    const ids: number[] = [];
+    for (const [i, defId] of ['cctv', 'onigiri', 'coffee'].entries()) {
+      const u = createUnit(s, defId, 1, i);
+      s.units.push(u);
+      s.slots[i].unitId = u.id;
+      ids.push(u.id);
+    }
+    expect(engine.snapshot().junkCount).toBe(3);
+    expect(engine.dispatch({ type: 'TOGGLE_PIN', unitId: ids[0] }).ok).toBe(true);
+    expect(engine.snapshot().junkCount, '잠근 하나는 빠져야 한다').toBe(2);
+    engine.dispatch({ type: 'SELL_JUNK' });
+    expect(s.units.map((u) => u.id)).toEqual([ids[0]]);
+    // 자동 정리(useGame) 가 고르는 후보에서도 빠진다
+    expect(sellCandidate(engine.snapshot().groups)).toBeNull();
+    // 다시 누르면 풀린다
+    engine.dispatch({ type: 'TOGGLE_PIN', unitId: ids[0] });
+    expect(engine.snapshot().junkCount).toBe(1);
+  });
+});
+
+describe('준비 시간', () => {
+  it('보스와 새벽 3시 앞에만 붙고, 그동안 웨이브 시계와 스폰이 멈춘다', () => {
+    expect(needsPrep(10)).toBe(true); // 보스
+    expect(needsPrep(THREE_AM_WAVE)).toBe(true);
+    expect(needsPrep(9)).toBe(false);
+    expect(needsPrep(1)).toBe(false);
+
+    const engine = fullEngine(31);
+    const s = engine.state;
+    // 9웨이브 끝에서 10웨이브(보스) 로 넘어가기 직전
+    startWave(s, 9);
+    if (s.phase !== 'playing') s.phase = 'playing'; // 보상 화면이 열리면 tick 이 멈춘다
+    s.waveTimer = 0.01;
+    s.spawnQueue = [];
+    for (let i = 0; i < 4; i++) engine.tick(1 / 60);
+    expect(s.prep, '보스 앞에서는 준비 시간이 붙는다').toBeGreaterThan(0);
+    expect(s.wave, '준비 중에는 웨이브가 넘어가지 않는다').toBe(9);
+
+    const queued = s.spawnQueue.length;
+    const prepBefore = s.prep;
+    for (let i = 0; i < 60; i++) engine.tick(1 / 60);
+    expect(s.prep).toBeLessThan(prepBefore);
+    expect(s.spawnQueue.length, '준비 중에는 스폰이 없다').toBe(queued);
+    expect(s.wave).toBe(9);
+
+    // 남은 시간을 다 흘리면 보스 웨이브가 시작된다
+    for (let i = 0; i < PREP_SECONDS * 60 + 10 && s.wave === 9; i++) engine.tick(1 / 60);
+    expect(s.prep).toBe(0);
+    expect(s.wave).toBe(10);
+  });
+
+  it('「지금 시작」을 누르면 남은 준비 시간을 버리고 바로 넘어간다', () => {
+    const engine = fullEngine(32);
+    const s = engine.state;
+    startWave(s, 19);
+    if (s.phase !== 'playing') s.phase = 'playing';
+    s.waveTimer = 0.01;
+    s.spawnQueue = [];
+    for (let i = 0; i < 4; i++) engine.tick(1 / 60);
+    expect(s.prep).toBeGreaterThan(0);
+    expect(engine.dispatch({ type: 'SKIP_PREP' }).ok).toBe(true);
+    expect(s.prep).toBe(0);
+    expect(s.wave).toBe(20);
+    // 준비 중이 아닐 때 누르면 아무 일도 없어야 한다
+    expect(engine.dispatch({ type: 'SKIP_PREP' }).ok).toBe(false);
   });
 });

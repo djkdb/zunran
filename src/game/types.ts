@@ -91,6 +91,9 @@ export interface Unit {
   kills: number;
   damage: number;
   bornAt: number;
+  // 잠금: 「정리」와 자동 판매가 건드리지 않는다. 판당 정리가 15회까지 나와서
+  // 아끼는 유닛이 쓸려 나가는 일이 생겼다.
+  pinned?: boolean;
   // 렌더 전용 힌트(엔진이 갱신): 최근 공격 시각/방향
   lastAttackAt: number;
   facing: 1 | -1;
@@ -496,6 +499,7 @@ export interface GameState {
 
   wave: number;
   waveTimer: number;
+  prep: number; // 보스·새벽3시 앞 준비 시간 (남은 초). > 0 이면 스폰과 웨이브 시계가 멈춘다
   waveDuration: number;
   waveTheme: import('./data/waves').WaveTheme;
   themeSchedule: import('./data/waves').WaveTheme[]; // 판 시작 때 한 번 정해지는 웨이브별 테마
@@ -561,6 +565,8 @@ export type GameAction =
   | { type: 'MERGE'; defId: string; tier: Tier }
   | { type: 'MERGE_TIER'; tier: Tier } // 고티어: 종류가 달라도 같은 티어끼리 합친다
   | { type: 'MERGE_BUY'; defId: string } // 「한 개만 더」: 합성까지 하나 남은 재료를 돈으로 채운다
+  | { type: 'TOGGLE_PIN'; unitId: number } // 잠금: 정리·자동 판매에서 제외한다
+  | { type: 'SKIP_PREP' } // 준비 시간을 건너뛰고 바로 시작한다
   | { type: 'SELL'; unitId: number }
   | { type: 'SELECT'; unitId: number | null }
   | { type: 'MOVE'; unitId: number; slot: number }
@@ -582,6 +588,7 @@ export interface UnitGroup {
   count: number;
   unitIds: number[];
   mergeable: boolean;
+  pinned: boolean; // 이 묶음이 전부 잠겨 있다 (정리·자동 판매 제외)
 }
 
 export interface UISnapshot {
@@ -590,6 +597,7 @@ export interface UISnapshot {
   clock: string;
   wave: number;
   waveTimer: number;
+  prep: number; // > 0 이면 준비 시간 (남은 초)
   waveDuration: number;
   waveTheme: import('./data/waves').WaveTheme;
   nextWaveTheme: import('./data/waves').WaveTheme;
@@ -619,7 +627,7 @@ export interface UISnapshot {
   groups: UnitGroup[];
   // 고티어 통합 합성: 종류가 달라도 합칠 수 있는 티어와 그 개수
   tierMerge: { tier: Tier; count: number } | null;
-  selected: { unitId: number; defId: string; tier: Tier; kills: number; damage: number; sellPrice: number; aisle: string; aisleBonus: string; groupCount: number } | null;
+  selected: { unitId: number; defId: string; tier: Tier; kills: number; damage: number; sellPrice: number; pinned: boolean; aisle: string; aisleBonus: string; groupCount: number } | null;
   activeEvents: { title: string; remain: number; mood: EventMood }[];
   stats: RunStats;
   unitCount: number;

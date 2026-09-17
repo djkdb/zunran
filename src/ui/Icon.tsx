@@ -24,9 +24,25 @@ export type IconName =
   | 'gem'
   | 'star'
   | 'chart'
-  | 'book';
+  | 'book'
+  | 'lock'
+  | 'unlock';
 
 const PATHS: Record<IconName, JSX.Element> = {
+  // 자물쇠 (잠금) — 채워진 고리
+  lock: (
+    <>
+      <rect x="5" y="11" width="14" height="9" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </>
+  ),
+  // 열린 자물쇠 (잠금 해제)
+  unlock: (
+    <>
+      <rect x="5" y="11" width="14" height="9" />
+      <path d="M8 11V8a4 4 0 0 1 7.5-2" />
+    </>
+  ),
   // 선물 상자 (뽑기)
   draw: (
     <>

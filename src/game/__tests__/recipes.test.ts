@@ -10,6 +10,7 @@ const group = (defId: string, tier: number, count = 1): UnitGroup => ({
   tier: tier as UnitGroup['tier'],
   count,
   unitIds: Array.from({ length: count }, (_, i) => tier * 1000 + i + defId.length * 7),
+  pinned: false,
   mergeable: count >= 3,
 });
 

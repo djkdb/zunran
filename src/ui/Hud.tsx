@@ -10,6 +10,7 @@ interface Props {
   onTogglePause: () => void;
   onToggleSpeed: () => void;
   onToggleMute: () => void;
+  onSkipPrep: () => void;
 }
 
 // HUD 는 필드 위에 얹는다.
@@ -19,10 +20,10 @@ interface Props {
 // 시계도 체력도 결국 '지금 매장이 어떤가'라서, 매장 위에 얹으면 될 일이었다.
 //
 // 매장 맨 윗줄은 벽이라 아무것도 지나가지 않는다. 거기에 얹는다.
-export function Hud({ snap, bestWave, muted, onTogglePause, onToggleSpeed, onToggleMute }: Props) {
+export function Hud({ snap, bestWave, muted, onTogglePause, onToggleSpeed, onToggleMute, onSkipPrep }: Props) {
   const hpPct = Math.round((snap.hp / snap.maxHp) * 100);
   const hpClass = hpPct <= 25 ? 'danger' : hpPct <= 50 ? 'warn' : '';
-  const waveProgress = 1 - snap.waveTimer / snap.waveDuration;
+  const waveProgress = snap.prep > 0 ? 1 : 1 - snap.waveTimer / snap.waveDuration;
   const showThemes = snap.waveTheme !== 'mixed' || snap.nextIsBoss || snap.nextWaveTheme !== 'mixed';
   return (
     <>
@@ -52,6 +53,20 @@ export function Hud({ snap, bestWave, muted, onTogglePause, onToggleSpeed, onTog
           </button>
         </span>
       </div>
+
+      {/* 준비 시간 — 보스와 새벽 3시 앞에만 온다.
+          예고를 읽어도 손쓸 틈이 없으면 예고가 아니다. */}
+      {snap.prep > 0 && (
+        <div className="fhud-prep">
+          <span className="fhud-prep-label">
+            {snap.nextIsBoss ? '보스 준비' : '새벽 3시 준비'}
+          </span>
+          <span className="fhud-prep-sec px">{Math.ceil(snap.prep)}</span>
+          <button className="fhud-prep-go" onClick={onSkipPrep}>
+            지금 시작
+          </button>
+        </div>
+      )}
 
     </div>
 

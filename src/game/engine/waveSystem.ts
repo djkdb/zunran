@@ -1,6 +1,6 @@
 import type { GameState } from '../types';
 import { buildWave, THEME_INFO } from '../data/waves';
-import { waveClearBonus, waveIncome, THREE_AM_WAVE, isBossWave, isRewardWave } from '../config';
+import { waveClearBonus, waveIncome, THREE_AM_WAVE, isBossWave, isRewardWave, needsPrep, PREP_SECONDS } from '../config';
 import { openRewardChoice } from './rewardSystem';
 import { spawnEnemy } from './enemySystem';
 import { ENEMY_BY_ID } from '../data/enemies';
@@ -96,6 +96,17 @@ function waveHint(wave: number): string {
 }
 
 export function updateWave(state: GameState, dt: number): void {
+  // 준비 시간. 스폰과 웨이브 시계만 멈춘다 — 남은 손님은 계속 걸어오고
+  // 유닛도 계속 쏜다. 멈추는 게 아니라 '숨 돌릴 틈' 이다.
+  if (state.prep > 0) {
+    state.prep -= dt;
+    if (state.prep <= 0) {
+      state.prep = 0;
+      startWave(state, state.wave + 1);
+    }
+    return;
+  }
+
   state.waveTimer -= dt;
   state.waveElapsed += dt;
 
@@ -137,8 +148,24 @@ export function updateWave(state: GameState, dt: number): void {
   }
 
   if (state.waveTimer <= 0) {
-    startWave(state, state.wave + 1);
+    const next = state.wave + 1;
+    if (needsPrep(next)) {
+      state.prep = PREP_SECONDS;
+      const what = next === THREE_AM_WAVE ? '새벽 3시' : '보스';
+      state.fx.push({ type: 'banner', text: '준비 시간', sub: `${what}가 옵니다 · ${PREP_SECONDS}초`, style: 'warning', dur: 2.2 });
+      sfx(state, 'warning');
+      return;
+    }
+    startWave(state, next);
   }
+}
+
+// 준비를 마쳤으면 기다릴 이유가 없다. 남은 시간을 버리고 바로 시작한다.
+export function skipPrep(state: GameState): boolean {
+  if (state.prep <= 0) return false;
+  state.prep = 0;
+  startWave(state, state.wave + 1);
+  return true;
 }
 
 export function isThreeAm(state: GameState): boolean {

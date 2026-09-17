@@ -285,6 +285,16 @@ export function BottomPanel({ snap, act, denied }: Props) {
             </div>
           </div>
           <div className="selected-actions">
+            {/* 잠금 — 정리와 자동 판매가 이 유닛을 건드리지 않는다.
+                판당 정리가 15회까지 나와서 아끼는 유닛이 쓸려 나가는 일이 생겼다. */}
+            <button
+              className={`pin-btn ${snap.selected.pinned ? 'on' : ''}`}
+              onClick={() => act({ type: 'TOGGLE_PIN', unitId: snap.selected!.unitId })}
+              aria-pressed={snap.selected.pinned}
+            >
+              <Icon name={snap.selected.pinned ? 'lock' : 'unlock'} size={14} strokeWidth={2.4} />
+              {snap.selected.pinned ? '잠김' : '잠금'}
+            </button>
             <button
               className={`sell-btn ${confirmSell === snap.selected.unitId ? 'confirm' : ''}`}
               onClick={() => {
@@ -321,7 +331,14 @@ export function BottomPanel({ snap, act, denied }: Props) {
                   <UnitIcon defId={g.defId} size={26} />
                   <span className="inv-text">
                     <span className="inv-name">{def.name}</span>
-                    {g.mergeable ? <span className="inv-merge-hint">MERGE!</span> : <TierTicks tier={g.tier} color={RARITY_COLOR[def.rarity]} />}
+                    {g.mergeable ? (
+                      <span className="inv-merge-hint">MERGE!</span>
+                    ) : (
+                      <span className="inv-ticks">
+                        <TierTicks tier={g.tier} color={RARITY_COLOR[def.rarity]} />
+                        {g.pinned && <Icon name="lock" size={10} strokeWidth={2.6} />}
+                      </span>
+                    )}
                   </span>
                   <span className="inv-count">×{g.count}</span>
                 </span>

@@ -68,6 +68,7 @@ export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHin
               onTogglePause={() => act({ type: 'TOGGLE_PAUSE' })}
               onToggleSpeed={() => act({ type: 'SET_SPEED', speed: snap.speed === 1 ? 2 : 1 })}
               onToggleMute={onToggleMute}
+              onSkipPrep={() => act({ type: 'SKIP_PREP' })}
             />
           )}
           <BannerLayer banners={banners} />

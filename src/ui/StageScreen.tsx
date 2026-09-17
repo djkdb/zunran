@@ -1,4 +1,5 @@
 import { STAGES, stageUnlocked, maxSlotsOf, STAGE_BY_ID, type StageDef } from '../game/data/stages';
+import { StoreFrontScene } from './StoreFrontScene';
 import { Icon } from './Icon';
 
 interface Props {
@@ -12,6 +13,10 @@ interface Props {
 //
 // 잠긴 지점도 전부 보여준다. 첫 지점을 깨고 "이게 다야?" 하고 떠나면 끝이다 —
 // 앞에 무엇이 있는지, 얼마나 가야 열리는지가 처음부터 보여야 한다.
+//
+// 카드는 밤거리 간판이다. 지나가는 사람 수가 곧 난이도라서, 숫자를 읽기 전에
+// 그림에서 먼저 읽힌다 — 시골점은 가끔 한 명, 술집가는 끊이지 않는다.
+// (예전에는 평면도 SVG 와 퍼센트 네 개였다. 스펙 시트처럼 보였다.)
 export function StageScreen({ bestByStage, current, onPick, onBack }: Props) {
   return (
     <div className="screen stage-screen">
@@ -30,6 +35,7 @@ export function StageScreen({ bestByStage, current, onPick, onBack }: Props) {
         {STAGES.map((st) => {
           const open = stageUnlocked(st, bestByStage);
           const best = bestByStage[st.id] ?? 0;
+          const need = st.unlockAfter ? (bestByStage[st.unlockAfter] ?? 0) : 0;
           return (
             <button
               key={st.id}
@@ -37,30 +43,40 @@ export function StageScreen({ bestByStage, current, onPick, onBack }: Props) {
               disabled={!open}
               onClick={() => onPick(st.id)}
             >
-              <div className="stage-top">
-                <span className="stage-name">{st.name}</span>
-                <span className="stage-pay px">수당 ×{st.scoreMult}</span>
-              </div>
-              <div className="stage-sub">{st.sub}</div>
-              <StageMap stage={st} />
-              <div className="stage-stats px">
-                <span>진열대 {maxSlotsOf(st)}칸</span>
-                <span>통로 {st.rows.length}줄</span>
-                <span className={st.traffic.count > 1 ? 'hot' : st.traffic.count < 1 ? 'calm' : ''}>
-                  유동인구 {Math.round(st.traffic.count * 100)}%
-                </span>
-                <span>벌이 {Math.round(st.traffic.coin * 100)}%</span>
-              </div>
-              <div className="stage-desc">{st.desc}</div>
-              <div className="stage-foot">
-                {open ? (
-                  best > 0 ? <span className="stage-best px">최고 {best}웨이브</span> : <span className="stage-new px">아직 안 가봤다</span>
-                ) : (
-                  <span className="stage-lock">
-                    <Icon name="store" size={12} strokeWidth={2.4} />
-                    {STAGE_BY_ID[st.unlockAfter!]?.name}에서 {st.unlockWave}웨이브 · 지금 {bestByStage[st.unlockAfter!] ?? 0}
+              <div className="stage-scene">
+                <StoreFrontScene variant={st.id} height={150} fade={false} dim={!open} />
+                <span className="stage-sign">{st.name}</span>
+                {!open && (
+                  <span className="stage-shutter">
+                    <Icon name="lock" size={13} strokeWidth={2.6} />
+                    {STAGE_BY_ID[st.unlockAfter!]?.short} {need}/{st.unlockWave}웨이브
                   </span>
                 )}
+                {open && best > 0 && <span className="stage-badge px">최고 W{best}</span>}
+                {open && best === 0 && <span className="stage-badge px new">NEW</span>}
+              </div>
+
+              <div className="stage-body">
+                <div className="stage-sub">{st.sub}</div>
+                {/* 유동인구는 사람 아이콘 수로, 벌이는 지폐 수로. 퍼센트는 옆에 작게. */}
+                <div className="stage-gauges">
+                  <span className="stage-gauge">
+                    <i className="g-label">유동인구</i>
+                    <i className="g-dots">{dots(st.traffic.count, 'hot')}</i>
+                    <i className="g-num px">{Math.round(st.traffic.count * 100)}%</i>
+                  </span>
+                  <span className="stage-gauge">
+                    <i className="g-label">객단가</i>
+                    <i className="g-dots">{dots(st.traffic.coin, 'gold')}</i>
+                    <i className="g-num px">{Math.round(st.traffic.coin * 100)}%</i>
+                  </span>
+                </div>
+                <div className="stage-stats px">
+                  <span>진열대 {maxSlotsOf(st)}칸</span>
+                  <span>통로 {st.rows.length}줄</span>
+                  <span className="pay">수당 ×{st.scoreMult}</span>
+                </div>
+                <div className="stage-desc">{st.desc}</div>
               </div>
             </button>
           );
@@ -70,32 +86,16 @@ export function StageScreen({ bestByStage, current, onPick, onBack }: Props) {
   );
 }
 
-// 매장 구조 미리보기. 통로가 몇 줄인지, 진열대가 몇 칸인지 한눈에 보인다.
-function StageMap({ stage }: { stage: StageDef }) {
-  const w = 200;
-  const h = 84;
-  const pad = 8;
-  const cellW = (w - pad * 2) / stage.cols.length;
-  const rowH = (h - pad * 2) / stage.rows.length;
+// 배율을 점 다섯 개로. 0.6배 = 2개, 1배 = 3개, 1.6배 = 5개.
+function dots(mult: number, tone: 'hot' | 'gold') {
+  const n = Math.max(1, Math.min(5, Math.round(mult * 3)));
   return (
-    <svg className="stage-map" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`${stage.name} 매장 구조`}>
-      <rect x="1" y="1" width={w - 2} height={h - 2} rx="3" className="stage-map-bg" />
-      {stage.rows.map((_, row) => (
-        <line key={`a${row}`} x1={pad} y1={pad + rowH * (row + 0.15)} x2={w - pad} y2={pad + rowH * (row + 0.15)} className="stage-map-aisle" />
+    <>
+      {Array.from({ length: 5 }, (_, i) => (
+        <b key={i} className={i < n ? `on ${tone}` : ''} />
       ))}
-      {stage.rows.map((_, row) =>
-        stage.cols.map((__, col) => (
-          <rect
-            key={`${row}-${col}`}
-            x={pad + cellW * col + 2}
-            y={pad + rowH * row + rowH * 0.45}
-            width={cellW - 4}
-            height={rowH * 0.42}
-            rx="1"
-            className="stage-map-slot"
-          />
-        )),
-      )}
-    </svg>
+    </>
   );
 }
+
+export type { StageDef };

@@ -10,11 +10,34 @@ import { rasterize } from '../game/render/sprites';
 // 가끔 지나가는 손님을 그린다. 손님 스프라이트는 게임에서 쓰는 것을 그대로 쓴다.
 
 const W = 360;
-const H = 260; // 아래 56px 은 제목이 얹히는 자리라 비워 둔다
-// 좌표는 전부 땅선 기준이다. 높이를 바꾸면 하늘만 넓어지고 가게는 그대로 앉아 있어야 한다.
-const GROUND = H - 70; // 손님이 서는 인도 선
-const STORE_TOP = GROUND - 82; // 편의점 차양 높이
-const BLD_BOT = STORE_TOP + 18; // 건너편 건물이 가게 뒤로 잘리는 선
+
+// 지점마다 거리가 다르다. 지나가는 사람 수가 곧 난이도라서,
+// 그림만 봐도 어느 쪽이 빡센 자리인지 읽힌다.
+export interface SceneVariant {
+  sky: [string, string, string];
+  buildings: number; // 건너편 건물 실루엣 수 (0 = 허허벌판)
+  litRatio: number; // 켜진 창문 비율
+  neon: number; // 옆 가게 네온 간판 수
+  walkEvery: [number, number]; // 손님 간격(ms)
+  maxWalkers: number;
+}
+
+export const SCENE_VARIANTS: Record<string, SceneVariant> = {
+  // 국도변 시골점 — 건너편에 아무것도 없다. 별만 많다.
+  country: { sky: ['#0a0716', '#141029', '#1d1738'], buildings: 1, litRatio: 0.25, neon: 0, walkEvery: [4200, 7000], maxWalkers: 1 },
+  // 동네 골목점 — 건물이 몇 채, 창문이 반쯤 켜져 있다.
+  alley: { sky: ['#0b0818', '#171034', '#241a44'], buildings: 3, litRatio: 0.66, neon: 1, walkEvery: [1400, 3400], maxWalkers: 3 },
+  // 역앞 술집가점 — 네온이 줄지어 있고 사람이 끊이지 않는다.
+  downtown: { sky: ['#12081f', '#2a0f3d', '#3d1a4a'], buildings: 5, litRatio: 0.92, neon: 3, walkEvery: [320, 900], maxWalkers: 6 },
+};
+
+interface Props {
+  muted?: boolean;
+  variant?: string; // SCENE_VARIANTS 의 키 (없으면 alley)
+  height?: number; // 캔버스 높이. 좌표는 땅선 기준이라 하늘만 넓어진다
+  fade?: boolean; // 아래쪽을 어둡게 (제목을 얹는 홈 화면용)
+  dim?: boolean; // 잠긴 지점: 셔터 내린 밤
+}
 
 interface Walker {
   x: number;
@@ -26,32 +49,41 @@ interface Walker {
 
 const WALK_SPRITES = ['e_basic', 'e_runner', 'e_drunk', 'e_cig', 'e_delivery'];
 
-export function StoreFrontScene({ muted = false }: { muted?: boolean }) {
+export function StoreFrontScene({ muted = false, variant = 'alley', height = 260, fade = true, dim = false }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
+    const V = SCENE_VARIANTS[variant] ?? SCENE_VARIANTS.alley;
+    const H = height;
+    // 좌표는 전부 땅선 기준이다. 높이를 바꾸면 하늘만 넓어지고 가게는 그대로 앉아 있어야 한다.
+    const GROUND = H - Math.round(H * 0.27);
+    const STORE_TOP = GROUND - 82;
+    const BLD_BOT = STORE_TOP + 18;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     canvas.width = W * dpr;
-    canvas.height = H * dpr;
+    canvas.height = height * dpr;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.scale(dpr, dpr);
     ctx.imageSmoothingEnabled = false;
 
     // 별은 한 번만 정한다 (매 프레임 흔들리면 눈이 아프다)
-    const stars = Array.from({ length: 44 }, (_, i) => ({
+    const starCount = Math.max(8, Math.round(44 * (1 - V.buildings * 0.1) * Math.min(1, H / 200)));
+    const stars = Array.from({ length: starCount }, (_, i) => ({
       x: ((i * 137) % W) + (i % 3),
-      y: (i * 53) % (BLD_BOT - 50),
+      // 낮은 캔버스(지점 카드)에서는 BLD_BOT - 50 이 음수가 되어
+      // 나머지 연산이 음수 좌표를 뱉는다. 하늘 높이를 최소 8px 로 잡는다.
+      y: (i * 53) % Math.max(8, BLD_BOT - 50),
       a: 0.25 + ((i * 37) % 60) / 100,
       t: (i * 19) % 100,
     }));
     // 건너편 건물의 창문
-    const windows = Array.from({ length: 34 }, (_, i) => ({
+    const windows = Array.from({ length: V.buildings * 11 }, (_, i) => ({
       x: 6 + ((i * 29) % (W - 20)),
       y: BLD_BOT - 38 + ((i * 17) % 34),
-      lit: i % 3 !== 0,
+      lit: ((i * 37) % 100) / 100 < V.litRatio,
     }));
 
     const walkers: Walker[] = [];
@@ -65,9 +97,9 @@ export function StoreFrontScene({ muted = false }: { muted?: boolean }) {
 
       // ── 밤하늘 ──
       const sky = ctx.createLinearGradient(0, 0, 0, H);
-      sky.addColorStop(0, '#0b0818');
-      sky.addColorStop(0.45, '#171034');
-      sky.addColorStop(1, '#241a44');
+      sky.addColorStop(0, V.sky[0]);
+      sky.addColorStop(0.45, V.sky[1]);
+      sky.addColorStop(1, V.sky[2]);
       ctx.fillStyle = sky;
       ctx.fillRect(0, 0, W, H);
 
@@ -78,15 +110,31 @@ export function StoreFrontScene({ muted = false }: { muted?: boolean }) {
       }
 
       // ── 건너편 건물 실루엣 ──
-      ctx.fillStyle = '#100b24';
-      ctx.fillRect(0, BLD_BOT - 44, W, 44);
-      ctx.fillStyle = '#0c0820';
-      ctx.fillRect(0, BLD_BOT - 50, 74, 50);
-      ctx.fillRect(126, BLD_BOT - 54, 58, 54);
-      ctx.fillRect(248, BLD_BOT - 48, 88, 48);
+      if (V.buildings > 0) {
+        ctx.fillStyle = '#100b24';
+        ctx.fillRect(0, BLD_BOT - 44, W, 44);
+        ctx.fillStyle = '#0c0820';
+        const shapes: [number, number, number][] = [[0, 50, 74], [126, 54, 58], [248, 48, 88], [80, 44, 42], [196, 52, 48]];
+        for (let i = 0; i < Math.min(V.buildings, shapes.length); i++) {
+          const [x, h2, w2] = shapes[i];
+          ctx.fillRect(x, BLD_BOT - h2, w2, h2);
+        }
+      }
       for (const w of windows) {
         ctx.fillStyle = w.lit ? 'rgba(255,216,77,0.16)' : 'rgba(239,234,255,0.05)';
         ctx.fillRect(w.x, w.y - 4, 3, 4);
+      }
+
+      // ── 옆 가게 네온 ──
+      // 가게보다 먼저 그린다. 뒤에 그리면 24H 간판을 가로지른다.
+      // 우리 가게 자리(sx 62~298)는 피해서 양옆에만 세운다.
+      for (let i = 0; i < V.neon; i++) {
+        const nx = i === 0 ? 24 : i === 1 ? 316 : 46;
+        const flick = Math.floor(now / 90 + i * 7) % 41 === 0 ? 0.3 : 1;
+        ctx.globalAlpha = flick * (0.55 + 0.2 * Math.sin(now / 700 + i));
+        ctx.fillStyle = i % 2 === 0 ? '#ff4d8d' : '#ffd84d';
+        ctx.fillRect(nx, BLD_BOT - 42, 7, 26);
+        ctx.globalAlpha = 1;
       }
 
       // ── 도로 · 인도 ──
@@ -151,7 +199,7 @@ export function StoreFrontScene({ muted = false }: { muted?: boolean }) {
 
       // ── 지나가는 손님 ──
       nextWalker -= dt * 1000;
-      if (nextWalker <= 0 && walkers.length < 3) {
+      if (nextWalker <= 0 && walkers.length < V.maxWalkers) {
         const right = Math.random() < 0.5;
         walkers.push({
           x: right ? -20 : W + 20,
@@ -160,7 +208,7 @@ export function StoreFrontScene({ muted = false }: { muted?: boolean }) {
           scale: 20 + Math.random() * 6,
           flip: !right,
         });
-        nextWalker = 1400 + Math.random() * 2600;
+        nextWalker = V.walkEvery[0] + Math.random() * (V.walkEvery[1] - V.walkEvery[0]);
       }
       for (const w of walkers) {
         w.x += w.speed * dt;
@@ -183,20 +231,27 @@ export function StoreFrontScene({ muted = false }: { muted?: boolean }) {
       }
 
       // ── 아래쪽 어둡게 (제목이 얹힐 자리) ──
-      const fade = ctx.createLinearGradient(0, H - 78, 0, H - 44);
-      fade.addColorStop(0, 'rgba(18,14,36,0)');
-      fade.addColorStop(1, 'rgba(18,14,36,0.97)');
-      ctx.fillStyle = fade;
-      ctx.fillRect(0, H - 78, W, 34);
-      ctx.fillStyle = 'rgba(18,14,36,0.97)';
-      ctx.fillRect(0, H - 44, W, 44);
+      if (fade) {
+        const g2 = ctx.createLinearGradient(0, H - 78, 0, H - 44);
+        g2.addColorStop(0, 'rgba(18,14,36,0)');
+        g2.addColorStop(1, 'rgba(18,14,36,0.97)');
+        ctx.fillStyle = g2;
+        ctx.fillRect(0, H - 78, W, 34);
+        ctx.fillStyle = 'rgba(18,14,36,0.97)';
+        ctx.fillRect(0, H - 44, W, 44);
+      }
+      // 잠긴 지점은 아직 남의 가게다. 밤만 깔아 둔다.
+      if (dim) {
+        ctx.fillStyle = 'rgba(11,8,24,0.62)';
+        ctx.fillRect(0, 0, W, H);
+      }
 
       raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [variant, height, fade, dim]);
 
   void muted;
-  return <canvas className="front-scene" ref={ref} aria-hidden="true" />;
+  return <canvas className="front-scene" ref={ref} aria-hidden="true" style={{ aspectRatio: `${W} / ${height}` }} />;
 }
