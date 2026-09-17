@@ -1,6 +1,6 @@
 import type { GameState, Tier, Unit, Rarity } from '../types';
-import { MERGE_ODDS, MAX_TIER, RARITY_LABEL } from '../config';
-import { PROMOTE_OPTIONS } from '../data/deck';
+import { MERGE_ODDS, MAX_TIER, RARITY_LABEL, mergeCost } from '../config';
+import { PROMOTE_OPTIONS, PROMOTE_MAX_TIER } from '../data/deck';
 
 import { UNIT_BY_ID, unitsOfRarity, NEXT_RARITY } from '../data/units';
 import { sfx, addFloater } from './helpers';
@@ -15,16 +15,17 @@ export interface MergeResult {
 
 export function canMerge(state: GameState, defId: string, tier: Tier): boolean {
   if (tier >= MAX_TIER) return false;
-  return state.units.filter((u) => u.defId === defId && u.tier === tier).length >= 3;
+  return state.units.filter((u) => u.defId === defId && u.tier === tier).length >= mergeCost(tier);
 }
 
 // 같은 유닛·같은 티어 3개 → 70% 강화 / 25% 상위 희귀도 랜덤 / 5% 특수
 export function mergeUnits(state: GameState, defId: string, tier: Tier): MergeResult {
   if (tier >= MAX_TIER) return { ok: false, reason: '최대 티어입니다' };
   const group = state.units.filter((u) => u.defId === defId && u.tier === tier);
-  if (group.length < 3) return { ok: false, reason: '같은 유닛 3개가 필요합니다' };
+  const need = mergeCost(tier);
+  if (group.length < need) return { ok: false, reason: `같은 유닛 ${need}개가 필요합니다` };
   const def = UNIT_BY_ID[defId];
-  const materials = group.slice(0, 3);
+  const materials = group.slice(0, need);
   // 선택된 유닛이 재료에 포함되면 그 슬롯을 결과 위치로 사용
   const selected = materials.find((u) => u.id === state.selectedUnitId);
   const keepSlot = (selected ?? materials[0]).slot;
@@ -38,6 +39,13 @@ export function mergeUnits(state: GameState, defId: string, tier: Tier): MergeRe
   let resultTier: Tier = (tier + 1) as Tier;
   const nextRarity = NEXT_RARITY[def.rarity];
   if (def.rarity === 'legendary' || def.rarity === 'special') {
+    kind = 'upgrade';
+  } else if (tier >= PROMOTE_MAX_TIER) {
+    // 3티어부터는 무조건 강화다.
+    // 승급은 티어 진행을 다른 유닛으로 옮겨 버린다. 저티어에서는 그게 '발견'이지만
+    // 어렵게 올린 고티어에서는 성취를 뺏기는 일이 된다. 실제로 25판을 돌려 보니
+    // T4 가 한 판도 안 나왔다 — 올릴 때마다 25% 확률로 경로가 끊겨서다.
+    // 낮은 티어는 놀라움, 높은 티어는 확정 성장으로 나눈다.
     kind = 'upgrade';
   } else if (roll < upgradeCut) {
     kind = 'upgrade';

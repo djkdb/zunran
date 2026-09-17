@@ -89,3 +89,7 @@ export const PROMOTE_OPTIONS = 2;
 // 에픽 소프트 천장. 이건 결정이 아니라 바닥이다 —
 // 초반에 20뽑 내내 일반만 나오는 판을 없애기 위한 최소한의 보정.
 export const EPIC_PITY = 15;
+
+// 이 티어 이상에서 합성하면 승급·특수가 나오지 않고 무조건 티어가 오른다.
+// 낮은 티어는 놀라움, 높은 티어는 확정 성장.
+export const PROMOTE_MAX_TIER = 3;

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { GameAction, UISnapshot } from '../game/types';
 import { UNIT_BY_ID } from '../game/data/units';
 import { recipeStatus, recipeResultName } from '../game/data/recipes';
-import { RARITY_COLOR, RARITY_LABEL, tierDmgMult } from '../game/config';
+import { RARITY_COLOR, RARITY_LABEL, tierDmgMult, mergeCost } from '../game/config';
 import { UnitIcon } from './UnitIcon';
 import { Icon, TierTicks } from './Icon';
 
@@ -224,7 +224,15 @@ export function BottomPanel({ snap, act, denied }: Props) {
               </div>
               <div className="selected-aisle">
                 {snap.selected.aisle} 배치 · <b>{snap.selected.aisleBonus}</b>
-                {snap.selected.groupCount >= 2 && <span className="selected-group">같은 유닛 {snap.selected.groupCount}개 (합성 {3 - snap.selected.groupCount > 0 ? `${3 - snap.selected.groupCount}개 남음` : '가능'})</span>}
+                {snap.selected.groupCount >= 2 && (
+                  <span className="selected-group">
+                    같은 유닛 {snap.selected.groupCount}개 (합성{' '}
+                    {mergeCost(snap.selected.tier) - snap.selected.groupCount > 0
+                      ? `${mergeCost(snap.selected.tier) - snap.selected.groupCount}개 남음`
+                      : '가능'}
+                    )
+                  </span>
+                )}
               </div>
               {snap.wave <= 6 && <div className="selected-hint">끌어서 옮기거나, 빈 칸을 탭해 배치하세요</div>}
             </div>
@@ -251,7 +259,7 @@ export function BottomPanel({ snap, act, denied }: Props) {
       )}
 
       <div className="inventory" ref={invRef}>
-        {snap.groups.length === 0 && <div className="inventory-empty">유닛을 뽑아서 편의점을 지키세요. 같은 유닛 3개 = 합성!</div>}
+        {snap.groups.length === 0 && <div className="inventory-empty">유닛을 뽑아서 편의점을 지키세요. 같은 유닛 3개 = 합성! (2티어부터는 2개)</div>}
         {snap.groups.map((g) => {
             const def = UNIT_BY_ID[g.defId];
             return (

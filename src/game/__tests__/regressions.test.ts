@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Engine } from '../engine/Engine';
-import { spawnEnemy, damageEnemy } from '../engine/enemySystem';
+import { spawnEnemy, damageEnemy, knockbackAll } from '../engine/enemySystem';
 import { REWARD_CARDS } from '../data/rewards';
 import { unitDamage, unitInterval, unitRange } from '../engine/helpers';
 import { createUnit } from '../engine/unitFactory';
@@ -273,15 +273,22 @@ describe('새 손님 행동', () => {
     expect(t.shield).toBeLessThan(shielded);
   });
 
-  it('배달 오토바이는 감속과 넉백에 면역이다', () => {
+  it('배달 오토바이는 넉백에 면역이다 (감속은 통한다 — 얼음 빌드가 답이 되어야 한다)', () => {
     const engine = new Engine({ seed: 64 });
     const s = engine.state;
     s.spawnQueue = [];
-    const e = spawnEnemy(s, 'bikeCourier', { dist: 200 })!;
-    e.slow = { pct: 0.8, until: s.time + 999 };
-    const d0 = e.dist;
+    const fast = spawnEnemy(s, 'bikeCourier', { dist: 200 })!;
+    const slowed = spawnEnemy(s, 'bikeCourier', { dist: 200 })!;
+    slowed.slow = { pct: 0.8, until: s.time + 999 };
+    const f0 = fast.dist;
+    const s0 = slowed.dist;
     step(engine, 60);
-    expect(e.dist - d0).toBeGreaterThan(150); // 감속을 무시하고 제 속도로 달린다
+    // 감속은 통한다 — 얼음 빌드가 답이 되어야 한다
+    expect(slowed.dist - s0).toBeLessThan((fast.dist - f0) * 0.4);
+    // 넉백은 안 통한다
+    const before = slowed.dist;
+    knockbackAll(s, 100);
+    expect(slowed.dist).toBe(before);
   });
 
   it('뛰는 손님은 초반에 실제로 계산대까지 닿을 수 있다', () => {
@@ -290,10 +297,10 @@ describe('새 손님 행동', () => {
     s.spawnQueue = [];
     const hp0 = s.hp;
     spawnEnemy(s, 'runner', { dist: 0 });
-    // 경로 2473px / 속도 215 ≈ 11.5초. 웨이브 1 길이(14초) 안에 도착한다.
-    run(engine, 12.5);
-    expect(s.wave).toBe(1);
+    // 경로 2473px / 속도 170 ≈ 14.5초. 웨이브 1 길이(14초)를 살짝 넘기므로
+    // 웨이브가 하나 넘어간 뒤에 도착한다 — 그래도 계산대에는 닿는다.
+    run(engine, 16);
     expect(s.hp).toBeLessThan(hp0); // 유닛이 없으면 반드시 통과한다
-    expect(s.waveReached).toBe(true);
+    expect(s.stats.reached).toBeGreaterThan(0);
   });
 });

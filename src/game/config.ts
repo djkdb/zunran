@@ -130,7 +130,12 @@ export const RARITY_COLOR: Record<Rarity, string> = {
 
 // ───────────── 티어 스케일 ─────────────
 export const TIER_DMG_MULT = 3.4; // 합성 3개 → 1개가 확실한 이득이 되도록 (시뮬: 합성 유무 차이 확보)
-export const MAX_TIER: Tier = 5;
+// 5 로 두었지만 25판 측정에서 아무도 3을 넘지 못했다.
+// T4 하나를 만들려면 같은 유닛 12개가 필요한데 풀이 25종이고 판당 뽑기가 65회다.
+// 즉 ★★★★★ 는 UI 에만 있고 게임에는 없는 숫자였다.
+// 도달 가능한 최대치를 실제 최대치로 맞춘다. T4 = 39배(3.4³)이고,
+// T3 합성이나 「승진」 보상으로 닿을 수 있다.
+export const MAX_TIER: Tier = 4;
 export function tierDmgMult(tier: Tier): number {
   return Math.pow(TIER_DMG_MULT, tier - 1);
 }
@@ -139,6 +144,16 @@ export function tierRangeBonus(tier: Tier): number {
 }
 export function tierIntervalMult(tier: Tier): number {
   return Math.pow(0.96, tier - 1);
+}
+
+// ───────────── 합성 재료 수 ─────────────
+// 전부 3개로 두었더니 티어가 사실상 2에서 멈췄다 (25판 측정: 보드의 67%가 T1,
+// 판당 최고 티어 평균 2.28, T4·T5 는 한 판도 없었다).
+// T5 를 만들려면 같은 유닛 81개가 필요한데 풀이 25종이니 도달 불가능한 설계였다.
+// 2티어부터 2개로 낮춘다 → T3 6개 · T4 12개 · T5 24개. T3~T4 가 손에 닿고
+// T5 는 로망으로 남는다. MAX_TIER 와 티어 배율은 그대로 둔다.
+export function mergeCost(tier: Tier): number {
+  return tier === 1 ? 3 : 2;
 }
 
 // ───────────── 합성 확률 ─────────────

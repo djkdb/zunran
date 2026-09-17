@@ -110,9 +110,14 @@ function makeContext(state: GameState): RewardContext {
     upgradeRandomUnit: () => {
       const candidates = state.units.filter((u) => u.tier < MAX_TIER);
       if (candidates.length === 0) return null;
-      // 가장 활약한 유닛을 올려준다 (아무거나 올리는 것보다 체감이 크다)
-      candidates.sort((a, b) => b.damage - a.damage);
-      const top = candidates.slice(0, Math.max(1, Math.ceil(candidates.length / 3)));
+      // 티어가 가장 높은 유닛을 먼저 올린다.
+      // 예전에는 피해량 상위 1/3 중에서 아무거나 골랐는데, 보드의 67%가 1티어라
+      // 대부분 1티어를 올려 주고 끝났다. 「승진」이 최고 티어를 한 칸 더 밀어주는
+      // 유일한 수단이므로 거기에 쓰이게 한다.
+      const best = Math.max(...candidates.map((u) => u.tier));
+      const topTier = candidates.filter((u) => u.tier === best);
+      topTier.sort((a, b) => b.damage - a.damage);
+      const top = topTier.slice(0, Math.max(1, Math.ceil(topTier.length / 2)));
       const u = state.rng.pick(top);
       u.tier = (u.tier + 1) as Tier;
       state.stats.maxTierReached = Math.max(state.stats.maxTierReached, u.tier);

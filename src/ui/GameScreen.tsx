@@ -31,7 +31,7 @@ interface Props {
 function hintFor(snap: UISnapshot): string | null {
   if (snap.unitCount === 0) return '아래 [유닛 뽑기]를 눌러 첫 유닛을 뽑으세요';
   if (snap.selected && snap.unitCount <= 2) return '빈 칸을 탭하면 그 자리로 옮겨집니다. 코너마다 보너스가 달라요';
-  if (snap.groups.some((g) => g.mergeable)) return '같은 유닛 3개! 아래 [합성] 버튼을 누르세요';
+  if (snap.groups.some((g) => g.mergeable)) return '합성할 수 있어요! 아래 [합성] 버튼을 누르세요';
   if (snap.enemyCount >= 14 && snap.skillReady.shutter) return '손님이 몰렸어요. [셔터 내려]로 전부 멈출 수 있어요';
   if (snap.nextIsBoss) return '다음 웨이브는 보스입니다. 합성으로 화력을 올리세요';
   if (snap.unitCount >= 3 && snap.wave <= 5) return '유닛을 끌어서 다른 칸으로 옮길 수 있어요';

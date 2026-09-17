@@ -214,7 +214,7 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
               </div>
               <div className="howto-row">
                 <Icon name="merge" size={20} strokeWidth={2.2} />
-                같은 유닛 3개 = 합성 (결과는 랜덤!)
+                같은 유닛 3개 = 합성 · 2티어부터는 2개 (결과는 랜덤!)
               </div>
               <div className="howto-row">
                 <Icon name="trophy" size={20} strokeWidth={2.2} />
