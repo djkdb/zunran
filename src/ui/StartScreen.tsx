@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { DailyRecord, SaveData } from '../game/save/storage';
 import { STAGES, STAGE_BY_ID, stageUnlocked } from '../game/data/stages';
+import { StoreFrontScene } from './StoreFrontScene';
 import type { DailySet } from '../game/daily';
 import { META_UPGRADES } from '../game/save/meta';
 import { ACHIEVEMENTS, totalAchievementReward } from '../game/data/achievements';
@@ -12,7 +13,7 @@ import { HistoryScreen } from './HistoryScreen';
 import { RankScreen } from './RankScreen';
 import { NicknameField } from './NicknameField';
 import { OrderScreen } from './OrderScreen';
-import { PIN_SLOTS, type Order } from '../game/data/deck';
+import { type Order } from '../game/data/deck';
 import { UnitIcon } from './UnitIcon';
 import { nextUnlock } from '../game/data/unlocks';
 import type { MetaUpgradeId } from '../game/types';
@@ -49,6 +50,7 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
   onToggleHaptics, onSetNickname, onToggleRankOptIn, order, onSetOrder, onReplayIntro, onReset }: Props) {
   const [tab, setTab] = useState<Tab>('main');
   const [deckOpen, setDeckOpen] = useState(false);
+  const [dailyOpen, setDailyOpen] = useState(false);
   const upcoming = nextUnlock(save.bestWave);
   const tip = TIPS[save.totalPlays % TIPS.length];
   const achCount = save.achievements.length;
@@ -68,25 +70,33 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
     );
   }
 
+  // 아직 못 연 지점 중 가장 가까운 것 (없으면 null)
+  const nextBranch = STAGES.find((st) => !stageUnlocked(st, save.bestByStage)) ?? null;
+
   return (
     <div className="start">
       <div className="start-inner">
-        <div className="title-block">
-          <button className="title-mute" onClick={onToggleMute} aria-label={save.muted ? '소리 켜기' : '소리 끄기'} aria-pressed={save.muted}>
-            <Icon name={save.muted ? 'mute' : 'sound'} size={16} strokeWidth={2.2} />
-          </button>
-          {/* 진동은 소리와 별개다 — 소리를 끄고 하는 사람이 대부분이라 손의 피드백이 남아야 한다 */}
-          <button
-            className={`title-mute title-haptics ${save.haptics ? '' : 'off'}`}
-            onClick={onToggleHaptics}
-            aria-label={save.haptics ? '진동 끄기' : '진동 켜기'}
-            aria-pressed={save.haptics}
-          >
-            <Icon name="gem" size={16} strokeWidth={2.2} />
-          </button>
-          <span className="title-sign">24H</span>
-          <h1 className="title">편의점 야간근무</h1>
-          <p className="subtitle">새벽 3시, 혼자 남았다.</p>
+        {/* 켜는 순간 보이는 건 상자가 아니라 가게여야 한다 */}
+        <div className="hero">
+          <StoreFrontScene />
+          <div className="hero-toggles">
+            <button className="title-mute" onClick={onToggleMute} aria-label={save.muted ? '소리 켜기' : '소리 끄기'} aria-pressed={save.muted}>
+              <Icon name={save.muted ? 'mute' : 'sound'} size={16} strokeWidth={2.2} />
+            </button>
+            {/* 진동은 소리와 별개다 — 소리를 끄고 하는 사람이 대부분이라 손의 피드백이 남아야 한다 */}
+            <button
+              className={`title-mute title-haptics ${save.haptics ? '' : 'off'}`}
+              onClick={onToggleHaptics}
+              aria-label={save.haptics ? '진동 끄기' : '진동 켜기'}
+              aria-pressed={save.haptics}
+            >
+              <Icon name="gem" size={16} strokeWidth={2.2} />
+            </button>
+          </div>
+          <div className="hero-title">
+            <h1 className="title">편의점 야간근무</h1>
+            <p className="subtitle">새벽 3시, 혼자 남았다.</p>
+          </div>
         </div>
 
         <div className="start-content">
@@ -100,114 +110,115 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
               </div>
             )}
 
-            <button className="deck-bar" onClick={() => setDeckOpen(true)}>
-              <span className="deck-bar-label">
-                오늘 발주
-                <span className="px">
-                  지명 {order.pins.length}/{PIN_SLOTS}
+            {/* 출근 블록: 시작 버튼이 화면의 주인공이고, 준비물은 그 아래 한 줄로 붙는다.
+                예전에는 발주·해금·지점·데일리가 모두 같은 크기의 상자라
+                무엇을 눌러야 하는지가 안 보였다. */}
+            <div className="go-block">
+              <button className="start-btn" onClick={() => onStart(false)}>
+                <span className="start-btn-main">
+                  <Icon name="store" size={26} strokeWidth={2.2} />
+                  야간 근무 시작
                 </span>
-              </span>
-              <span className="deck-bar-units">
-                {order.pins.map((id) => (
-                  <UnitIcon key={id} defId={id} size={26} />
-                ))}
-                {order.bans.map((id) => (
-                  <span className="deck-bar-ban" key={id}>
-                    <UnitIcon defId={id} size={26} dim />
+                <span className="start-btn-sub">
+                  {STAGE_BY_ID[save.stageId]?.name ?? '국도변 시골점'}
+                  {save.bestWave > 0 && <b className="px">최고 W{save.bestWave}</b>}
+                </span>
+              </button>
+
+              <div className="go-row">
+                <button className="go-chip" onClick={() => setDeckOpen(true)}>
+                  <span className="go-chip-label">오늘 발주</span>
+                  <span className="go-chip-body">
+                    {order.pins.length === 0 && order.bans.length === 0 ? (
+                      <span className="go-chip-empty">완전 랜덤</span>
+                    ) : (
+                      <>
+                        {order.pins.map((id) => (
+                          <UnitIcon key={id} defId={id} size={20} />
+                        ))}
+                        {order.bans.map((id) => (
+                          <span className="deck-bar-ban" key={id}>
+                            <UnitIcon defId={id} size={20} dim />
+                          </span>
+                        ))}
+                      </>
+                    )}
                   </span>
-                ))}
-                {order.pins.length === 0 && order.bans.length === 0 && <span className="deck-bar-empty">비워두면 완전 랜덤</span>}
-              </span>
-              <span className="deck-bar-edit">바꾸기</span>
-            </button>
-            {upcoming && (
-              <div className="unlock-hint">
-                <Icon name="gem" size={13} strokeWidth={2.4} />
-                웨이브 <b>{upcoming.wave}</b> 도달 시 <b>{upcoming.name}</b> 해금
-              </div>
-            )}
+                </button>
 
-            <button className="start-btn" onClick={() => onStart(false)}>
-              <Icon name="store" size={26} strokeWidth={2.2} />
-              야간 근무 시작
-            </button>
-
-            {/* 지점 안내. 첫 판을 깨고 "이게 다야?" 하고 떠나지 않도록
-                앞에 어떤 지점이 있는지 시작 화면에서부터 보여준다. */}
-            <div className="branch-strip">
-              <div className="branch-strip-head">
-                <span className="px">BRANCH</span>
-                <span className="branch-open">
-                  {STAGES.filter((st) => stageUnlocked(st, save.bestByStage)).length} / {STAGES.length} 지점
-                </span>
+                <button className="go-chip" onClick={() => onStart(false)}>
+                  <span className="go-chip-label">지점</span>
+                  <span className="go-chip-body">
+                    <b>{STAGES.filter((st) => stageUnlocked(st, save.bestByStage)).length}</b>
+                    <span className="go-chip-dim">/ {STAGES.length} 열림</span>
+                  </span>
+                </button>
               </div>
-              <div className="branch-row">
-                {STAGES.map((st) => {
-                  const open = stageUnlocked(st, save.bestByStage);
-                  const cur = save.stageId === st.id;
-                  return (
-                    <span key={st.id} className={`branch-pill ${open ? '' : 'locked'} ${cur ? 'cur' : ''}`}>
-                      {/* 잠긴 지점도 이름을 보여준다. '???' 로 가리면
-                          "이게 다야?" 하고 떠날 뿐, 가보고 싶어지지 않는다. */}
-                      {st.name}
-                      {open ? <b className="px">{save.bestByStage[st.id] ?? 0}</b> : <i className="branch-locked px">잠김</i>}
+
+              {(upcoming || nextBranch) && (
+                <div className="go-next">
+                  {upcoming && (
+                    <span>
+                      <Icon name="gem" size={11} strokeWidth={2.6} />
+                      W{upcoming.wave} · {upcoming.name} 해금
                     </span>
-                  );
-                })}
-              </div>
-              <div className="branch-note">
-                {(() => {
-                  const next = STAGES.find((st) => !stageUnlocked(st, save.bestByStage));
-                  if (!next) return '모든 지점을 열었습니다. 이제 기록 싸움입니다.';
-                  const from = STAGE_BY_ID[next.unlockAfter!];
-                  const have = save.bestByStage[next.unlockAfter!] ?? 0;
-                  return `다음 지점은 ${from?.name}에서 ${next.unlockWave}웨이브 · 지금 ${have}`;
-                })()}
-              </div>
-            </div>
-
-            {/* ZUNRAN DAILY — 오늘의 규칙 + 오늘의 미션 */}
-            <div className="daily-card">
-              <div className="daily-head">
-                <span className="daily-tag px">ZUNRAN DAILY</span>
-                <span className="daily-date px">{daily.date}</span>
-              </div>
-              <div className="daily-name">{daily.challenge.name}</div>
-              <ul className="daily-rules">
-                {daily.challenge.desc.map((d) => (
-                  <li key={d}>{d}</li>
-                ))}
-              </ul>
-              <div className="daily-mission">
-                <span className="daily-mission-label px">TODAY'S MISSION</span>
-                <div className="daily-goal">{daily.mission.goal}</div>
-                {daily.mission.extra && <div className="daily-extra">추가 조건 · {daily.mission.extra}</div>}
-                <div className="daily-reward">
-                  <Icon name="cash" size={13} strokeWidth={2.4} />
-                  야간 수당 +{daily.mission.reward}
-                  {todayRecord?.rewarded && <span className="daily-done">수령 완료</span>}
-                </div>
-              </div>
-              {todayRecord && (
-                <div className="daily-record">
-                  <span>
-                    오늘 최고 <b className="px">W{todayRecord.bestWave}</b>
-                  </span>
-                  <span>
-                    콤보 <b className="px">{todayRecord.bestCombo}</b>
-                  </span>
-                  <span>
-                    처치 <b className="px">{todayRecord.bestKills}</b>
-                  </span>
-                  <span className={todayRecord.missionCleared ? 'daily-clear' : 'daily-fail'}>
-                    {todayRecord.missionCleared ? 'MISSION CLEAR' : `${todayRecord.plays}판 시도`}
-                  </span>
+                  )}
+                  {nextBranch && (
+                    <span>
+                      <Icon name="store" size={11} strokeWidth={2.6} />
+                      {STAGE_BY_ID[nextBranch.unlockAfter!]?.name} W{nextBranch.unlockWave} · {nextBranch.name} 해금
+                    </span>
+                  )}
                 </div>
               )}
-              <button className="daily-btn" onClick={() => onStart(true)}>
-                <Icon name="trophy" size={18} strokeWidth={2.4} />
-                오늘의 규칙으로 시작
+            </div>
+
+            {/* ZUNRAN DAILY — 기본은 한 줄로 접는다.
+                예전에는 이 카드가 시작 버튼보다 커서 무엇이 주인공인지 알 수 없었다. */}
+            <div className={`daily-fold ${dailyOpen ? 'open' : ''}`}>
+              <button className="daily-toggle" onClick={() => setDailyOpen((v) => !v)} aria-expanded={dailyOpen}>
+                <span className="daily-tag px">ZUNRAN DAILY</span>
+                <span className="daily-toggle-name">{daily.challenge.name}</span>
+                {todayRecord ? (
+                  <span className="daily-toggle-best px">W{todayRecord.bestWave}</span>
+                ) : (
+                  <span className="daily-toggle-new px">NEW</span>
+                )}
+                <Icon name={dailyOpen ? 'pause' : 'play'} size={13} strokeWidth={2.4} />
               </button>
+              {!dailyOpen && (
+                <button className="daily-go" onClick={() => onStart(true)}>
+                  <Icon name="trophy" size={13} strokeWidth={2.4} />
+                  오늘의 규칙으로 시작
+                </button>
+              )}
+
+              {dailyOpen && (
+                <div className="daily-body">
+                  <ul className="daily-rules">
+                    {daily.challenge.desc.map((d) => (
+                      <li key={d}>{d}</li>
+                    ))}
+                  </ul>
+                  <div className="daily-mission">
+                    <span className="daily-mission-label px">TODAY'S MISSION</span>
+                    <div className="daily-goal">{daily.mission.goal}</div>
+                    {daily.mission.extra && <div className="daily-extra">추가 조건 · {daily.mission.extra}</div>}
+                    <div className="daily-reward">
+                      <Icon name="cash" size={13} strokeWidth={2.4} />
+                      야간 수당 +{daily.mission.reward}
+                      {todayRecord?.rewarded && <span className="daily-done">수령 완료</span>}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {dailyOpen && (
+                <button className="daily-btn" onClick={() => onStart(true)}>
+                  <Icon name="trophy" size={16} strokeWidth={2.4} />
+                  오늘의 규칙으로 시작
+                </button>
+              )}
             </div>
 
             <div className="records">
@@ -238,6 +249,9 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
               </button>
             )}
 
+            {/* 규칙 설명은 아직 한 판도 안 해 본 사람에게만 보인다.
+                계속 남아 있으면 홈이 설명서가 된다. */}
+            {save.totalPlays === 0 && (
             <div className="howto">
               <div className="howto-row">
                 <Icon name="draw" size={20} strokeWidth={2.2} />
@@ -256,6 +270,7 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
                 3웨이브마다 보상 3장 중 하나를 고른다
               </div>
             </div>
+            )}
             <div className="tip">
               <Icon name="bulb" size={16} strokeWidth={2.2} />
               {tip}
