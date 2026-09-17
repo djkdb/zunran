@@ -7,6 +7,18 @@ export function unitDef(u: Unit): UnitDef {
   return UNIT_BY_ID[u.defId];
 }
 
+// 유닛을 놓을 수 있는 칸. 잠긴 칸(아직 증축 안 함)과 봉쇄된 칸(「혼자 근무」)은 뺀다.
+//
+// 이 판정이 여러 군데로 흩어져 있었다가 「본사 지원」 보상이 잠긴 칸에 에픽을
+// 밀어 넣는 버그가 났다. 칸을 고르는 곳은 전부 이 두 함수만 쓴다.
+export function openSlots(state: GameState) {
+  return state.slots.filter((sl) => !sl.locked && !sl.blocked);
+}
+
+export function freeSlots(state: GameState) {
+  return openSlots(state).filter((sl) => sl.unitId === null);
+}
+
 export function unitPos(state: GameState, u: Unit): { x: number; y: number } {
   const s = state.slots[u.slot];
   return { x: s.x, y: s.y };

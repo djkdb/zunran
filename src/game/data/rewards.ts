@@ -1,5 +1,7 @@
 import type { RewardCardDef } from '../types';
 import { UNIT_BY_ID } from './units';
+import { freeSlots, openSlots } from '../engine/helpers';
+import { MAX_TIER } from '../config';
 
 // 웨이브 보상 카드. 3장 중 1장을 고른다 — 이 판만 유지되는 로그라이크 강화.
 // tone: normal(무난) / good(좋음) / best(대박) — UI 색과 등장 확률에 쓰인다.
@@ -97,7 +99,7 @@ export const REWARD_CARDS: RewardCardDef[] = [
     tone: 'good',
     kind: 'stat',
     weight: 8,
-    available: (s) => s.slots.some((sl) => sl.unitId === null),
+    available: (s) => freeSlots(s).length > 0,
     apply: (c) => {
       const id = c.grantUnit('rare');
       c.banner('신입 채용', id ? `${UNIT_BY_ID[id].name} 합류` : '자리가 없다');
@@ -112,7 +114,7 @@ export const REWARD_CARDS: RewardCardDef[] = [
     kind: 'stat',
     weight: 4,
     minWave: 6,
-    available: (s) => s.slots.some((sl) => sl.unitId === null),
+    available: (s) => freeSlots(s).length > 0,
     apply: (c) => {
       const id = c.grantUnit('epic');
       c.banner('본사 지원', id ? `${UNIT_BY_ID[id].name} 합류` : '자리가 없다');
@@ -126,7 +128,9 @@ export const REWARD_CARDS: RewardCardDef[] = [
     tone: 'best',
     kind: 'stat',
     weight: 5,
-    available: (s) => s.units.some((u) => u.tier < 5),
+    // MAX_TIER 가 5 였던 시절의 상수가 남아 있었다. 티어 상한이 4 로 내려온 뒤로는
+    // 보드가 전부 4티어여도 카드가 떴고, 고르면 '대상이 없다' 로 한 장을 버렸다.
+    available: (s) => s.units.some((u) => u.tier < MAX_TIER),
     apply: (c) => {
       const id = c.upgradeRandomUnit();
       c.banner('승진', id ? `${UNIT_BY_ID[id].name} 티어 상승` : '대상이 없다');
@@ -333,7 +337,9 @@ export const REWARD_CARDS: RewardCardDef[] = [
     kind: 'build',
     weight: 4,
     minWave: 10,
-    available: (s) => s.slots.filter((sl) => !sl.blocked && !sl.locked).length > 12,
+    // 막을 빈 칸이 3개는 있어야 한다. 없으면 '3칸이 막힌다' 는 대가 없이
+    // 오라 2배만 먹는 카드가 된다.
+    available: (s) => openSlots(s).length > 12 && freeSlots(s).length >= 3,
     apply: (c) => {
       c.state.perma.auraMult *= 2;
       // 뒤쪽 빈 칸부터 막는다. 유닛이 있는 칸은 건드리지 않는다.

@@ -3,6 +3,7 @@ import { REWARD_CARDS, REWARD_BY_ID } from '../data/rewards';
 import { unitsOfRarity } from '../data/units';
 import { MAX_TIER } from '../config';
 import { createUnit } from './unitFactory';
+import { freeSlots } from './helpers';
 import { addCoins } from './economy';
 import { sfx, addFloater } from './helpers';
 import { recomputeModifiers } from './eventSystem';
@@ -95,7 +96,7 @@ function makeContext(state: GameState): RewardContext {
     rng: state.rng,
     addCoins: (n) => addCoins(state, n),
     grantUnit: (rarity: Rarity) => {
-      const slot = state.slots.find((s) => s.unitId === null);
+      const slot = freeSlots(state)[0];
       if (!slot) return null;
       const pool = unitsOfRarity(rarity);
       if (pool.length === 0) return null;

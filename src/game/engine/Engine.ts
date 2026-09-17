@@ -18,7 +18,7 @@ import { mergeUnits, choosePromote, canMerge, canTierMerge, mergeByTier, tierMer
 import { createUnit } from './unitFactory';
 import { RECIPE_BY_ID, pickMaterials } from '../data/recipes';
 import { spendCoins, addCoins } from './economy';
-import { sfx, addFloater, unitDef } from './helpers';
+import { sfx, addFloater, unitDef, freeSlots, openSlots } from './helpers';
 import { metaEffects } from '../save/meta';
 import { DEFAULT_META_LEVELS } from '../save/meta';
 
@@ -230,7 +230,7 @@ export class Engine {
   private draw(forced?: 'rare' | 'epic' | 'legendary'): { ok: boolean; reason?: string } {
     const s = this.state;
     if (s.phase !== 'playing') return { ok: false };
-    const emptySlots = s.slots.filter((sl) => sl.unitId === null && !sl.blocked && !sl.locked);
+    const emptySlots = freeSlots(s);
     if (emptySlots.length === 0) return { ok: false, reason: '빈 칸이 없어요. 합성하거나 판매하세요.' };
     const cost = forced ? this.orderCost(forced) : this.currentDrawCost();
     if (!forced && s.freeDraws > 0) {
@@ -310,7 +310,10 @@ export class Engine {
     // 배치가 랜덤이면 그 보너스는 운이 된다 (docs/AUDIT.md 문제: 시스템 6번).
     // 유닛이 가장 적은 코너의 가장 왼쪽 빈 칸에 놓아 골고루 퍼지게 하고,
     // 플레이어는 방금 뽑힌 유닛이 선택된 상태이므로 원하는 칸을 탭해 바로 옮길 수 있다.
-    const perRow = [0, 0, 0];
+    // 줄 수는 지점마다 다르다 (시골 2줄 · 골목 3줄 · 술집가 4줄).
+    // [0,0,0] 으로 고정돼 있어서 4줄짜리 지점에서는 넷째 줄 집계가 NaN 이 되고
+    // 정렬이 칸 번호 순으로 주저앉았다.
+    const perRow = new Array(s.geo.aisleNames.length).fill(0);
     for (const u of s.units) perRow[s.slots[u.slot].row]++;
     const slot = [...emptySlots].sort(
       (a, b) => perRow[a.row] - perRow[b.row] || a.index - b.index,
@@ -488,7 +491,7 @@ export class Engine {
     }
     const boss = s.enemies.find((e) => e.isBoss && !e.dead && !e.reached);
     const sel = s.selectedUnitId !== null ? s.units.find((u) => u.id === s.selectedUnitId) : undefined;
-    const emptySlots = s.slots.filter((sl) => sl.unitId === null && !sl.blocked && !sl.locked).length;
+    const emptySlots = freeSlots(s).length;
     const cost = this.currentDrawCost();
     const junk = this.junkUnits();
     this.cachedSnapshot = {
@@ -510,7 +513,7 @@ export class Engine {
       canDraw: s.phase === 'playing' && emptySlots > 0 && (s.freeDraws > 0 || s.coins >= cost),
       orderCost: { rare: this.orderCost('rare'), epic: this.orderCost('epic'), legendary: this.orderCost('legendary') },
       emptySlots,
-      totalSlots: s.slots.filter((sl) => !sl.locked).length,
+      totalSlots: openSlots(s).length,
       speed: s.speed,
       paused: s.paused,
       enemyCount: s.enemies.length,
