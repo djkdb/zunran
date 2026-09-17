@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ACHIEVEMENTS, type Achievement } from '../game/data/achievements';
+import { ACHIEVEMENTS, achievementReward, totalAchievementReward, type Achievement } from '../game/data/achievements';
 import type { SaveData } from '../game/save/storage';
 import { Icon } from './Icon';
 
@@ -10,6 +10,9 @@ export function AchievementsScreen({ save }: { save: SaveData }) {
   const [group, setGroup] = useState<Achievement['group'] | '전체'>('전체');
   const list = group === '전체' ? ACHIEVEMENTS : ACHIEVEMENTS.filter((a) => a.group === group);
   const pct = Math.round((owned.size / ACHIEVEMENTS.length) * 100);
+  // 받은 수당 / 남은 수당 — "따면 뭘 주는지"가 보여야 딸 마음이 든다
+  const earned = ACHIEVEMENTS.filter((a) => owned.has(a.id)).reduce((n, a) => n + achievementReward(a), 0);
+  const total = totalAchievementReward();
   return (
     <div className="ach">
       <div className="ach-progress">
@@ -18,6 +21,10 @@ export function AchievementsScreen({ save }: { save: SaveData }) {
             {owned.size} / {ACHIEVEMENTS.length}
           </span>
           <span className="ach-pct px">{pct}%</span>
+        </div>
+        <div className="ach-earned">
+          <Icon name="cash" size={13} strokeWidth={2.4} />
+          받은 야간 수당 <b>{earned}</b> / {total}
         </div>
         <div className="bar bar-ach">
           <div className="bar-fill" style={{ width: `${pct}%` }} />
@@ -46,11 +53,10 @@ export function AchievementsScreen({ save }: { save: SaveData }) {
                 <span className="ach-title">{secret ? '???' : a.title}</span>
                 <span className="ach-desc">{secret ? '숨겨진 업적' : a.desc}</span>
               </span>
-              {got && (
-                <span className="ach-check">
-                  <Icon name="check" size={16} strokeWidth={2.6} />
-                </span>
-              )}
+              <span className={`ach-reward ${got ? 'got' : ''}`}>
+                {got ? <Icon name="check" size={14} strokeWidth={2.6} /> : <Icon name="cash" size={12} strokeWidth={2.4} />}
+                <span className="px">{achievementReward(a)}</span>
+              </span>
             </div>
           );
         })}

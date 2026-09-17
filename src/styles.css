@@ -3124,3 +3124,56 @@ button:disabled {
     animation: none;
   }
 }
+
+/* ───────── 업적 보상 · 상점 보강 ───────── */
+.ach-earned {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--off);
+}
+.ach-earned b {
+  color: var(--gold);
+  font-family: var(--font-px);
+  font-weight: 400;
+  font-size: 12px;
+}
+.ach-reward {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 6px;
+  background: var(--sunk);
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 800;
+}
+.ach-reward .px {
+  font-family: var(--font-px);
+  font-size: 11px;
+}
+.ach-reward.got {
+  color: var(--green);
+}
+.shop-sub {
+  margin-top: 3px;
+  font-size: 9.5px;
+  line-height: 1.5;
+  color: var(--off);
+}
+.points-break {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--off);
+}
+.points-break .from-ach {
+  color: var(--gold);
+}

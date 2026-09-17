@@ -370,7 +370,9 @@ export type MetaUpgradeId =
   | 'drawCost'
   | 'rareChance'
   | 'epicChance'
-  | 'coinGain';
+  | 'coinGain'
+  | 'mergeLuck'
+  | 'veteran';
 
 export interface MetaEffects {
   startCoins: number;
@@ -381,6 +383,8 @@ export interface MetaEffects {
   legendaryBonus: number;
   coinGainMult: number;
   freeDraws: number;
+  mergePromoteBonus: number; // 합성 시 상위 등급 승급 확률 +(0.01 = +1%p)
+  payMult: number; // 야간 수당 획득 배율 (판 안에는 영향 없음)
 }
 
 // ───────────────────────── 게임 상태 ─────────────────────────

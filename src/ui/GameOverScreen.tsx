@@ -108,6 +108,12 @@ export function GameOverScreen({ result, save, rank, needName, onSubmitName, onR
           <div className="gameover-points">
             <Icon name="cash" size={18} strokeWidth={2.4} />
             야간 수당 +{result.metaPoints}
+            {(result.missionReward > 0 || result.achReward > 0) && (
+              <span className="points-break">
+                {result.missionReward > 0 && <span>미션 +{result.missionReward}</span>}
+                {result.achReward > 0 && <span className="from-ach">업적 +{result.achReward}</span>}
+              </span>
+            )}
           </div>
 
           {needName ? (

@@ -28,15 +28,18 @@ export function mergeUnits(state: GameState, defId: string, tier: Tier): MergeRe
   const keepSlot = (selected ?? materials[0]).slot;
 
   const roll = state.rng.next();
+  // '합성 운' 강화는 승급(promote) 구간을 넓힌다. 강화 구간이 그만큼 줄어든다.
+  const promoteBonus = Math.min(0.25, state.meta.mergePromoteBonus ?? 0);
+  const upgradeCut = MERGE_ODDS.upgrade - promoteBonus;
   let kind: MergeResult['kind'] = 'upgrade';
   let resultDef = def.id;
   let resultTier: Tier = (tier + 1) as Tier;
   const nextRarity = NEXT_RARITY[def.rarity];
   if (def.rarity === 'legendary' || def.rarity === 'special') {
     kind = 'upgrade';
-  } else if (roll < MERGE_ODDS.upgrade) {
+  } else if (roll < upgradeCut) {
     kind = 'upgrade';
-  } else if (roll < MERGE_ODDS.upgrade + MERGE_ODDS.promote && nextRarity) {
+  } else if (roll < upgradeCut + MERGE_ODDS.promote + promoteBonus && nextRarity) {
     kind = 'promote';
     const pool = unitsOfRarity(nextRarity).filter((u) => u.id !== def.id);
     resultDef = state.rng.pick(pool).id;

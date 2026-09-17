@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { DailyRecord, SaveData } from '../game/save/storage';
 import type { DailySet } from '../game/daily';
 import { META_UPGRADES } from '../game/save/meta';
-import { ACHIEVEMENTS } from '../game/data/achievements';
+import { ACHIEVEMENTS, totalAchievementReward } from '../game/data/achievements';
 import { TIPS } from '../game/data/dialogue';
 import { Icon, type IconName } from './Icon';
 import { AchievementsScreen } from './AchievementsScreen';
@@ -190,11 +190,10 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
                   <div className="shop-info">
                     <div className="shop-name">
                       {u.name}
-                      <span className="shop-lvl">
-                        Lv.{lvl}/{u.maxLevel}
-                      </span>
+                      <span className="shop-lvl">{Number.isFinite(u.maxLevel) ? `Lv.${lvl}/${u.maxLevel}` : `${lvl}년차`}</span>
                     </div>
                     <div className="shop-desc">{maxed ? u.desc(lvl) : `${u.desc(lvl)} → ${u.desc(lvl + 1)}`}</div>
+                    {u.note && <div className="shop-sub">{u.note}</div>}
                   </div>
                   <button className={`shop-buy ${can ? '' : 'disabled'}`} disabled={!can} onClick={() => onBuy(u.id)}>
                     {maxed ? 'MAX' : cost}
@@ -202,7 +201,10 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
                 </div>
               );
             })}
-            <div className="shop-note">야간 수당은 한 판이 끝날 때 획득 코인의 10% + 웨이브·처치 보너스로 지급됩니다. 오늘의 미션을 깨면 추가로 받습니다.</div>
+            <div className="shop-note">
+              야간 수당은 한 판이 끝날 때 웨이브·처치·코인으로 지급됩니다. 오늘의 미션과 <b>업적</b>을 깨면 추가로 받습니다 (업적 전부 달성 시 {totalAchievementReward()}원). <b>연차</b>는 최대 레벨이
+              없어서 다 산 뒤에도 계속 올릴 수 있습니다.
+            </div>
           </div>
         )}
 

@@ -4,7 +4,7 @@ import type { MetaUpgradeId } from './game/types';
 import { loadSave, writeSave, resetSave, type DailyRecord, type RunRecord, type SaveData } from './game/save/storage';
 import { META_UPGRADES, metaEffects, metaPointsForRun } from './game/save/meta';
 import { mergeRunStats, analyzeDefeat, type DefeatAnalysis } from './game/save/stats';
-import { evaluateAchievements, type AchievementContext } from './game/data/achievements';
+import { evaluateAchievements, achievementReward, ACHIEVEMENT_BY_ID, type AchievementContext } from './game/data/achievements';
 import { pickRunTitle } from './game/data/runTitles';
 import { getDaily, dateKey } from './game/daily';
 import { createRng } from './game/engine/rng';
@@ -45,6 +45,7 @@ export interface RunResult {
   missionExtra: string | null;
   missionCleared: boolean;
   missionReward: number; // 실제로 지급된 값 (이미 오늘 받았으면 0)
+  achReward: number; // 이번 판에 새로 딴 업적 보상 합계
 }
 
 export function App() {
@@ -125,8 +126,6 @@ export function App() {
       const alreadyRewarded = prevDaily?.rewarded ?? false;
       const missionReward = missionCleared && !alreadyRewarded ? today.mission.reward : 0;
 
-      const basePoints = metaPointsForRun(s.stats.coinsEarned, s.wave, s.stats.kills);
-      const points = basePoints + missionReward;
       const newRecord = s.wave > save.bestWave || (s.wave === save.bestWave && s.realTime > save.bestTime);
 
       // ── 업적 (이번 판 반영 전 save 를 기준으로 판정) ──
@@ -144,6 +143,13 @@ export function App() {
         missionCleared,
       };
       const unlocked = evaluateAchievements(achCtx);
+      // 업적 보상: 이번 판에 새로 딴 것만 지급한다 (한 번 딴 업적은 다시 주지 않는다)
+      const achReward = unlocked.reduce((sum, id) => {
+        const def = ACHIEVEMENT_BY_ID[id];
+        return sum + (def ? achievementReward(def) : 0);
+      }, 0);
+      const basePoints = metaPointsForRun(s.stats.coinsEarned, s.wave, s.stats.kills, meta.payMult);
+      const points = basePoints + missionReward + achReward;
 
       const res: RunResult = {
         wave: s.wave,
@@ -172,6 +178,7 @@ export function App() {
         missionExtra: today.mission.extra,
         missionCleared,
         missionReward,
+        achReward,
       };
 
       const record: RunRecord = {

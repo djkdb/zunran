@@ -25,7 +25,27 @@ export interface Achievement {
   icon: IconName;
   hidden?: boolean; // 달성 전에는 설명을 가린다
   group: '진행' | '수집' | '기록' | '사건' | '밈';
+  reward?: number; // 야간 수당. 없으면 그룹 기본값
   when: (c: AchievementContext) => boolean;
+}
+
+// 그룹별 기본 보상. 40개를 손으로 매기는 대신 난이도 성격으로 정한다.
+// 숨겨진 업적은 우연히 밟는 것이라 조금 더 준다.
+const GROUP_REWARD: Record<Achievement['group'], number> = {
+  진행: 60,
+  수집: 90,
+  기록: 140,
+  사건: 70,
+  밈: 90,
+};
+
+export function achievementReward(a: Achievement): number {
+  return a.reward ?? GROUP_REWARD[a.group] + (a.hidden ? 40 : 0);
+}
+
+// 업적 전부를 땄을 때 받는 총액 (상점 안내 문구에 쓴다)
+export function totalAchievementReward(): number {
+  return ACHIEVEMENTS.reduce((sum, a) => sum + achievementReward(a), 0);
 }
 
 const top = (r: Record<string, number>): string | null => {
