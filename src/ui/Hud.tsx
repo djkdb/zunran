@@ -64,8 +64,12 @@ export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) 
         </div>
       </div>
 
-      {(snap.activeEvents.length > 0 || snap.bossAlive || snap.combo >= 3 || snap.riskWave || (snap.nextIsBoss && snap.phase === 'playing')) && (
+      {(snap.activeEvents.length > 0 || snap.bossAlive || snap.combo >= 3 || snap.riskWave || snap.nearCheckout >= 3 || (snap.nextIsBoss && snap.phase === 'playing')) && (
         <div className="hud-row hud-sub">
+          {/* 밀리고 있다는 신호. 체력이 깎이기 전에 보여야 대응할 수 있다. */}
+          {snap.nearCheckout >= 3 && (
+            <span className={`near-chip ${snap.nearCheckout >= 7 ? 'bad' : ''}`}>계산대 앞 {snap.nearCheckout}명</span>
+          )}
           {snap.nextIsBoss && !snap.bossAlive && (
             <span className="hud-next-boss">
               <Icon name="boss" size={11} strokeWidth={2.4} />! BOSS NEXT

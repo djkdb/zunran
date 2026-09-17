@@ -1,5 +1,5 @@
 import type { Enemy, FxEvent, GameState, Unit } from '../types';
-import { FIELD_W, FIELD_H, PATH, SLOT_ROWS, SLOT_COLS, RARITY_COLOR, CHECKOUT_POS, AISLE_NAMES, AISLE_BONUS, nightPhase, NIGHT_PHASE_TINT } from '../config';
+import { FIELD_W, FIELD_H, PATH, SLOT_ROWS, SLOT_COLS, RARITY_COLOR, CHECKOUT_POS, AISLE_NAMES, AISLE_BONUS, nightPhase, NIGHT_PHASE_TINT, PATH_LENGTH } from '../config';
 import { UNIT_BY_ID } from '../data/units';
 import { ENEMY_BY_ID } from '../data/enemies';
 import { rasterize, drawFallback, getSprite } from './sprites';
@@ -593,6 +593,17 @@ export class Renderer {
       }
     } else {
       drawFallback(ctx, 0, 4, w, def.color, def.name);
+    }
+    // 계산대 직전 구간에 들어선 손님은 붉은 링으로 표시한다.
+    // 체력이 깎이고 나서야 아는 게 아니라, 닿기 전에 보이도록.
+    if (!e.isBoss && e.dist > PATH_LENGTH * 0.78) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,77,141,0.85)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, 2, w * 0.42, w * 0.18, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
     }
     // 카운터 속성 표시. 화면에서 읽히지 않으면 카운터는 존재하지 않는 것과 같다.
     // 장갑 = 회색 겹테두리, 무리 가속 = 주황 잔상 화살표.

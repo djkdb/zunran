@@ -1,5 +1,5 @@
 import type { ChallengeSpec, FxEvent, GameAction, GameState, MetaEffects, Rarity, Tier, UISnapshot, UnitGroup, Unit } from '../types';
-import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, MAX_TIER, MIXED_MERGE_TIER, drawCost, formatClock, EVENT_INTERVAL, isBossWave, AISLE_NAMES, AISLE_BONUS } from '../config';
+import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, MAX_TIER, MIXED_MERGE_TIER, PATH_LENGTH, drawCost, formatClock, EVENT_INTERVAL, isBossWave, AISLE_NAMES, AISLE_BONUS } from '../config';
 import { UNIT_BY_ID, unitsOfRarity } from '../data/units';
 import { dupeWeight, PIN_GUARANTEE_DRAWS, PIN_TARGET_COPIES, EMPTY_ORDER, orderPrice, EPIC_PITY, type Order } from '../data/deck';
 import type { ShiftCondition } from '../data/shiftConditions';
@@ -499,6 +499,7 @@ export class Engine {
       speed: s.speed,
       paused: s.paused,
       enemyCount: s.enemies.length,
+      nearCheckout: s.enemies.filter((e) => !e.dead && !e.reached && e.dist > PATH_LENGTH * 0.78).length,
       bossAlive: !!boss,
       bossHp: boss?.hp ?? 0,
       bossMaxHp: boss?.maxHp ?? 0,

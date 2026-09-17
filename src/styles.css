@@ -4046,3 +4046,24 @@ button:disabled {
   font-size: 10px;
   opacity: 0.7;
 }
+
+/* 계산대 앞 경고: 체력이 깎이기 전에 "밀리고 있다"를 보여준다 */
+.near-chip {
+  font-family: var(--font-px);
+  font-size: 9.5px;
+  padding: 3px 7px;
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  color: var(--gold);
+  background: rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+}
+.near-chip.bad {
+  border-color: var(--hot);
+  color: var(--hot);
+  animation: nearPulse 0.7s ease-in-out infinite;
+}
+@keyframes nearPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}

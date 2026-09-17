@@ -597,6 +597,11 @@ export interface UISnapshot {
   speed: 1 | 2;
   paused: boolean;
   enemyCount: number;
+  // 계산대 직전 구간(마지막 통로)에 들어선 손님 수.
+  // 방어가 임계점을 넘기 전에는 0명이 뚫리고 넘는 순간 전부 뚫린다 —
+  // 체력만 보면 아무 경고가 없다가 한 웨이브에 반 토막 난다.
+  // "밀리고 있다"를 체력이 깎이기 전에 보여주는 신호다.
+  nearCheckout: number;
   bossAlive: boolean;
   bossHp: number;
   bossMaxHp: number;

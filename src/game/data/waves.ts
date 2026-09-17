@@ -82,6 +82,11 @@ export function buildWave(wave: number, rng: RNG, countMult = 1, themeOf: WaveTh
   // 첫 4분이 "잃을 것도 없는" 시간이 된다 (docs/AUDIT.md 문제 1·6절).
   // 2.3w 로 올려 초반부터 실제로 손님이 밀려오게 한다.
   let total = Math.round((4 + 2.3 * Math.min(wave, 40) + Math.max(0, wave - 40) * 1) * countMult);
+  // 초반 보정. 웨이브 12까지 손님 수를 더 올린다.
+  // 실제로 브라우저에서 세 판을 해 보니 14웨이브까지 체력이 100에서 움직이지 않았다.
+  // 7분짜리 게임의 절반이 무위험 구간이라는 뜻이다. 경제를 고치면서 초반에 유닛이
+  // 빨리 쌓이게 된 결과라, 손님 쪽을 같이 올려 균형을 맞춘다.
+  if (wave <= 12) total = Math.round(total * (1.45 - wave * 0.02));
   // 보스 웨이브 손님 수를 0.55배로 줄였더니 보스전이 오히려 쉬는 시간이 됐다 (docs/AUDIT.md 8절).
   // 빠른 손님은 개체가 약하다(담배 18, 뛰는 42). 수로 압박해야 테마가 산다.
   if (theme === 'fast') total = Math.round(total * 1.3);
