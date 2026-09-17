@@ -27,8 +27,8 @@
   --dim: #8a7fb8;
   --off: #6b6194;
 
-  --font-ui: 'Gothic A1', system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-  --font-display: 'Do Hyeon', 'Gothic A1', system-ui, sans-serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --font-display: 'Do Hyeon', var(--font-ui);
   --font-px: 'Silkscreen', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
   /* 막대 칸 사이를 끊는 색. 막대가 놓인 면 색과 같아야 한다 */
