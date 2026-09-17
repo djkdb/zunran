@@ -3686,3 +3686,126 @@ button:disabled {
 .cond-bad {
   color: var(--pink);
 }
+
+/* ───────── 넓은 화면: 왼쪽 사이드바 ─────────
+   모바일 세로 컬럼을 그대로 가운데 두면 1440px 에서 880px(61%)이 빈다.
+   960px 이상에서는 좌측 고정 사이드바 + 넓은 본문으로 바꾼다.
+   도감·랭킹·업적처럼 목록이 긴 탭이 실제로 넓어져서 이득을 본다. */
+@media (min-width: 960px) {
+  .start-inner {
+    max-width: 1180px;
+    display: grid;
+    grid-template-columns: 224px minmax(0, 1fr);
+    grid-template-areas:
+      'brand content'
+      'nav   content'
+      'links content';
+    grid-template-rows: auto auto 1fr;
+    align-content: start;
+    column-gap: 22px;
+    row-gap: 12px;
+    padding-block: 28px 32px;
+  }
+  .start-inner > .title-block {
+    grid-area: brand;
+  }
+  .start-inner > .title-block .title {
+    font-size: 25px;
+    letter-spacing: -0.02em;
+    word-break: keep-all;
+  }
+  .start-inner > .title-block .subtitle {
+    font-size: 11px;
+  }
+  .start-content {
+    grid-area: content;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+  }
+  /* 탭 바 → 세로 사이드 메뉴 */
+  .start-inner > .tabs {
+    grid-area: nav;
+    position: static;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 0;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+    align-self: start;
+  }
+  .start-inner > .tabs button {
+    flex: none;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 10px;
+    min-height: 46px;
+    padding: 0 14px;
+    font-size: 14px;
+  }
+  .start-inner > .tabs .tab-label {
+    font-size: 14px;
+  }
+  .start-inner > .tabs .tab-dot {
+    top: 50%;
+    right: 12px;
+    margin-right: 0;
+    transform: translateY(-50%);
+  }
+  .start-inner > .start-links {
+    grid-area: links;
+    flex-direction: column;
+    gap: 2px;
+    align-items: flex-start;
+    align-self: start;
+  }
+  .start-inner > .start-links .reset-link {
+    align-self: flex-start;
+    padding: 0 14px;
+    min-height: 38px;
+  }
+  /* 본문 안에서 목록형 탭은 넓어진 폭을 실제로 쓴다 */
+  /* 목록마다 알맞은 밀도가 다르다. 도감은 아이콘 카드라 촘촘하게,
+     업적·기록·상점은 한 줄짜리 항목이라 넓게. */
+  .codex-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    gap: 6px;
+    align-items: start;
+  }
+  .ach-list,
+  .history,
+  .shop {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 7px;
+    align-items: start;
+  }
+  /* 상점의 머리·꼬리는 한 줄을 다 쓴다 */
+  .shop-points,
+  .shop-note,
+  .ach-progress,
+  .ach-tabs,
+  .codex-tabs,
+  .rank-tabs,
+  .rank-note,
+  .rank-me,
+  .rank-legal {
+    grid-column: 1 / -1;
+  }
+  .rank-list {
+    column-count: 2;
+    column-gap: 8px;
+  }
+  .rank-list li {
+    break-inside: avoid;
+  }
+  .deck-pool {
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+  .records {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

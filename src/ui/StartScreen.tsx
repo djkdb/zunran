@@ -77,6 +77,7 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
           <p className="subtitle">새벽 3시, 혼자 남았다.</p>
         </div>
 
+        <div className="start-content">
         {tab === 'main' && (
           <>
             {/* 이름을 아직 안 정했으면 먼저 받는다. 기록이 '익명 알바'로 올라가 버리면 되돌리기 번거롭다. */}
@@ -257,6 +258,7 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
         {tab === 'ach' && <AchievementsScreen save={save} />}
         {tab === 'history' && <HistoryScreen save={save} />}
         {tab === 'rank' && <RankScreen save={save} onSetNickname={onSetNickname} onToggleOptIn={onToggleRankOptIn} />}
+        </div>
 
         <nav className="tabs">
           {TABS.map((t) => (
