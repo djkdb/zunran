@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { GameAction, UISnapshot } from '../game/types';
 import { UNIT_BY_ID } from '../game/data/units';
+import { recipeStatus, recipeResultName } from '../game/data/recipes';
 import { RARITY_COLOR, RARITY_LABEL, tierDmgMult } from '../game/config';
 import { UnitIcon } from './UnitIcon';
 import { Icon, TierTicks } from './Icon';
@@ -22,6 +23,11 @@ export function BottomPanel({ snap, act, denied }: Props) {
   }, [denied]);
 
   const mergeables = snap.groups.filter((g) => g.mergeable);
+  // 조합: 진행도 순으로 정렬된 것 중 위에서 두 개만 보여준다.
+  // 0/2 여도 보여줘야 판 시작부터 "이번엔 이걸 노린다"가 생긴다 — 그게 레시피의 존재 이유다.
+  // 전부 나열하면 읽히지 않으므로 두 줄로 자른다.
+  const allRecipes = recipeStatus(snap.groups);
+  const recipes = allRecipes.filter((r) => r.ready).length > 0 ? allRecipes.filter((r) => r.ready) : allRecipes.slice(0, 1);
   const sel = snap.selected ? UNIT_BY_ID[snap.selected.defId] : null;
   // 값나가는 유닛은 실수로 팔리지 않게 한 번 더 묻는다
   const [confirmSell, setConfirmSell] = useState<number | null>(null);
@@ -123,6 +129,26 @@ export function BottomPanel({ snap, act, denied }: Props) {
             {snap.junkCount}개 +{snap.junkValue}
           </span>
         </button>
+      )}
+
+      {recipes.length > 0 && (
+        <div className="recipe-row">
+          {recipes.slice(0, 2).map(({ def, ready, have }) => (
+            <button
+              key={def.id}
+              className={`recipe-btn ${ready ? 'ready' : ''}`}
+              disabled={!ready}
+              onClick={() => act({ type: 'COMBINE', recipeId: def.id })}
+            >
+              <UnitIcon defId={def.result} size={30} />
+              <span className="recipe-label">
+                <span className="recipe-name">{recipeResultName(def)}</span>
+                <span className="recipe-hint">{ready ? def.hint : `${def.hint} · 재료 ${have}/${def.materials.length}`}</span>
+              </span>
+              <span className="recipe-cta px">{ready ? '조합' : `${have}/${def.materials.length}`}</span>
+            </button>
+          ))}
+        </div>
       )}
 
       {mergeables.length > 0 && (

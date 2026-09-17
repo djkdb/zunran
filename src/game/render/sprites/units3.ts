@@ -153,3 +153,106 @@ export const UNITS3_SPRITES: SpriteSheet = {
     ],
   },
 };
+
+// 조합 레시피 결과 유닛 4종. 재료의 특징을 한눈에 섞어 보이게 그린다.
+export const RECIPE_SPRITES: SpriteSheet = {
+  // 야식 세트: 쟁반 위에 삼각김밥 + 컵라면 + 핫바
+  nightSnackSet: {
+    w: 16,
+    h: 16,
+    palette: { k: '#111827', t: '#78350f', b: '#a16207', w: '#f8fafc', n: '#1f2937', r: '#ef4444', o: '#f97316', y: '#fbbf24', c: '#fed7aa' },
+    rows: [
+      '................',
+      '....w.....rr....',
+      '...www...krrk...',
+      '..kwwwk..krrk...',
+      '..kwnwk..kcck...',
+      '..kwwwk..kcck...',
+      '..kkkkk..kkkk...',
+      '............oo..',
+      '...........koyk.',
+      '...........koyk.',
+      '...........koyk.',
+      '...........kook.',
+      '..kkkkkkkkkkkk..',
+      '..kbbbbbbbbbbk..',
+      '..ktttttttttttk.',
+      '...kkkkkkkkkkk..',
+    ],
+  },
+
+  // 에너지 드링크 진열대: 형광 초록 캔이 줄지어 서 있고 위에 번개
+  energyDrink: {
+    w: 16,
+    h: 16,
+    palette: { k: '#111827', m: '#6b7280', g: '#84cc16', l: '#bef264', y: '#fde047', d: '#365314' },
+    rows: [
+      '.......yy.......',
+      '......yy........',
+      '.....yyyy.......',
+      '.......yy.......',
+      '..kkkkkkkkkkkk..',
+      '..kmmmmmmmmmmk..',
+      '..kglglglglglk..',
+      '..kglglglglglk..',
+      '..kgdgdgdgdgdk..',
+      '..kmmmmmmmmmmk..',
+      '..kglglglglglk..',
+      '..kglglglglglk..',
+      '..kgdgdgdgdgdk..',
+      '..kmmmmmmmmmmk..',
+      '..kkkkkkkkkkkk..',
+      '................',
+    ],
+  },
+
+  // 무인 계산대: 키오스크 화면 + 바코드 리더, 사람이 없다
+  selfCheckout: {
+    w: 16,
+    h: 16,
+    palette: { k: '#111827', m: '#475569', g: '#94a3b8', s: '#22d3ee', w: '#e0f2fe', d: '#0e7490', r: '#ef4444' },
+    rows: [
+      '...kkkkkkkkkk...',
+      '...kmmmmmmmmk...',
+      '...kmssssssmk...',
+      '...kmswwwwsmk...',
+      '...kmswddwsmk...',
+      '...kmswwwwsmk...',
+      '...kmssssssmk...',
+      '...kmmmmmmmmk...',
+      '...kmggggggmk...',
+      '...kmgrrrrgmk...',
+      '...kmggggggmk...',
+      '...kmmmmmmmmk...',
+      '..kkmmmmmmmmkk..',
+      '..kmmmmmmmmmmk..',
+      '..kmmmmmmmmmmk..',
+      '..kkkkkkkkkkkk..',
+    ],
+  },
+
+  // 빙결 구역: 바닥이 얼고 고드름이 솟아 있다
+  freezeZone: {
+    w: 16,
+    h: 16,
+    palette: { k: '#111827', i: '#38bdf8', l: '#bae6fd', w: '#e0f2fe', d: '#0369a1' },
+    rows: [
+      '..l..........l..',
+      '..i....l.....i..',
+      '..i....i.....i..',
+      '.kik..kik...kik.',
+      '.kik..kik...kik.',
+      '.kkk..kkk...kkk.',
+      '................',
+      '....l.....l.....',
+      '...kik...kik....',
+      '...kkk...kkk....',
+      '................',
+      '.kkkkkkkkkkkkkk.',
+      '.kiwliwliwliwik.',
+      '.kdiididiididk..',
+      '.kiwliwliwliwik.',
+      '.kkkkkkkkkkkkkk.',
+    ],
+  },
+};

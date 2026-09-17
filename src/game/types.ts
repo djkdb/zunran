@@ -342,6 +342,7 @@ export interface RunStats {
   unitMaxTier: Record<string, number>; // 유닛별 이번 판 최고 티어
   catVisits: number; // 고양이를 만난 횟수
   lastDamageClock: string; // 마지막으로 체력이 깎인 순간의 게임 내 시계
+  recipesMade: number; // 조합 레시피 완성 횟수
 }
 
 // ───────────────────────── 데일리 챌린지 ─────────────────────────
@@ -516,6 +517,7 @@ export type GameAction =
   | { type: 'USE_SKILL'; skill: 'shutter' | 'dump' }
   | { type: 'TOGGLE_PAUSE' }
   | { type: 'SET_SPEED'; speed: 1 | 2 }
+  | { type: 'COMBINE'; recipeId: string }
   | { type: 'GIVE_UP' };
 
 // UI 스냅샷 (React 는 이 요약만 10Hz 로 받는다)

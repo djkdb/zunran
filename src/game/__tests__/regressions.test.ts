@@ -196,9 +196,10 @@ describe('보상 · 긴급 스킬 · 콤보', () => {
     expect(s.combo.count).toBe(6);
     expect(s.stats.bestCombo).toBe(6);
     expect(s.coins).toBeGreaterThan(coinsBefore);
-    // 시간이 지나면 콤보가 끊긴다
+    // 시간이 지나면 콤보가 끊긴다.
+    // 5연쇄에서 히트스톱(70ms)이 걸리므로 그게 풀릴 만큼은 돌려야 게임 시간이 흐른다.
     s.time += 5;
-    step(engine, 1);
+    step(engine, 8);
     expect(s.combo.count).toBe(0);
   });
 

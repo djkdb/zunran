@@ -2,11 +2,11 @@ import type { PixelSprite, SpriteSheet } from './spriteTypes';
 import { BASE_SPRITES } from './sprites/base';
 import { UNITS1_SPRITES } from './sprites/units1';
 import { UNITS2_SPRITES } from './sprites/units2';
-import { UNITS3_SPRITES } from './sprites/units3';
+import { UNITS3_SPRITES, RECIPE_SPRITES } from './sprites/units3';
 import { ENEMY_SPRITES } from './sprites/enemies';
 
 // 모든 스프라이트 시트를 하나로 합친다.
-const SHEETS: SpriteSheet[] = [BASE_SPRITES, UNITS1_SPRITES, UNITS2_SPRITES, UNITS3_SPRITES, ENEMY_SPRITES];
+const SHEETS: SpriteSheet[] = [BASE_SPRITES, UNITS1_SPRITES, UNITS2_SPRITES, UNITS3_SPRITES, RECIPE_SPRITES, ENEMY_SPRITES];
 
 const REGISTRY: SpriteSheet = Object.assign({}, ...SHEETS);
 

@@ -13,6 +13,7 @@ import { updateWave, startWave } from './waveSystem';
 import { updateEvents, baseModifiers, recomputeModifiers } from './eventSystem';
 import { mergeUnits, canMerge, announceLegendary } from './mergeSystem';
 import { createUnit } from './unitFactory';
+import { RECIPE_BY_ID, pickMaterials } from '../data/recipes';
 import { spendCoins, addCoins } from './economy';
 import { sfx, addFloater, unitDef } from './helpers';
 import { metaEffects } from '../save/meta';
@@ -52,14 +53,19 @@ export class Engine {
   tick(dtReal: number): void {
     const s = this.state;
     if (s.phase !== 'playing' || s.paused) return;
-    const dt = Math.min(dtReal, 0.25);
+    let dt = Math.min(dtReal, 0.25);
     s.realTime += dt;
-    // 히트스톱: 처치 순간 게임 시간을 아주 잠깐 멈춘다. 실시간은 계속 흐르므로
-    // 판이 길어지지 않고, 타격만 묵직해진다. 배속을 켜면 그만큼 짧아진다.
+    // 히트스톱: 처치 순간 게임 시간만 아주 잠깐 멈춘다. 실시간은 계속 흐른다.
+    // 정지분만 덜어내고 남은 dt 는 그대로 진행시킨다 — 프레임이 길게 들어와도
+    // (프레임 드랍, 테스트의 큰 스텝) 그 프레임을 통째로 삼키지 않는다.
     if (s.hitstop > 0) {
-      s.hitstop = Math.max(0, s.hitstop - dt * s.speed);
-      this.snapshotDirty = true;
-      return;
+      const used = Math.min(s.hitstop, dt * s.speed);
+      s.hitstop -= used;
+      dt -= used / s.speed;
+      if (dt <= 0) {
+        this.snapshotDirty = true;
+        return;
+      }
     }
     this.accumulator += dt * s.speed;
     let steps = 0;
@@ -123,6 +129,8 @@ export class Engine {
         const r = mergeUnits(s, action.defId, action.tier);
         return { ok: r.ok, reason: r.reason };
       }
+      case 'COMBINE':
+        return this.combine(action.recipeId);
       case 'SELL':
         return this.sell(action.unitId);
       case 'SELECT':
@@ -230,6 +238,46 @@ export class Engine {
       addFloater(s, { x: slot.x, y: slot.y - 36, text: def.name, color: '#cbd5e1', size: 12, life: 1 });
       sfx(s, 'draw');
     }
+    return { ok: true };
+  }
+
+  // 조합: 레시피 재료를 소모하고 레시피 전용 유닛을 만든다.
+  private combine(recipeId: string): { ok: boolean; reason?: string } {
+    const s = this.state;
+    if (s.phase !== 'playing') return { ok: false };
+    const def = RECIPE_BY_ID[recipeId];
+    if (!def) return { ok: false };
+    const ids = pickMaterials(def, this.snapshot().groups);
+    if (!ids) return { ok: false, reason: '재료가 모자라요.' };
+
+    const materials = ids.map((id) => s.units.find((u) => u.id === id)).filter((u): u is NonNullable<typeof u> => !!u);
+    if (materials.length !== def.materials.length) return { ok: false, reason: '재료가 모자라요.' };
+
+    // 결과는 첫 재료가 있던 칸에 놓는다
+    const slotIndex = materials[0].slot;
+    for (const u of materials) {
+      s.slots[u.slot].unitId = null;
+      if (s.selectedUnitId === u.id) s.selectedUnitId = null;
+    }
+    const usedIds = new Set(materials.map((u) => u.id));
+    s.units = s.units.filter((u) => !usedIds.has(u.id));
+
+    const made = createUnit(s, def.result, def.resultTier, slotIndex);
+    s.units.push(made);
+    s.slots[slotIndex].unitId = made.id;
+    s.selectedUnitId = made.id;
+
+    const resultDef = UNIT_BY_ID[def.result];
+    s.stats.recipesMade++;
+    if (!s.stats.seenUnits.includes(def.result)) s.stats.seenUnits.push(def.result);
+    s.stats.unitMaxTier[def.result] = Math.max(s.stats.unitMaxTier[def.result] ?? 1, def.resultTier);
+    const sl = s.slots[slotIndex];
+    s.fx.push({ type: 'banner', text: resultDef?.name ?? def.name, sub: `조합 성공 · ${def.name}`, style: 'legendary', dur: 2 });
+    s.fx.push({ type: 'shake', amount: 12 });
+    s.fx.push({ type: 'unitSpawn', unitId: made.id, rarity: 'special' });
+    addFloater(s, { x: sl.x, y: sl.y - 40, text: '조합!', color: '#ff4d8d', size: 15, life: 1.2 });
+    sfx(s, 'legendary');
+    this.snapshotDirty = true;
     return { ok: true };
   }
 
@@ -476,6 +524,7 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number): 
       coinsSpent: 0,
       draws: 0,
       merges: 0,
+    recipesMade: 0,
       bossKills: 0,
       legendaryDraws: 0,
       unitDamage: {},

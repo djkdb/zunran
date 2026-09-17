@@ -6,6 +6,7 @@ import { metaEffects, DEFAULT_META_LEVELS } from '../src/game/save/meta';
 import type { MetaUpgradeId } from '../src/game/types';
 import { CHALLENGE_BY_ID } from '../src/game/data/dailyChallenges';
 import { normalizeDeck } from '../src/game/data/deck';
+import { recipeStatus } from '../src/game/data/recipes';
 import { unlockedUnits } from '../src/game/data/unlocks';
 import { sellCandidate } from '../src/ui/useGame';
 
@@ -25,6 +26,11 @@ function autoPlay(engine: Engine, strategy: Strategy): void {
   // 긴급 스킬: 손님이 몰렸을 때만
   if (snap.skillReady.shutter && snap.enemyCount >= 14) engine.dispatch({ type: 'USE_SKILL', skill: 'shutter' });
   if (snap.skillReady.dump && snap.enemyCount >= 20) engine.dispatch({ type: 'USE_SKILL', skill: 'dump' });
+  // 조합: 완성됐으면 바로 만든다 (사람도 그렇게 한다)
+  for (const r of recipeStatus(snap.groups)) {
+    if (!r.ready) break;
+    engine.dispatch({ type: 'COMBINE', recipeId: r.def.id });
+  }
   // 합성: 가능한 그룹 전부
   if (strategy !== 'noMerge') {
     for (const g of snap.groups) {
@@ -98,6 +104,7 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 60, metaLevel = 0, 
     kills: s.stats.kills,
     draws: s.stats.draws,
     merges: s.stats.merges,
+    recipes: s.stats.recipesMade,
     maxTier: s.stats.maxTierReached,
     legendary: s.stats.legendaryDraws,
     coinsEarned: s.stats.coinsEarned,
@@ -134,7 +141,7 @@ console.log(`mean hp entering wave: w5=${mean(hpAt(4))} w10=${mean(hpAt(9))} w11
 const mvpCount = new Map<string, number>();
 for (const r of results) mvpCount.set(r.mvp, (mvpCount.get(r.mvp) ?? 0) + 1);
 const avgOf = (f: (r: typeof results[number]) => number) => (results.reduce((a, b) => a + f(b), 0) / results.length).toFixed(1);
-console.log(`avg: rewards=${avgOf((r) => r.rewards)} bestCombo=${avgOf((r) => r.combo)} skills=${avgOf((r) => r.skills)} merges=${avgOf((r) => r.merges)} tier=${avgOf((r) => r.maxTier)}`);
+console.log(`avg: recipes=${(results.reduce((a, r) => a + r.recipes, 0) / results.length).toFixed(1)} rewards=${avgOf((r) => r.rewards)} bestCombo=${avgOf((r) => r.combo)} skills=${avgOf((r) => r.skills)} merges=${avgOf((r) => r.merges)} tier=${avgOf((r) => r.maxTier)}`);
 console.log('mvp:', [...mvpCount.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}×${v}`).join(' '));
 const verbose = process.argv[5] === 'v';
 if (!verbose) process.exit(0);
