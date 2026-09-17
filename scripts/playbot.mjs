@@ -55,6 +55,11 @@ for (let run = 0; run < RUNS; run++) {
   const condName = (usable[pickIdx]?.t ?? '').split('×')[0].trim();
   await usable[pickIdx]?.c.click();
   await page.waitForSelector('.field-canvas', { timeout: 15000 });
+  // 2배속으로 돌린다. 한 판이 7~8분이라 등속으로는 사이클 한 번에 25분이 걸린다.
+  await page.evaluate(() => {
+    const b = [...document.querySelectorAll('.field-controls button')].find((e) => /배속/.test(e.getAttribute('aria-label') ?? ''));
+    b?.click();
+  });
   await page.waitForTimeout(800);
 
   const read = () => page.evaluate(() => {
