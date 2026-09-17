@@ -13,9 +13,17 @@ export const UNIT_UNLOCK_WAVE: Record<string, number> = {
   cctv: 9,
   vacuum: 13,
   freezer: 17,
+  hotbar: 8,
+  // 희귀
+  scanner: 11,
+  tteok: 15,
   // 에픽
   lotto: 12,
   parcel: 20,
+  slush: 24,
+  // 전설 — 점장은 처음부터, 나머지는 멀리 간 보상
+  owner: 28,
+  dawnCleaner: 34,
 };
 
 export interface UnlockInfo {

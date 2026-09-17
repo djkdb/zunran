@@ -7,12 +7,13 @@ import { UNIT_BY_ID, unitsOfRarity } from './units';
 // 언제나 정답이 된다(일반 뽑기 60%가 갈 곳이 없어 상위 등급으로 새어버린다).
 // 등급마다 칸을 못박으면 "어떤 일반을 쓸까"가 매번 진짜 선택이 된다.
 //
-// 전설은 아직 1종뿐이라 슬롯을 두지 않는다. 전설 뽑기는 기존처럼 전체에서 나온다.
-// 전설이 3종 이상이 되면 여기에 legendary: 1 을 추가하면 된다.
+// 전설은 2% 로만 나오지만, 나왔을 때 무엇이 나오느냐는 판을 가른다.
+// 3종이 되어 슬롯을 열었다. 특수 유닛(고양이·10년차)은 합성 전용이라 덱 밖이다.
 export const DECK_SLOTS: { rarity: Rarity; count: number }[] = [
   { rarity: 'common', count: 2 },
   { rarity: 'rare', count: 2 },
   { rarity: 'epic', count: 1 },
+  { rarity: 'legendary', count: 1 },
 ];
 
 export const DECK_SIZE = DECK_SLOTS.reduce((n, s) => n + s.count, 0);
