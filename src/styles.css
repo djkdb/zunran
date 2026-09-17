@@ -3866,3 +3866,47 @@ button:disabled {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* 합성 승급 2택 */
+.promote-panel {
+  max-width: 420px;
+}
+.promote-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 0 10px 10px;
+}
+.promote-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-height: 150px;
+  padding: 12px 8px;
+  border: 2px solid var(--fc, #fff);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: center;
+}
+.promote-card:active {
+  transform: translateY(1px);
+}
+.promote-rank {
+  font-family: var(--font-px);
+  font-size: 9px;
+  color: var(--fc, #fff);
+  letter-spacing: 0.06em;
+}
+.promote-name {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.promote-desc {
+  font-size: 11px;
+  line-height: 1.35;
+  opacity: 0.78;
+}

@@ -393,7 +393,7 @@ export interface MetaEffects {
 
 // ───────────────────────── 게임 상태 ─────────────────────────
 
-export type GamePhase = 'playing' | 'reward' | 'gameover';
+export type GamePhase = 'playing' | 'reward' | 'promote' | 'gameover';
 
 // 웨이브 보상으로 쌓이는 영구 강화 (한 판 한정)
 export interface PermaBuffs {
@@ -505,6 +505,8 @@ export interface GameState {
   gameOverReason?: string;
   lastDrawResult?: { defId: string; rarity: Rarity; at: number; ordered?: boolean };
   lastMergeResult?: { defId: string; tier: Tier; rarity: Rarity; kind: 'upgrade' | 'promote' | 'special'; at: number };
+  // 합성 승급 2택. 고르기 전까지 게임이 멈춘다 (phase = 'promote').
+  promoteChoice: { slot: number; tier: Tier; options: string[]; fromDefId: string } | null;
   disabledUnitNotice: number;
 }
 
@@ -520,6 +522,7 @@ export type GameAction =
   | { type: 'TAP_SLOT'; slot: number } // UI 편의: 선택 상태에 따라 선택/이동/교환
   | { type: 'SELL_JUNK' } // 합성 짝이 없는 티어1 일반 유닛 일괄 판매
   | { type: 'CHOOSE_REWARD'; defId: string }
+  | { type: 'CHOOSE_PROMOTE'; defId: string } // 합성 승급 2택
   | { type: 'USE_SKILL'; skill: 'shutter' | 'dump' }
   | { type: 'TOGGLE_PAUSE' }
   | { type: 'SET_SPEED'; speed: 1 | 2 }
@@ -570,6 +573,7 @@ export interface UISnapshot {
   junkCount: number; // 정리 판매 대상 수
   junkValue: number;
   rewardOffers: RewardOffer[];
+  promoteChoice: { slot: number; tier: Tier; options: string[]; fromDefId: string } | null;
   rewardsTaken: number;
   perma: PermaBuffs;
   shutterCd: number;

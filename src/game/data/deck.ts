@@ -72,3 +72,7 @@ export function orderPrice(rarity: keyof typeof ORDER_BASE, wave: number, discou
 // 에픽 소프트 천장. 이건 결정이 아니라 바닥이다 —
 // 초반에 20뽑 내내 일반만 나오는 판을 없애기 위한 최소한의 보정.
 export const EPIC_PITY = 15;
+
+// 합성 승급 시 보여주는 후보 수. 2장이면 "무엇이 뜨는가"의 놀라움은 남고
+// "둘 중 무엇을 가질까"라는 결정이 생긴다.
+export const PROMOTE_OPTIONS = 2;

@@ -7,6 +7,7 @@ import { Hud } from './Hud';
 import { BottomPanel } from './BottomPanel';
 import { BannerLayer } from './Banner';
 import { RewardOverlay } from './RewardOverlay';
+import { PromoteOverlay } from './PromoteOverlay';
 import { Icon } from './Icon';
 
 interface Props {
@@ -116,6 +117,7 @@ export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHin
       </div>
       {snap && <BottomPanel snap={snap} act={act} denied={denied} />}
       {snap && <RewardOverlay snap={snap} act={act} />}
+      {snap && <PromoteOverlay snap={snap} act={act} />}
     </div>
   );
 }

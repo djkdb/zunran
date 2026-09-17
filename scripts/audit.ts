@@ -24,6 +24,7 @@ interface RunLog {
   rewards: number;
   sells: number;
   orders: number;
+  promotes: number;
   firstSellWave: number | null;
   coinsEarned: number;
   firstBy: Partial<Record<Rarity, number>>; // 등급별 첫 등장 웨이브
@@ -48,7 +49,7 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 80): RunLog {
   const s = engine.state;
   const log: RunLog = {
     wave: 0, time: 0, diedOnBoss: false, diedWave: 0, kills: 0, draws: 0, merges: 0, recipes: 0,
-    rewards: 0, sells: 0, orders: 0, firstSellWave: null, coinsEarned: 0, firstBy: {},
+    rewards: 0, sells: 0, orders: 0, promotes: 0, firstSellWave: null, coinsEarned: 0, firstBy: {},
     hpByWave: [], coinsByWave: [], occByWave: [], affordByWave: [], drawsByWave: [],
     unitDamage: {}, unitSeen: [], mvp: null, enemySeen: {}, enemyReached: {},
     offered: [], chosen: [], finalUnits: [],
@@ -58,6 +59,17 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 80): RunLog {
   let prevSells = 0;
 
   const play = () => {
+    // 승급 2택: 더 높은 등급 → 더 높은 DPS 순으로 고른다 (사람의 흔한 선택)
+    if (s.phase === 'promote' && s.promoteChoice) {
+      const best = [...s.promoteChoice.options].sort((a, b) => {
+        const da = UNIT_BY_ID[a];
+        const db = UNIT_BY_ID[b];
+        return db.dmg / Math.max(0.1, db.interval) - da.dmg / Math.max(0.1, da.interval);
+      })[0];
+      engine.dispatch({ type: 'CHOOSE_PROMOTE', defId: best });
+      log.promotes++;
+      return;
+    }
     if (s.phase === 'reward' && s.rewardOffers.length > 0) {
       for (const o of s.rewardOffers) log.offered.push(o.defId);
       const best = [...s.rewardOffers].sort((a, b) => TONE_RANK[b.tone] - TONE_RANK[a.tone])[0];
@@ -119,6 +131,7 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 80): RunLog {
   };
 
   while (s.phase !== 'gameover' && s.wave <= maxWave && t < 60 * 60) {
+    if (s.phase === 'promote') play();
     engine.tick(0.1);
     engine.drainFx();
     t += 0.1;
@@ -194,7 +207,7 @@ for (let w = 0; w < 46; w++) {
 console.log('\n═══════════ 3. 행동 빈도 (판당 평균) ═══════════');
 for (const st of strategies) {
   const L = all[st];
-  console.log(`${st.padEnd(12)} 뽑기 ${mean(L.map((r) => r.draws)).toFixed(1)} | 합성 ${mean(L.map((r) => r.merges)).toFixed(1)} | 조합 ${mean(L.map((r) => r.recipes)).toFixed(2)} | 보상 ${mean(L.map((r) => r.rewards)).toFixed(1)} | 발주 ${mean(L.map((r) => r.orders)).toFixed(1)} | 판매 ${mean(L.map((r) => r.sells)).toFixed(1)} (첫 판매 w${med(L.filter((r) => r.firstSellWave).map((r) => r.firstSellWave!)) || '-'})`);
+  console.log(`${st.padEnd(12)} 뽑기 ${mean(L.map((r) => r.draws)).toFixed(1)} | 합성 ${mean(L.map((r) => r.merges)).toFixed(1)} | 조합 ${mean(L.map((r) => r.recipes)).toFixed(2)} | 보상 ${mean(L.map((r) => r.rewards)).toFixed(1)} | 발주 ${mean(L.map((r) => r.orders)).toFixed(1)} | 승급 ${mean(L.map((r) => r.promotes)).toFixed(1)} | 판매 ${mean(L.map((r) => r.sells)).toFixed(1)} (첫 판매 w${med(L.filter((r) => r.firstSellWave).map((r) => r.firstSellWave!)) || '-'})`);
 }
 
 console.log('\n═══════════ 4. 등급별 첫 등장 웨이브 (greedy) ═══════════');

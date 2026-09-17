@@ -12,7 +12,7 @@ import { updateEnemies } from './enemySystem';
 import { updateUnits } from './unitSystem';
 import { updateWave, startWave } from './waveSystem';
 import { updateEvents, baseModifiers, recomputeModifiers } from './eventSystem';
-import { mergeUnits, canMerge, announceLegendary } from './mergeSystem';
+import { mergeUnits, choosePromote, canMerge, announceLegendary } from './mergeSystem';
 import { createUnit } from './unitFactory';
 import { RECIPE_BY_ID, pickMaterials } from '../data/recipes';
 import { spendCoins, addCoins } from './economy';
@@ -161,6 +161,8 @@ export class Engine {
         return this.tapSlot(action.slot);
       case 'SELL_JUNK':
         return this.sellJunk();
+      case 'CHOOSE_PROMOTE':
+        return { ok: choosePromote(s, action.defId) };
       case 'CHOOSE_REWARD': {
         const ok = chooseReward(s, action.defId);
         return { ok, reason: ok ? undefined : '이미 고른 보상이에요.' };
@@ -496,6 +498,7 @@ export class Engine {
       rarityOdds: this.rarityOdds(),
       disabledUnits: s.units.filter((u) => u.disabledUntil > s.time).length,
       rewardOffers: s.rewardOffers,
+      promoteChoice: s.promoteChoice,
       rewardsTaken: s.rewardsTaken.length,
       perma: s.perma,
       shutterCd: s.skills.shutter,
@@ -586,6 +589,7 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number): 
     slots: SLOT_POSITIONS.map((p, i) => ({ index: i, x: p.x, y: p.y, row: p.row, unitId: null })),
     perma: basePerma(),
     rewardOffers: [],
+    promoteChoice: null,
     rewardsTaken: [],
     riskWave: -1,
     skills: { shutter: 0, dump: 0 },

@@ -1,5 +1,6 @@
 import type { GameState, Tier, Unit, Rarity } from '../types';
 import { MERGE_ODDS, MAX_TIER, RARITY_LABEL } from '../config';
+import { PROMOTE_OPTIONS } from '../data/deck';
 
 import { UNIT_BY_ID, unitsOfRarity, NEXT_RARITY } from '../data/units';
 import { sfx, addFloater } from './helpers';
@@ -42,12 +43,31 @@ export function mergeUnits(state: GameState, defId: string, tier: Tier): MergeRe
     kind = 'upgrade';
   } else if (roll < upgradeCut + MERGE_ODDS.promote + promoteBonus && nextRarity) {
     kind = 'promote';
-    // 승급 결과는 전체 풀에서 고른다. 여기까지 좁히면 합성이 '발견'이 아니라
-    // '배달'이 된다 — 승급의 놀라움이 이 게임의 핵심 재미다.
-    // 제외한 물건만 빼준다.
+    // 승급 결과는 전체 풀에서 뽑되, 두 장을 보여주고 플레이어가 고르게 한다.
+    // 예전에는 한 장이 통째로 랜덤이었다. 그러면 "같은 물건 3개를 모았다"는 성취가
+    // 주사위 두 번(승급이냐 × 무엇이냐)에 희석된다 (docs/AUDIT.md 5절).
+    // 후보가 무엇인지는 여전히 모른다 = 놀라움은 그대로, 통제만 돌려준다.
     let pool = unitsOfRarity(nextRarity).filter((u) => u.id !== def.id && !state.order.bans.includes(u.id));
     if (pool.length === 0) pool = unitsOfRarity(nextRarity).filter((u) => u.id !== def.id);
-    resultDef = state.rng.pick(pool).id;
+    const options: string[] = [];
+    const rest = [...pool];
+    while (options.length < PROMOTE_OPTIONS && rest.length > 0) {
+      const idx = Math.floor(state.rng.next() * rest.length);
+      options.push(rest.splice(idx, 1)[0].id);
+    }
+    if (options.length > 1) {
+      // 재료를 먼저 치우고 선택 화면을 연다. 고르기 전까지 게임은 멈춘다.
+      consumeMaterials(state, materials);
+      state.stats.merges++;
+      state.stats.unitMerges[defId] = (state.stats.unitMerges[defId] ?? 0) + 1;
+      state.promoteChoice = { slot: keepSlot, tier, options, fromDefId: defId };
+      state.phase = 'promote';
+      state.fx.push({ type: 'banner', text: '승급!', sub: '둘 중 하나를 고르세요', style: 'good', dur: 1.4 });
+      state.fx.push({ type: 'shake', amount: 6 });
+      sfx(state, 'mergeUp');
+      return { ok: true, kind: 'promote' };
+    }
+    resultDef = options[0] ?? def.id;
     resultTier = tier;
   } else {
     kind = 'special';
@@ -57,10 +77,7 @@ export function mergeUnits(state: GameState, defId: string, tier: Tier): MergeRe
     resultTier = tier;
   }
 
-  for (const m of materials) {
-    state.slots[m.slot].unitId = null;
-  }
-  state.units = state.units.filter((u) => !materials.includes(u));
+  consumeMaterials(state, materials);
   const unit = createUnit(state, resultDef, resultTier, keepSlot);
   state.units.push(unit);
   state.slots[keepSlot].unitId = unit.id;
@@ -92,6 +109,35 @@ export function mergeUnits(state: GameState, defId: string, tier: Tier): MergeRe
     if (rdef.rarity === 'legendary') announceLegendary(state);
   }
   return { ok: true, unit, kind };
+}
+
+function consumeMaterials(state: GameState, materials: Unit[]): void {
+  for (const m of materials) state.slots[m.slot].unitId = null;
+  state.units = state.units.filter((u) => !materials.includes(u));
+  state.selectedUnitId = null;
+}
+
+// 승급 2택에서 하나를 고른 순간. 여기서 비로소 유닛이 생긴다.
+export function choosePromote(state: GameState, defId: string): boolean {
+  const c = state.promoteChoice;
+  if (state.phase !== 'promote' || !c) return false;
+  if (!c.options.includes(defId)) return false;
+  const unit = createUnit(state, defId, c.tier, c.slot);
+  state.units.push(unit);
+  state.slots[c.slot].unitId = unit.id;
+  state.promoteChoice = null;
+  state.phase = 'playing';
+
+  const rdef = UNIT_BY_ID[defId];
+  if (!state.stats.seenUnits.includes(defId)) state.stats.seenUnits.push(defId);
+  state.stats.maxTierReached = Math.max(state.stats.maxTierReached, c.tier);
+  state.stats.unitMaxTier[defId] = Math.max(state.stats.unitMaxTier[defId] ?? 1, c.tier);
+  state.lastMergeResult = { defId, tier: c.tier, rarity: rdef.rarity, kind: 'promote', at: state.time };
+  state.fx.push({ type: 'merge', slot: c.slot, rarity: rdef.rarity, upgraded: true });
+  state.fx.push({ type: 'banner', text: `${RARITY_LABEL[rdef.rarity]} 등장!`, sub: rdef.name, style: rdef.rarity === 'legendary' ? 'legendary' : 'good', dur: 1.8 });
+  sfx(state, 'mergeUp');
+  if (rdef.rarity === 'legendary') announceLegendary(state);
+  return true;
 }
 
 export function announceLegendary(state: GameState): void {

@@ -7,7 +7,7 @@ import { buildWave } from '../data/waves';
 import { createRng } from '../engine/rng';
 import { pathPos, PATH_LENGTH, TOTAL_SLOTS, formatClock, THREE_AM_WAVE } from '../config';
 import { createUnit } from '../engine/unitFactory';
-import { mergeUnits } from '../engine/mergeSystem';
+import { mergeUnits, choosePromote } from '../engine/mergeSystem';
 
 function runFor(engine: Engine, seconds: number) {
   for (let t = 0; t < seconds; t += 0.05) {
@@ -83,10 +83,17 @@ describe('엔진', () => {
       }
       const r = mergeUnits(s, 'onigiri', 1);
       expect(r.ok).toBe(true);
+      outcomes.add(r.kind!);
+      // 승급은 2택 화면을 띄우고 멈춘다. 고르면 그때 유닛이 생긴다.
+      if (r.kind === 'promote') {
+        expect(s.phase).toBe('promote');
+        expect(s.units.length).toBe(0);
+        choosePromote(s, s.promoteChoice!.options[0]);
+        expect(s.phase).toBe('playing');
+      }
       expect(s.units.length).toBe(1);
       expect(s.slots.filter((sl) => sl.unitId !== null).length).toBe(1);
       const u = s.units[0];
-      outcomes.add(r.kind!);
       if (r.kind === 'upgrade') {
         expect(u.defId).toBe('onigiri');
         expect(u.tier).toBe(2);

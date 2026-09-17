@@ -17,6 +17,15 @@ const TONE_RANK = { best: 2, good: 1, normal: 0 } as const;
 
 function autoPlay(engine: Engine, strategy: Strategy): void {
   const s = engine.state;
+  if (s.phase === 'promote' && s.promoteChoice) {
+    const best = [...s.promoteChoice.options].sort((a, b) => {
+      const da = UNIT_BY_ID[a];
+      const db = UNIT_BY_ID[b];
+      return db.dmg / Math.max(0.1, db.interval) - da.dmg / Math.max(0.1, da.interval);
+    })[0];
+    engine.dispatch({ type: 'CHOOSE_PROMOTE', defId: best });
+    return;
+  }
   // 보상 선택: 등급이 높은 카드를 고른다 (사람이 흔히 하는 선택)
   if (s.phase === 'reward' && s.rewardOffers.length > 0) {
     const best = [...s.rewardOffers].sort((a, b) => TONE_RANK[b.tone] - TONE_RANK[a.tone])[0];
@@ -89,6 +98,7 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 60, metaLevel = 0, 
   const waveHp: number[] = [];
   let lastWave = 0;
   while (engine.state.phase !== 'gameover' && engine.state.wave <= maxWave && t < 60 * 60) {
+    if (engine.state.phase === 'promote') autoPlay(engine, strategy);
     engine.tick(0.1);
     engine.drainFx();
     t += 0.1;
