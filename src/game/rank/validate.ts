@@ -17,11 +17,13 @@ export function minRunSeconds(wave: number): number {
   return s / 3;
 }
 
-// 웨이브 N 까지 등장 가능한 손님 수의 상한 (data/waves.ts 의 총량 공식 기준)
+// 웨이브 N 까지 등장 가능한 손님 수의 상한 (data/waves.ts 의 총량 공식 기준).
+// 손님 수 공식이 4+1.8w → 4+2.3w 로 바뀌었고 테마 웨이브는 거기에 ×1.15 가 더 붙는다.
+// 공식을 맞춰 두지 않으면 배수만 키워야 해서 상한이 무의미해진다.
 export function maxKills(wave: number): number {
   let n = 0;
-  for (let w = 1; w <= wave; w++) n += 4 + 1.8 * Math.min(w, 40) + Math.max(0, w - 40) * 0.8;
-  return Math.ceil(n * 2.6); // 이벤트 스폰 · 보스 소환물 · 데일리 배율까지 감안
+  for (let w = 1; w <= wave; w++) n += (4 + 2.3 * Math.min(w, 40) + Math.max(0, w - 40)) * 1.15;
+  return Math.ceil(n * 2); // 이벤트 스폰 · 보스 소환물 · 데일리 배율까지 감안
 }
 
 export function sanitizeName(raw: unknown): string {
@@ -66,6 +68,8 @@ export function validateScore(p: ScorePayload): ValidationResult {
   if (p.merges * 2 > p.draws + 12) return { ok: false, reason: 'merges vs draws' };
   // 코인 상한. 실측 최대가 웨이브당 약 14,000 이고 데일리 코인 배율까지 겹칠 수 있어 크게 잡는다.
   // (코인은 순위에 쓰이지 않는다. 앞뒤가 맞는지만 본다.)
-  if (p.coins > p.wave * 40000 + 20000) return { ok: false, reason: 'coins too high' };
+  // 경제 개편으로 웨이브당 누적 코인이 최대 823원까지 내려왔다 (scripts/rankbounds.ts).
+  // 예전 상한(웨이브당 40,000)은 이제 아무것도 거르지 못한다. 실측의 6배로 조인다.
+  if (p.coins > p.wave * 5000 + 5000) return { ok: false, reason: 'coins too high' };
   return { ok: true };
 }

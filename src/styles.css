@@ -3871,6 +3871,12 @@ button:disabled {
 .promote-panel {
   max-width: 420px;
 }
+/* 머리글이 투명하면 캔버스가 비쳐 글이 안 읽힌다 */
+.promote-panel .reward-head,
+.event-panel .reward-head {
+  background: var(--panel);
+  border-radius: 4px;
+}
 .promote-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3886,7 +3892,7 @@ button:disabled {
   padding: 12px 8px;
   border: 2px solid var(--fc, #fff);
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--panel);
   color: var(--ink);
   cursor: pointer;
   text-align: center;
@@ -3939,7 +3945,7 @@ button:disabled {
   padding: 10px 12px;
   border: 2px solid var(--line);
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--panel);
   color: var(--ink);
   cursor: pointer;
   text-align: left;
@@ -3962,12 +3968,17 @@ button:disabled {
   gap: 5px;
   min-height: 0;
 }
+.hud-theme-row:empty {
+  display: none;
+}
 .theme-chip {
   font-size: 9.5px;
+  font-weight: 700;
   line-height: 1.25;
   padding: 2px 6px;
   border: 1px solid currentColor;
   border-radius: 2px;
+  background: rgba(0, 0, 0, 0.4);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3978,7 +3989,7 @@ button:disabled {
 }
 .theme-chip.next {
   flex: 0 0 auto;
-  opacity: 0.72;
+  opacity: 0.85;
 }
 .theme-chip.t-fast {
   color: #7dd3fc;

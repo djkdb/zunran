@@ -219,7 +219,7 @@ export const UNIT_DEFS: UnitDef[] = [
     role: 'aoe',
     desc: '출근했다. 여러 손님을 동시에 처리하고, 가끔 잔소리로 전부 날려버린다.',
     quote: '야, 정신 안 차려?',
-    dmg: 72,
+    dmg: 56,
     interval: 0.9,
     range: 200,
     attack: 'aoe',

@@ -439,3 +439,34 @@ npm run sim -- 12 autoClean 0 x crowdNight   # 데일리 규칙별
 npm run pacing 16                      # 초반 긴장감·템포
 npx tsx scripts/titles.ts 24           # 런 제목 분포 + 종합 지표
 ```
+
+---
+
+## 재미 개편 (2026-09, `docs/AUDIT.md` 전수 감사 이후)
+
+전수 감사에서 나온 결론은 "시스템이 37개인데 10분 런에서 결정이 15번"이었다.
+그래서 이 개편은 기능 추가가 아니라 **이미 있는 것을 결정으로 바꾸는 작업**이다.
+
+### 추가된 구조
+
+| 구조 | 파일 | 요약 |
+|---|---|---|
+| 본사 발주 | `data/deck.ts` `orderPrice()` · `Engine.orderCost()` · 액션 `ORDER` | 등급을 지정해서 사는 뽑기. 웨이브에 따라 오르는 정찰가 |
+| 에픽 소프트 천장 | `GameState.sinceEpic` · `EPIC_PITY` | 15뽑 연속 에픽 이상이 없으면 확정. 전설 천장은 없다 |
+| 합성 승급 2택 | `phase: 'promote'` · `GameState.promoteChoice` · 액션 `CHOOSE_PROMOTE` | 승급 결과를 두 장 중에서 고른다 |
+| 사건 2택 | `phase: 'eventChoice'` · `EventDef.choices` · 액션 `CHOOSE_EVENT` | 28종 중 10종에 선택지 |
+| 손님 카운터 속성 | `EnemyDef.armor` · `EnemyDef.swarm` · `config.armorAt()` | 장갑(한 방이 큰 공격을 요구) · 무리(범위를 요구) |
+| 웨이브 테마 | `data/waves.ts` `WaveTheme` · `buildThemeSchedule()` · `GameState.themeSchedule` | 평범한 밤 / 급한 손님들 / 두꺼운 손님들 / 단체 손님. 판마다 순서가 다르다 |
+| 보상 카드 분류 | `RewardCardDef.kind` (`'stat' | 'build'`) | 3택에 build 카드 최소 1장 보장 |
+
+### 규칙
+
+- **phase 로 멈추는 선택은 세 개뿐이다** — `reward`(3웨이브마다) · `promote`(판당 약 4회) ·
+  `eventChoice`(판당 약 3회). 더 늘리면 모바일에서 피로해진다. 측정으로 정한 상한이다.
+- **테마 배정은 판 시작 때 한 번** 정해진다(`buildThemeSchedule`). 고정 순환으로 두면
+  모든 판이 같은 순서의 같은 문제를 내서 생존 웨이브 표준편차가 1.1까지 떨어진다.
+- **장갑 스케일은 `enemyHpScale ^ 0.75`.** √ 로 두면 후반 한 방 앞에서 무의미해지고,
+  1.0 으로 두면 고화력 유닛까지 막혀 버린다.
+- **사건 선택지의 지속 효과는 각 선택지가 직접 건다.** 공통 코드에서 걸면
+  "우산을 판다"를 골라도 감속이 걸려 선택이 무의미해진다.
+- **보상 카드는 지우지 않는다.** 사표가 된 카드는 삭제가 아니라 지속 효과로 바꾼다.

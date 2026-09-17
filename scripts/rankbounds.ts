@@ -92,5 +92,5 @@ console.log(`시드 ${runs}판 · 메타 만렙 · 최속 진행 기준`);
 console.log(`시간 하한 여유  최저 ${worstTime.toFixed(2)}배 (웨이브 ${worstTimeWave})  ← 1.0 미만이면 정상 기록 거부`);
 console.log(`처치 상한 여유  최저 ${worstKills.toFixed(2)}배 (웨이브 ${worstKillsWave})  ← 1.0 미만이면 정상 기록 거부`);
 console.log(`합성/뽑기 최대  ${maxMergePerDraw.toFixed(3)}  ← 검증 기준 0.5`);
-console.log(`웨이브당 코인   최대 ${Math.round(maxCoinPerWave)}  ← 검증 기준 웨이브당 40000`);
+console.log(`웨이브당 코인   최대 ${Math.round(maxCoinPerWave)}  ← 검증 기준 웨이브당 5000`);
 console.log(`보스 초과분     최대 ${maxBoss}  ← 검증 기준 +1`);

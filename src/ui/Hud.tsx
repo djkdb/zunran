@@ -38,6 +38,7 @@ export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) 
 
         {/* 이번 웨이브가 무엇을 시험하는지, 다음엔 무엇이 오는지.
             예고가 있어야 대비할 수 있고, 대비할 수 있어야 판단이 생긴다. */}
+        {(snap.waveTheme !== 'mixed' || snap.nextIsBoss || snap.nextWaveTheme !== 'mixed') && (
         <div className="hud-row hud-theme-row">
           {snap.waveTheme !== 'mixed' && (
             <span className={`theme-chip now t-${snap.waveTheme}`}>
@@ -52,6 +53,7 @@ export function Hud({ snap, bestWave }: { snap: UISnapshot; bestWave: number }) 
             )
           )}
         </div>
+        )}
 
         <div className="hud-row">
           <span className="hud-key">체력</span>

@@ -68,7 +68,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     color: '#f9a8d4',
     minWave: 4,
     weight: 4,
-    armor: 3,
+    armor: 4,
   },
   {
     id: 'price',
@@ -152,7 +152,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     color: '#f472b6',
     minWave: 9,
     weight: 3,
-    armor: 2,
+    armor: 3,
     swarm: { radius: 70, perAlly: 0.03, max: 0.3 },
     groupSize: [2, 4],
   },
@@ -190,7 +190,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     color: '#ef4444',
     minWave: 13,
     weight: 1,
-    armor: 6,
+    armor: 8,
   },
   {
     id: 'charger',
@@ -223,7 +223,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     color: '#d6b98c',
     minWave: 15,
     weight: 3,
-    armor: 10,
+    armor: 14,
     immune: ['knockback'],
   },
   {
@@ -363,7 +363,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     color: '#fb923c',
     minWave: 24,
     weight: 3,
-    armor: 5,
+    armor: 7,
   },
   {
     id: 'zombie',
@@ -381,7 +381,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     color: '#4ade80',
     minWave: 22,
     weight: 3,
-    armor: 8,
+    armor: 11,
     immune: ['stun'],
   },
   // ───── 보스 부하 (풀에 안 들어감: minWave 999) ─────
@@ -436,7 +436,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     color: '#bef264',
     minWave: 999,
     weight: 0,
-    armor: 10,
+    armor: 14,
     immune: ['slow'],
   },
   {
@@ -455,7 +455,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     color: '#f87171',
     minWave: 999,
     weight: 0,
-    armor: 6,
+    armor: 8,
   },
   {
     id: 'boss_inspector',
@@ -473,7 +473,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     color: '#60a5fa',
     minWave: 999,
     weight: 0,
-    armor: 14,
+    armor: 18,
     immune: ['stun'],
   },
   {
@@ -492,7 +492,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
     color: '#c084fc',
     minWave: 999,
     weight: 0,
-    armor: 20,
+    armor: 26,
     immune: ['slow', 'stun', 'knockback'],
   },
 ];
