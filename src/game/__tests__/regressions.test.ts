@@ -290,8 +290,8 @@ describe('새 손님 행동', () => {
     s.spawnQueue = [];
     const hp0 = s.hp;
     spawnEnemy(s, 'runner', { dist: 0 });
-    // 경로 2473px / 속도 215 ≈ 11.5초. 웨이브가 넘어가기 전에 도착한다.
-    run(engine, 14);
+    // 경로 2473px / 속도 215 ≈ 11.5초. 웨이브 1 길이(14초) 안에 도착한다.
+    run(engine, 12.5);
     expect(s.wave).toBe(1);
     expect(s.hp).toBeLessThan(hp0); // 유닛이 없으면 반드시 통과한다
     expect(s.waveReached).toBe(true);

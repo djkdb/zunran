@@ -76,8 +76,8 @@ export const SLOT_HIT_RADIUS = 34;
 export const START_COINS = 200;
 export const START_HP = 100;
 export const DRAW_BASE_COST = 100;
-export const DRAW_COST_STEP = 10; // 뽑기마다 +10
-export const DRAW_COST_CAP = 420;
+export const DRAW_COST_STEP = 12; // 뽑기마다 +12 (선형 항)
+export const DRAW_COST_ACCEL = 0.35; // 제곱 항. 뽑을수록 가속해서 비싸진다
 export const SELL_REFUND: Record<Rarity, number> = {
   common: 40,
   rare: 90,
@@ -86,8 +86,13 @@ export const SELL_REFUND: Record<Rarity, number> = {
   special: 400,
 };
 
+// 뽑기 비용에는 상한이 없다.
+// 예전에는 420원에서 멈췄는데, 그 결과 웨이브 27에 잔고가 44,361원(109회분)이 쌓여
+// "뽑을까 아낄까"라는 결정이 게임에서 사라졌다 (측정: docs/AUDIT.md 문제 1).
+// 제곱 항을 넣어 후반에도 코인이 계속 자원으로 남게 한다.
 export function drawCost(drawCount: number, reduce: number): number {
-  return Math.max(30, Math.min(DRAW_COST_CAP, DRAW_BASE_COST + DRAW_COST_STEP * drawCount) - reduce);
+  const n = drawCount;
+  return Math.max(30, Math.round(DRAW_BASE_COST + DRAW_COST_STEP * n + DRAW_COST_ACCEL * n * n) - reduce);
 }
 
 // ───────────── 뽑기 확률 ─────────────
@@ -140,14 +145,16 @@ export function tierIntervalMult(tier: Tier): number {
 export const MERGE_ODDS = { upgrade: 0.7, promote: 0.25, special: 0.05 };
 
 // ───────────── 웨이브 ─────────────
-export const WAVE_DURATION = 22;
-export const BOSS_WAVE_DURATION = 36;
+export const WAVE_DURATION = 18;
+export const BOSS_WAVE_DURATION = 30;
 // 밤이 깊어질수록 손님이 몰아친다: 웨이브 간격이 22초에서 14초까지 줄어든다.
 // 다만 초반 10웨이브는 아직 위협이 없어 기다리는 시간이 되므로 짧게 끊는다.
 // (1웨이브 -6초에서 시작해 10웨이브에 0이 된다. 손님 수는 그대로라 밀도만 조금 올라간다)
+// 한 판이 10.2분이었다. 모바일 세션으로는 길다 (docs/AUDIT.md 9절).
+// 웨이브 수를 줄이면 랭킹 기록이 리셋되므로 웨이브 '길이'를 줄인다.
 export function waveDuration(wave: number): number {
-  const base = Math.max(14, WAVE_DURATION - (wave - 1) * 0.22);
-  const earlyCut = Math.max(0, 6 - (wave - 1) * 0.7);
+  const base = Math.max(11, WAVE_DURATION - (wave - 1) * 0.2);
+  const earlyCut = Math.max(0, 4 - (wave - 1) * 0.5);
   return base - earlyCut;
 }
 export const BOSS_WAVES = [10, 20, 30, 40];
@@ -169,12 +176,14 @@ export function isBossWave(w: number): boolean {
 export function enemyHpScale(wave: number): number {
   const w = Math.max(1, wave);
   let s = 1 + 0.16 * w + 0.05 * w * w;
-  if (w > 20) s *= Math.pow(1.1, w - 20);
+  if (w > 20) s *= Math.pow(1.075, w - 20); // 1.1 → 1.075. 난이도는 체력이 아니라 테마 웨이브로 만든다
   return s;
 }
 // 웨이브 시작 시 기본 수입("시급"). 처치를 못 해도 최소한의 뽑기가 가능하게 해 죽음의 소용돌이를 막는다.
+// 웨이브 3~14 동안 뽑기 가능 횟수가 0.0~0.3회였다. 첫 4분간 할 수 있는 게 없었다.
+// (docs/AUDIT.md 문제 1) 시급을 올려 초반부터 웨이브당 1회는 뽑게 만든다.
 export function waveIncome(wave: number): number {
-  return 40 + wave * 9; // 불운한 판(제어 유닛만 뽑힘)도 3웨이브에 1회는 뽑을 수 있게
+  return 70 + wave * 16;
 }
 // 계산대 도달 피해도 웨이브에 따라 커진다. 이게 없으면 후반에 손님이 뚫려도 체력이 안 깎여
 // 사실상 죽지 않는 게임이 된다 (보상 카드로 회복까지 되므로).
@@ -186,7 +195,7 @@ export function enemyBountyScale(wave: number): number {
   return 1 + wave * 0.025; // 후반 코인 인플레 억제
 }
 export function waveClearBonus(wave: number): number {
-  return 40 + wave * 8;
+  return 60 + wave * 12;
 }
 
 // ───────────── 이벤트 ─────────────

@@ -9,7 +9,7 @@ import { recipeStatus } from '../src/game/data/recipes';
 import { sellCandidate } from '../src/ui/useGame';
 import { drawCost, isBossWave, TOTAL_SLOTS } from '../src/game/config';
 
-type Strategy = 'greedy' | 'saver' | 'noMerge' | 'sellCommons' | 'autoClean';
+type Strategy = 'greedy' | 'saver' | 'noMerge' | 'sellCommons' | 'autoClean' | 'orderer';
 const TONE_RANK = { best: 2, good: 1, normal: 0 } as const;
 
 interface RunLog {
@@ -23,6 +23,7 @@ interface RunLog {
   recipes: number;
   rewards: number;
   sells: number;
+  orders: number;
   firstSellWave: number | null;
   coinsEarned: number;
   firstBy: Partial<Record<Rarity, number>>; // 등급별 첫 등장 웨이브
@@ -30,6 +31,7 @@ interface RunLog {
   coinsByWave: number[];
   occByWave: number[]; // 보드 점유율
   affordByWave: number[]; // 웨이브 시작 시 살 수 있는 뽑기 횟수
+  drawsByWave: number[]; // 웨이브 시작 시점의 누적 뽑기 수
   unitDamage: Record<string, number>;
   unitSeen: string[];
   mvp: string | null;
@@ -46,8 +48,8 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 80): RunLog {
   const s = engine.state;
   const log: RunLog = {
     wave: 0, time: 0, diedOnBoss: false, diedWave: 0, kills: 0, draws: 0, merges: 0, recipes: 0,
-    rewards: 0, sells: 0, firstSellWave: null, coinsEarned: 0, firstBy: {},
-    hpByWave: [], coinsByWave: [], occByWave: [], affordByWave: [],
+    rewards: 0, sells: 0, orders: 0, firstSellWave: null, coinsEarned: 0, firstBy: {},
+    hpByWave: [], coinsByWave: [], occByWave: [], affordByWave: [], drawsByWave: [],
     unitDamage: {}, unitSeen: [], mvp: null, enemySeen: {}, enemyReached: {},
     offered: [], chosen: [], finalUnits: [],
   };
@@ -73,7 +75,7 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 80): RunLog {
     if (strategy !== 'noMerge') {
       for (const g of snap.groups) if (g.mergeable) engine.dispatch({ type: 'MERGE', defId: g.defId, tier: g.tier });
     }
-    if (strategy === 'autoClean' && snap.emptySlots === 0) {
+    if ((strategy === 'autoClean' || strategy === 'orderer') && snap.emptySlots === 0) {
       const target = sellCandidate(snap.groups);
       if (target !== null) { engine.dispatch({ type: 'SELL', unitId: target }); log.sells++; if (log.firstSellWave === null) log.firstSellWave = s.wave; }
     }
@@ -86,6 +88,20 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 80): RunLog {
         .sort((a, b) => rank[UNIT_BY_ID[a.defId].rarity] - rank[UNIT_BY_ID[b.defId].rarity] || a.damage - b.damage);
       if (cands[0]) { engine.dispatch({ type: 'SELL', unitId: cands[0].id }); log.sells++; if (log.firstSellWave === null) log.firstSellWave = s.wave; }
     }
+    // 본사 발주: 전설이 없으면 웨이브 10부터 일반 뽑기를 멈추고 모아서 산다.
+    // "돈을 모아 원하는 걸 산다"는 결정이 실제로 값어치가 있는지 보기 위한 전략.
+    let saving = false;
+    if (strategy === 'orderer') {
+      const sn0 = engine.snapshot();
+      const hasLegend = s.units.some((u) => UNIT_BY_ID[u.defId].rarity === 'legendary');
+      if (sn0.emptySlots > 0 && s.wave >= 10 && !hasLegend) {
+        if (sn0.coins >= sn0.orderCost.legendary) engine.dispatch({ type: 'ORDER', rarity: 'legendary' });
+        else saving = true;
+      } else if (sn0.emptySlots > 0 && s.wave >= 6 && sn0.coins >= sn0.orderCost.epic * 2.2) {
+        engine.dispatch({ type: 'ORDER', rarity: 'epic' });
+      }
+    }
+    if (saving) return;
     const reserve = strategy === 'saver' ? 200 : 0;
     let guard = 0;
     while (guard++ < 10) {
@@ -113,6 +129,7 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 80): RunLog {
       log.coinsByWave.push(s.coins);
       log.occByWave.push(s.units.length / TOTAL_SLOTS);
       log.affordByWave.push(Math.floor(s.coins / Math.max(1, drawCost(s.stats.draws, s.perma.drawDiscount))));
+      log.drawsByWave.push(s.stats.draws);
     }
     if (s.stats.recipesMade > log.recipes) log.recipes = s.stats.recipesMade;
     void prevSells;
@@ -126,6 +143,7 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 80): RunLog {
   log.draws = s.stats.draws;
   log.merges = s.stats.merges;
   log.recipes = s.stats.recipesMade;
+  log.orders = s.stats.orders;
   log.rewards = s.rewardsTaken.length;
   log.coinsEarned = s.stats.coinsEarned;
   log.unitDamage = { ...s.stats.unitDamage };
@@ -139,7 +157,7 @@ function runOnce(seed: number, strategy: Strategy, maxWave = 80): RunLog {
 
 // ───────────── 집계 ─────────────
 const runs = Number(process.argv[2] ?? 40);
-const strategies = (process.argv.slice(3).length ? process.argv.slice(3) : ['greedy', 'saver', 'noMerge', 'sellCommons', 'autoClean']) as Strategy[];
+const strategies = (process.argv.slice(3).length ? process.argv.slice(3) : ['greedy', 'saver', 'noMerge', 'sellCommons', 'autoClean', 'orderer']) as Strategy[];
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 const med = (xs: number[]) => { const s = [...xs].sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : 0; };
 const sd = (xs: number[]) => { const m = mean(xs); return Math.sqrt(mean(xs.map((x) => (x - m) ** 2))); };
@@ -160,7 +178,7 @@ for (const st of strategies) {
 
 const main = all[strategies[0]];
 console.log('\n═══════════ 2. 웨이브별 상태 (greedy) ═══════════');
-console.log('w   | HP   | 코인  | 점유율 | 살수있는뽑기 | 생존율');
+console.log('w   | HP   | 코인  | 점유율 | 누적뽑기 | 생존율');
 for (let w = 0; w < 46; w++) {
   const alive = main.filter((r) => r.hpByWave.length > w);
   if (!alive.length) break;
@@ -169,14 +187,14 @@ for (let w = 0; w < 46; w++) {
     `${String(w + 1).padStart(3)} | ${mean(alive.map((r) => r.hpByWave[w])).toFixed(0).padStart(4)} | ` +
     `${mean(alive.map((r) => r.coinsByWave[w])).toFixed(0).padStart(5)} | ` +
     `${(mean(alive.map((r) => r.occByWave[w])) * 100).toFixed(0).padStart(5)}% | ` +
-    `${mean(alive.map((r) => r.affordByWave[w])).toFixed(1).padStart(11)} | ${pct(alive.length, main.length)}`,
+    `${mean(alive.map((r) => r.drawsByWave[w])).toFixed(1).padStart(8)} | ${pct(alive.length, main.length)}`,
   );
 }
 
 console.log('\n═══════════ 3. 행동 빈도 (판당 평균) ═══════════');
 for (const st of strategies) {
   const L = all[st];
-  console.log(`${st.padEnd(12)} 뽑기 ${mean(L.map((r) => r.draws)).toFixed(1)} | 합성 ${mean(L.map((r) => r.merges)).toFixed(1)} | 조합 ${mean(L.map((r) => r.recipes)).toFixed(2)} | 보상 ${mean(L.map((r) => r.rewards)).toFixed(1)} | 판매 ${mean(L.map((r) => r.sells)).toFixed(1)} (첫 판매 w${med(L.filter((r) => r.firstSellWave).map((r) => r.firstSellWave!)) || '-'})`);
+  console.log(`${st.padEnd(12)} 뽑기 ${mean(L.map((r) => r.draws)).toFixed(1)} | 합성 ${mean(L.map((r) => r.merges)).toFixed(1)} | 조합 ${mean(L.map((r) => r.recipes)).toFixed(2)} | 보상 ${mean(L.map((r) => r.rewards)).toFixed(1)} | 발주 ${mean(L.map((r) => r.orders)).toFixed(1)} | 판매 ${mean(L.map((r) => r.sells)).toFixed(1)} (첫 판매 w${med(L.filter((r) => r.firstSellWave).map((r) => r.firstSellWave!)) || '-'})`);
 }
 
 console.log('\n═══════════ 4. 등급별 첫 등장 웨이브 (greedy) ═══════════');

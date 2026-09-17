@@ -55,3 +55,20 @@ export function bannableIn(rarity: Rarity, bans: string[]): boolean {
   const pool = unitsOfRarity(rarity);
   return pool.filter((u) => !bans.includes(u.id)).length > 1;
 }
+
+// ───────────── 본사 발주 (등급 지정 뽑기) ─────────────
+// 실측: 전설은 판의 55%에서만 등장하는데 점장 혼자 전체 피해의 46%였다.
+// 즉 45%의 판은 시작부터 구조적으로 약한 판이고 되돌릴 방법이 없었다.
+// 확률 천장 대신 '벌어서 사는' 길을 낸다. 기다리면 오는 것보다 모아서 사는 쪽이 결정이다.
+// 가격은 '일반 뽑기의 배수'가 아니라 웨이브에 따라 오르는 정찰가다.
+// 뽑기 비용은 뽑을수록 가속하므로 거기에 배수를 곱하면 후반에 손이 닿지 않는다 (측정으로 확인).
+// 웨이브 20 기준 희귀 1,050 / 에픽 2,800 / 전설 5,600원 (일반 뽑기 3~4회분).
+// 전설 하나를 사려면 서너 웨이브 동안 일반 뽑기를 포기해야 한다 — 그 교환이 결정이다.
+export const ORDER_BASE = { rare: 150, epic: 400, legendary: 800 } as const;
+export function orderPrice(rarity: keyof typeof ORDER_BASE, wave: number, discount = 0): number {
+  return Math.max(60, Math.round(ORDER_BASE[rarity] * (1 + wave * 0.3) * (1 - discount)));
+}
+
+// 에픽 소프트 천장. 이건 결정이 아니라 바닥이다 —
+// 초반에 20뽑 내내 일반만 나오는 판을 없애기 위한 최소한의 보정.
+export const EPIC_PITY = 15;

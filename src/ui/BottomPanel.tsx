@@ -90,6 +90,27 @@ export function BottomPanel({ snap, act, denied }: Props) {
         <span className="odds-l">L {(odds.legendary * 100).toFixed(1)}</span>
       </div>
 
+      {/* 본사 발주: 등급을 지정해서 산다. 운이 나쁜 판을 돈으로 되돌리는 유일한 수단이다. */}
+      <div className="order-row" aria-label="본사 발주">
+        <span className="order-label">본사 발주</span>
+        {(['rare', 'epic', 'legendary'] as const).map((r) => {
+          const cost = snap.orderCost[r];
+          const ok = snap.phase === 'playing' && snap.emptySlots > 0 && snap.coins >= cost;
+          return (
+            <button
+              key={r}
+              className={`order-btn ${r} ${ok ? '' : 'disabled'}`}
+              disabled={snap.phase !== 'playing'}
+              onClick={() => act({ type: 'ORDER', rarity: r })}
+              title={`${RARITY_LABEL[r]} 확정 · ${cost}원`}
+            >
+              <span className="order-rank">{RARITY_LABEL[r]}</span>
+              <span className="order-cost">{cost >= 10000 ? `${Math.round(cost / 1000)}k` : cost}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="skill-row">
         <button
           className={`skill-btn shutter ${snap.skillReady.shutter ? 'ready' : ''}`}

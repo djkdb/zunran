@@ -38,7 +38,8 @@ export function buildWave(wave: number, rng: RNG, countMult = 1): WavePlan {
 
   // 총 개체 수: 4 + 1.4w (40웨이브 이후 완만하게)
   let total = Math.round((4 + 1.8 * Math.min(wave, 40) + Math.max(0, wave - 40) * 0.8) * countMult);
-  if (boss) total = Math.round(total * 0.55);
+  // 보스 웨이브 손님 수를 0.55배로 줄였더니 보스전이 오히려 쉬는 시간이 됐다 (docs/AUDIT.md 8절).
+  if (boss) total = Math.round(total * 0.8);
   total = Math.max(3, total);
 
   const pool = ENEMY_DEFS.filter((e) => e.minWave <= wave && e.weight > 0 && !e.tags.includes('boss'));

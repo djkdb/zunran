@@ -18,6 +18,7 @@ export function basePerma(): PermaBuffs {
     critChance: 0,
     auraMult: 1,
     legendaryOdds: 0,
+    orderDiscount: 0,
   };
 }
 

@@ -344,6 +344,7 @@ export interface RunStats {
   catVisits: number; // 고양이를 만난 횟수
   lastDamageClock: string; // 마지막으로 체력이 깎인 순간의 게임 내 시계
   recipesMade: number; // 조합 레시피 완성 횟수
+  orders: number; // 본사 발주(등급 지정 뽑기) 횟수
 }
 
 // ───────────────────────── 데일리 챌린지 ─────────────────────────
@@ -405,6 +406,7 @@ export interface PermaBuffs {
   critChance: number; // 모든 유닛에 더해지는 치명타 확률
   auraMult: number; // 지원 유닛 오라 배율
   legendaryOdds: number; // 뽑기 전설 확률에 더해지는 값
+  orderDiscount: number; // 본사 발주 비용 할인 (0.4 = -40%)
 }
 
 export type RewardTone = 'normal' | 'good' | 'best';
@@ -454,6 +456,7 @@ export interface GameState {
   coins: number;
   drawCount: number;
   freeDraws: number;
+  sinceEpic: number; // 에픽 소프트 천장: 에픽 이상이 안 나온 연속 뽑기 수
 
   wave: number;
   waveTimer: number;
@@ -500,7 +503,7 @@ export interface GameState {
   threeAmTriggered: boolean;
   lowHpWarned: boolean;
   gameOverReason?: string;
-  lastDrawResult?: { defId: string; rarity: Rarity; at: number };
+  lastDrawResult?: { defId: string; rarity: Rarity; at: number; ordered?: boolean };
   lastMergeResult?: { defId: string; tier: Tier; rarity: Rarity; kind: 'upgrade' | 'promote' | 'special'; at: number };
   disabledUnitNotice: number;
 }
@@ -509,6 +512,7 @@ export interface GameState {
 
 export type GameAction =
   | { type: 'DRAW' }
+  | { type: 'ORDER'; rarity: 'rare' | 'epic' | 'legendary' } // 본사 발주: 등급 지정 뽑기
   | { type: 'MERGE'; defId: string; tier: Tier }
   | { type: 'SELL'; unitId: number }
   | { type: 'SELECT'; unitId: number | null }
@@ -545,6 +549,7 @@ export interface UISnapshot {
   drawCost: number;
   freeDraws: number;
   canDraw: boolean;
+  orderCost: { rare: number; epic: number; legendary: number };
   emptySlots: number;
   totalSlots: number;
   speed: 1 | 2;

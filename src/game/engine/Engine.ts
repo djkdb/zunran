@@ -1,7 +1,7 @@
 import type { ChallengeSpec, FxEvent, GameAction, GameState, MetaEffects, Rarity, Tier, UISnapshot, UnitGroup, Unit } from '../types';
 import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, MAX_TIER, drawCost, formatClock, EVENT_INTERVAL, isBossWave, AISLE_NAMES, AISLE_BONUS } from '../config';
 import { UNIT_BY_ID, unitsOfRarity } from '../data/units';
-import { dupeWeight, PIN_GUARANTEE_DRAWS, PIN_TARGET_COPIES, EMPTY_ORDER, type Order } from '../data/deck';
+import { dupeWeight, PIN_GUARANTEE_DRAWS, PIN_TARGET_COPIES, EMPTY_ORDER, orderPrice, EPIC_PITY, type Order } from '../data/deck';
 import type { ShiftCondition } from '../data/shiftConditions';
 import { basePerma, chooseReward } from './rewardSystem';
 import { useSkill, tickSkills } from './skillSystem';
@@ -141,6 +141,8 @@ export class Engine {
     switch (action.type) {
       case 'DRAW':
         return this.draw();
+      case 'ORDER':
+        return this.draw(action.rarity);
       case 'MERGE': {
         if (s.phase !== 'playing') return { ok: false };
         const r = mergeUnits(s, action.defId, action.tier);
@@ -192,27 +194,48 @@ export class Engine {
     return Math.round(base * (this.state.condition?.drawCostMult ?? 1));
   }
 
-  private draw(): { ok: boolean; reason?: string } {
+  // 「본사 발주」: 등급을 지정해서 뽑는다. 일반 뽑기의 배수 가격.
+  // 전설이 판의 45%에서만 등장하는데 점장 혼자 피해의 46%였다 (docs/AUDIT.md 문제 4).
+  // 천장을 두는 대신 '벌어서 사게' 한다 — 기다리면 오는 것보다 돈을 모아 사는 쪽이 결정이다.
+  // 동시에 후반에 남아도는 코인(웨이브 27 잔고 44,361원)의 배출구가 된다.
+  orderCost(rarity: 'rare' | 'epic' | 'legendary'): number {
+    return orderPrice(rarity, this.state.wave, this.state.perma.orderDiscount);
+  }
+
+  private draw(forced?: 'rare' | 'epic' | 'legendary'): { ok: boolean; reason?: string } {
     const s = this.state;
     if (s.phase !== 'playing') return { ok: false };
     const emptySlots = s.slots.filter((sl) => sl.unitId === null && !sl.blocked);
     if (emptySlots.length === 0) return { ok: false, reason: '빈 칸이 없어요. 합성하거나 판매하세요.' };
-    const cost = this.currentDrawCost();
-    if (s.freeDraws > 0) {
+    const cost = forced ? this.orderCost(forced) : this.currentDrawCost();
+    if (!forced && s.freeDraws > 0) {
       s.freeDraws--;
     } else if (!spendCoins(s, cost)) {
       return { ok: false, reason: '코인이 부족해요.' };
     }
     s.drawCount++;
     s.stats.draws++;
+    if (forced) s.stats.orders++;
 
-    const odds = this.rarityOdds();
-    const r = s.rng.next();
-    let rarity: Rarity = 'common';
-    let acc = odds.legendary;
-    if (r < acc) rarity = 'legendary';
-    else if (r < (acc += odds.epic)) rarity = 'epic';
-    else if (r < (acc += odds.rare)) rarity = 'rare';
+    let rarity: Rarity;
+    if (forced) {
+      rarity = forced;
+    } else {
+      const odds = this.rarityOdds();
+      const r = s.rng.next();
+      rarity = 'common';
+      let acc = odds.legendary;
+      if (r < acc) rarity = 'legendary';
+      else if (r < (acc += odds.epic)) rarity = 'epic';
+      else if (r < (acc += odds.rare)) rarity = 'rare';
+      // 에픽 소프트 천장: 15연속 에픽 이상이 없으면 이번엔 확정으로 준다.
+      // 전설 천장은 두지 않는다 — 전설은 발주로 '사는' 것이다.
+      if (rarity !== 'epic' && rarity !== 'legendary') {
+        if (s.sinceEpic >= EPIC_PITY - 1) rarity = 'epic';
+      }
+    }
+    if (rarity === 'epic' || rarity === 'legendary') s.sinceEpic = 0;
+    else s.sinceEpic++;
     let candidates = unitsOfRarity(rarity);
 
     // 발주 · 제외: 오늘 안 받기로 한 물건은 안 온다. 전부 막히면 규칙을 무시한다.
@@ -252,7 +275,16 @@ export class Engine {
         }
       }
     }
-    const slot = s.rng.pick(emptySlots);
+    // 놓을 칸은 주사위로 정하지 않는다.
+    // 코너 보너스(사거리 +18 / 공속 +12% / 공격력 +22%)가 "어디에 둘까"를 위해 있는데
+    // 배치가 랜덤이면 그 보너스는 운이 된다 (docs/AUDIT.md 문제: 시스템 6번).
+    // 유닛이 가장 적은 코너의 가장 왼쪽 빈 칸에 놓아 골고루 퍼지게 하고,
+    // 플레이어는 방금 뽑힌 유닛이 선택된 상태이므로 원하는 칸을 탭해 바로 옮길 수 있다.
+    const perRow = [0, 0, 0];
+    for (const u of s.units) perRow[s.slots[u.slot].row]++;
+    const slot = [...emptySlots].sort(
+      (a, b) => perRow[a.row] - perRow[b.row] || a.index - b.index,
+    )[0];
     const unit = createUnit(s, def.id, 1, slot.index);
     s.units.push(unit);
     slot.unitId = unit.id;
@@ -260,7 +292,7 @@ export class Engine {
     s.stats.unitDraws[def.id] = (s.stats.unitDraws[def.id] ?? 0) + 1;
     s.stats.unitMaxTier[def.id] = Math.max(s.stats.unitMaxTier[def.id] ?? 1, 1);
     if (!s.stats.seenUnits.includes(def.id)) s.stats.seenUnits.push(def.id);
-    s.lastDrawResult = { defId: def.id, rarity, at: s.time };
+    s.lastDrawResult = { defId: def.id, rarity, at: s.time, ordered: !!forced };
     // 방금 뽑은 유닛을 선택 상태로 둔다 — 빈 칸이 강조되어 한 번 탭으로 원하는 코너에 놓을 수 있다.
     s.selectedUnitId = unit.id;
 
@@ -434,6 +466,7 @@ export class Engine {
       drawCost: cost,
       freeDraws: s.freeDraws,
       canDraw: s.phase === 'playing' && emptySlots > 0 && (s.freeDraws > 0 || s.coins >= cost),
+      orderCost: { rare: this.orderCost('rare'), epic: this.orderCost('epic'), legendary: this.orderCost('legendary') },
       emptySlots,
       totalSlots: s.slots.length,
       speed: s.speed,
@@ -535,6 +568,7 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number): 
     maxHp: meta.startHp,
     coins: meta.startCoins,
     drawCount: 0,
+    sinceEpic: 0,
     freeDraws: meta.freeDraws,
     wave: 0,
     waveTimer: 0,
@@ -569,6 +603,7 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number): 
       draws: 0,
       merges: 0,
     recipesMade: 0,
+    orders: 0,
       bossKills: 0,
       legendaryDraws: 0,
       unitDamage: {},
