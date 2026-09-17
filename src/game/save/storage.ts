@@ -2,7 +2,7 @@ import type { MetaUpgradeId } from '../types';
 import { DEFAULT_META_LEVELS } from './meta';
 
 export const SAVE_KEY = 'cvs-night-shift:v1'; // 키는 유지 (기존 유저 데이터 보존)
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export interface LastRun {
   wave: number;
@@ -95,6 +95,8 @@ export interface SaveData {
   rankOptIn: boolean; // 랭킹 등록 동의 (끄면 기록을 전송하지 않는다)
   // ── v4 ──
   introSeen: boolean; // 첫 판 오프닝을 봤는가 (건너뛰어도 본 것으로 친다)
+  // ── v5 ──
+  deck: string[]; // 런 전에 짜는 덱. 비어 있으면 로드 시 자동으로 채운다.
 }
 
 // crypto.randomUUID 가 없는 구형 웹뷰(카톡 인앱 등)도 있어서 폴백을 둔다.
@@ -140,13 +142,14 @@ export function defaultSave(): SaveData {
     nickname: '',
     rankOptIn: true,
     introSeen: false,
+    deck: [],
   };
 }
 
 const arr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
 const rec = <T>(v: unknown): Record<string, T> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, T>) : {});
 
-// v1~v3 → v4. 없는 필드는 기본값으로 채우고, 있던 값은 절대 건드리지 않는다.
+// v1~v4 → v5. 없는 필드는 기본값으로 채우고, 있던 값은 절대 건드리지 않는다.
 export function migrate(parsed: Partial<SaveData>): SaveData {
   const base = defaultSave();
   const out: SaveData = {
@@ -173,6 +176,7 @@ export function migrate(parsed: Partial<SaveData>): SaveData {
     rankOptIn: typeof parsed.rankOptIn === 'boolean' ? parsed.rankOptIn : true,
     // 이미 플레이한 적 있는 사람에게 오프닝을 새로 띄우지는 않는다
     introSeen: typeof parsed.introSeen === 'boolean' ? parsed.introSeen : (parsed.totalPlays ?? 0) > 0,
+    deck: arr(parsed.deck),
   };
   // 예전 저장에는 손님/유닛 통계가 없다. 도감에 이미 "봤다"고 기록된 것만 최소치로 살려 둔다.
   for (const id of out.seenEnemies) {

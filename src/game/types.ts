@@ -488,6 +488,7 @@ export interface GameState {
   nextId: number;
   meta: MetaEffects;
 
+  deck: string[]; // 이번 판에 쓰는 덱 (유닛 id). 비면 전체 풀에서 뽑는다.
   challenge: ChallengeSpec | null; // ZUNRAN DAILY 규칙 (없으면 일반 근무)
 
   // 연출 플래그

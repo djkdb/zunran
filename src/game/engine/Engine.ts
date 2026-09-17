@@ -1,6 +1,7 @@
 import type { ChallengeSpec, FxEvent, GameAction, GameState, MetaEffects, Rarity, Tier, UISnapshot, UnitGroup, Unit } from '../types';
 import { BASE_RARITY_ODDS, SELL_REFUND, SLOT_POSITIONS, MAX_TIER, drawCost, formatClock, EVENT_INTERVAL, isBossWave, AISLE_NAMES, AISLE_BONUS } from '../config';
 import { UNIT_BY_ID, unitsOfRarity } from '../data/units';
+import { isDeckRarity } from '../data/deck';
 import { basePerma, chooseReward } from './rewardSystem';
 import { useSkill, tickSkills } from './skillSystem';
 import { ENEMY_BY_ID } from '../data/enemies';
@@ -22,6 +23,7 @@ export interface EngineOptions {
   meta?: MetaEffects;
   bestWave?: number;
   challenge?: ChallengeSpec | null; // ZUNRAN DAILY 규칙
+  deck?: string[]; // 런 전에 짠 덱. 없으면 전체 풀에서 뽑는다 (시뮬레이터·구버전 호환)
 }
 
 const FIXED_DT = 1 / 60;
@@ -39,6 +41,7 @@ export class Engine {
     const seed = opts.seed ?? randomSeed();
     const meta = opts.meta ?? metaEffects(DEFAULT_META_LEVELS);
     this.state = createInitialState(seed, meta, opts.bestWave ?? 0);
+    this.state.deck = opts.deck ?? [];
     this.state.challenge = opts.challenge ?? null;
     if (this.state.challenge) recomputeModifiers(this.state);
     startWave(this.state, 1);
@@ -177,9 +180,15 @@ export class Engine {
     if (r < acc) rarity = 'legendary';
     else if (r < (acc += odds.epic)) rarity = 'epic';
     else if (r < (acc += odds.rare)) rarity = 'rare';
+    let candidates = unitsOfRarity(rarity);
+    // 덱: 이 등급에 슬롯이 있으면 덱에 넣은 유닛만 나온다.
+    // 덱이 비었거나(시뮬레이터) 해당 등급이 비면 전체 풀로 되돌린다 — 뽑기가 막히면 안 된다.
+    if (isDeckRarity(rarity) && s.deck.length > 0) {
+      const inDeck = candidates.filter((d) => s.deck.includes(d.id));
+      if (inDeck.length > 0) candidates = inDeck;
+    }
     // 데일리 규칙으로 막힌 유닛은 뽑히지 않는다 (전부 막히면 규칙을 무시한다)
     const banned = s.challenge?.banUnits;
-    let candidates = unitsOfRarity(rarity);
     if (banned?.length) {
       const filtered = candidates.filter((d) => !banned.includes(d.id));
       if (filtered.length > 0) candidates = filtered;
@@ -489,6 +498,7 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number): 
     shake: 0,
     nextId: 1,
     meta,
+    deck: [],
     challenge: null,
     threeAmTriggered: false,
     lowHpWarned: false,

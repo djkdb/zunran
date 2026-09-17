@@ -7,6 +7,8 @@ import { mergeRunStats, analyzeDefeat, type DefeatAnalysis } from './game/save/s
 import { evaluateAchievements, achievementReward, ACHIEVEMENT_BY_ID, type AchievementContext } from './game/data/achievements';
 import { pickRunTitle } from './game/data/runTitles';
 import { getDaily, dateKey } from './game/daily';
+import { normalizeDeck } from './game/data/deck';
+import { unlockedUnits } from './game/data/unlocks';
 import { createRng } from './game/engine/rng';
 import { GAMEOVER_QUIPS } from './game/data/dialogue';
 import { audio } from './game/audio/sfx';
@@ -279,6 +281,8 @@ export function App() {
     [pendingRun, save, persist],
   );
 
+  const setDeck = useCallback((next: string[]) => persist({ ...save, deck: next }), [save, persist]);
+
   const setNickname = useCallback(
     (nickname: string) => {
       if (nickname === save.nickname) return;
@@ -301,6 +305,8 @@ export function App() {
   }, [save, persist]);
 
   const meta = metaEffects(save.metaLevels);
+  // 저장된 덱을 그대로 믿지 않는다. 해금 상태에 맞춰 늘 유효한 덱으로 맞춘다.
+  const deck = normalizeDeck(save.deck, unlockedUnits(save.bestWave));
   const today = getDaily();
   const todayRecord = save.daily[dateKey()] ?? null;
 
@@ -315,6 +321,8 @@ export function App() {
         onToggleMute={toggleMute}
         onSetNickname={setNickname}
         onToggleRankOptIn={toggleRankOptIn}
+        deck={deck}
+        onSetDeck={setDeck}
         onReplayIntro={replayIntro}
         onReset={() => setSave(resetSave())}
       />
@@ -337,6 +345,7 @@ export function App() {
         autoMerge={save.autoMerge}
         autoSell={save.autoSell}
         showHints={!save.hintsSeen}
+        deck={deck}
         challenge={dailyMode ? today.challenge : null}
         onToggleMute={toggleMute}
         onToggleAutoMerge={toggleAutoMerge}

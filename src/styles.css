@@ -145,6 +145,10 @@ button:disabled {
 .nick-card,
 .shop-nudge,
 .exit-btn,
+.deck-bar,
+.deck-card,
+.deck-close,
+.unlock-hint,
 .intro-panel,
 .intro-bubble,
 .intro-skip,
@@ -3176,4 +3180,169 @@ button:disabled {
 }
 .points-break .from-ach {
   color: var(--gold);
+}
+
+/* ───────── 덱 구성 ───────── */
+.deck-bar {
+  --fc: var(--epic);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.deck-bar-label {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--text);
+}
+.deck-bar-label .px {
+  font-family: var(--font-px);
+  font-size: 9px;
+  color: var(--off);
+}
+.deck-bar-units {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+.deck-bar-edit {
+  flex: none;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--epic);
+}
+.unlock-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+  --fc: var(--edge);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--dim);
+}
+.unlock-hint b {
+  color: var(--mint);
+}
+
+.deck {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.deck-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.deck-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--text);
+}
+.deck-sub {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--off);
+  max-width: 34ch;
+}
+.deck-close {
+  --fc: var(--mint);
+  flex: none;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 0 14px;
+  background-color: var(--panel);
+  color: var(--mint);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.deck-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.deck-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.deck-rarity {
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+.deck-count {
+  margin-left: auto;
+  font-family: var(--font-px);
+  font-size: 12px;
+}
+.deck-pool {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+}
+.deck-card {
+  --fc: var(--edge);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 1px;
+  align-items: center;
+  min-height: 56px;
+  padding: 7px 9px;
+  text-align: left;
+  cursor: pointer;
+}
+.deck-card canvas {
+  grid-row: 1 / 3;
+}
+.deck-card.on {
+  background-color: var(--sunk);
+}
+.deck-card:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.deck-name {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.deck-role {
+  font-size: 9.5px;
+  line-height: 1.35;
+  color: var(--off);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.deck-lock {
+  font-family: var(--font-px);
+  font-size: 10px;
+  color: var(--pink);
+}
+.deck-note {
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--off);
 }

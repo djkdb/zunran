@@ -10,6 +10,10 @@ import { CodexScreen } from './CodexScreen';
 import { HistoryScreen } from './HistoryScreen';
 import { RankScreen } from './RankScreen';
 import { NicknameField } from './NicknameField';
+import { DeckScreen } from './DeckScreen';
+import { deckOfRarity, DECK_SLOTS } from '../game/data/deck';
+import { UnitIcon } from './UnitIcon';
+import { nextUnlock } from '../game/data/unlocks';
 import type { MetaUpgradeId } from '../game/types';
 
 interface Props {
@@ -21,6 +25,8 @@ interface Props {
   onToggleMute: () => void;
   onSetNickname: (name: string) => void;
   onToggleRankOptIn: () => void;
+  deck: string[];
+  onSetDeck: (deck: string[]) => void;
   onReplayIntro: () => void;
   onReset: () => void;
 }
@@ -37,8 +43,10 @@ const TABS: { id: Tab; label: string; aria: string; icon: IconName }[] = [
   { id: 'history', label: '기록', aria: '근무 기록', icon: 'clock' },
 ];
 
-export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggleMute, onSetNickname, onToggleRankOptIn, onReplayIntro, onReset }: Props) {
+export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggleMute, onSetNickname, onToggleRankOptIn, deck, onSetDeck, onReplayIntro, onReset }: Props) {
   const [tab, setTab] = useState<Tab>('main');
+  const [deckOpen, setDeckOpen] = useState(false);
+  const upcoming = nextUnlock(save.bestWave);
   const tip = TIPS[save.totalPlays % TIPS.length];
   const achCount = save.achievements.length;
   // 살 수 있는 업그레이드가 있으면 강화 탭에 점을 찍는다 (있는지도 모르고 지나치지 않게)
@@ -46,6 +54,16 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
     const lvl = save.metaLevels[u.id];
     return lvl < u.maxLevel && save.metaPoints >= u.cost(lvl);
   });
+
+  if (deckOpen) {
+    return (
+      <div className="start">
+        <div className="start-inner">
+          <DeckScreen deck={deck} bestWave={save.bestWave} onChange={onSetDeck} onClose={() => setDeckOpen(false)} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="start">
@@ -66,6 +84,25 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
               <div className="nick-card">
                 <NicknameField value="" onSave={onSetNickname} label="랭킹에 올릴 이름" cta="저장" />
                 <div className="nick-hint">판이 끝나면 이 이름으로 랭킹에 올라갑니다. 나중에 바꿔도 됩니다.</div>
+              </div>
+            )}
+
+            <button className="deck-bar" onClick={() => setDeckOpen(true)}>
+              <span className="deck-bar-label">
+                덱
+                <span className="px">{deck.length}장</span>
+              </span>
+              <span className="deck-bar-units">
+                {DECK_SLOTS.flatMap(({ rarity }) => deckOfRarity(deck, rarity)).map((id) => (
+                  <UnitIcon key={id} defId={id} size={26} />
+                ))}
+              </span>
+              <span className="deck-bar-edit">바꾸기</span>
+            </button>
+            {upcoming && (
+              <div className="unlock-hint">
+                <Icon name="gem" size={13} strokeWidth={2.4} />
+                웨이브 <b>{upcoming.wave}</b> 도달 시 <b>{upcoming.name}</b> 해금
               </div>
             )}
 

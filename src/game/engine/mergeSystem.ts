@@ -1,5 +1,6 @@
 import type { GameState, Tier, Unit, Rarity } from '../types';
 import { MERGE_ODDS, MAX_TIER, RARITY_LABEL } from '../config';
+import { isDeckRarity } from '../data/deck';
 import { UNIT_BY_ID, unitsOfRarity, NEXT_RARITY } from '../data/units';
 import { sfx, addFloater } from './helpers';
 import { createUnit } from './unitFactory';
@@ -41,7 +42,13 @@ export function mergeUnits(state: GameState, defId: string, tier: Tier): MergeRe
     kind = 'upgrade';
   } else if (roll < upgradeCut + MERGE_ODDS.promote + promoteBonus && nextRarity) {
     kind = 'promote';
-    const pool = unitsOfRarity(nextRarity).filter((u) => u.id !== def.id);
+    // 승급 결과도 덱 안에서 고른다. 이래야 "덱을 짜는 것 = 이번 판의 확률분포를
+    // 설계하는 것"이 되고, 덱이 단순한 로드아웃을 넘어선다.
+    let pool = unitsOfRarity(nextRarity).filter((u) => u.id !== def.id);
+    if (isDeckRarity(nextRarity) && state.deck.length > 0) {
+      const inDeck = pool.filter((u) => state.deck.includes(u.id));
+      if (inDeck.length > 0) pool = inDeck;
+    }
     resultDef = state.rng.pick(pool).id;
     resultTier = tier;
   } else {

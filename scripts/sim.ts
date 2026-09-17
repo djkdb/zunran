@@ -5,6 +5,8 @@ import { UNIT_BY_ID } from '../src/game/data/units';
 import { metaEffects, DEFAULT_META_LEVELS } from '../src/game/save/meta';
 import type { MetaUpgradeId } from '../src/game/types';
 import { CHALLENGE_BY_ID } from '../src/game/data/dailyChallenges';
+import { normalizeDeck } from '../src/game/data/deck';
+import { unlockedUnits } from '../src/game/data/unlocks';
 import { sellCandidate } from '../src/ui/useGame';
 
 type Strategy = 'greedy' | 'saver' | 'noMerge' | 'sellCommons' | 'autoClean';
@@ -54,10 +56,25 @@ function autoPlay(engine: Engine, strategy: Strategy): void {
   }
 }
 
-function runOnce(seed: number, strategy: Strategy, maxWave = 60, metaLevel = 0, challengeId?: string) {
+// 시드로 섞는다 (Math.random 을 쓰면 재현이 깨진다)
+function shuffle(arr: string[], seed: number): string[] {
+  const out = [...arr];
+  let x = seed || 1;
+  for (let i = out.length - 1; i > 0; i--) {
+    x = (x * 1664525 + 1013904223) >>> 0;
+    const j = x % (i + 1);
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+function runOnce(seed: number, strategy: Strategy, maxWave = 60, metaLevel = 0, challengeId?: string, useDeck = false) {
   const levels = { ...DEFAULT_META_LEVELS } as Record<MetaUpgradeId, number>;
   for (const k of Object.keys(levels) as MetaUpgradeId[]) levels[k] = metaLevel;
-  const engine = new Engine({ seed, meta: metaEffects(levels), challenge: challengeId ? (CHALLENGE_BY_ID[challengeId] ?? null) : null });
+  // 덱은 시드마다 다르게 뽑아 "특정 덱이 유리한가"가 아니라 "덱을 짜는 것 자체"의 효과를 본다
+  const pool = unlockedUnits(999);
+  const deck = useDeck ? normalizeDeck(shuffle(pool, seed), pool) : undefined;
+  const engine = new Engine({ seed, meta: metaEffects(levels), deck, challenge: challengeId ? (CHALLENGE_BY_ID[challengeId] ?? null) : null });
   let t = 0;
   const waveHp: number[] = [];
   let lastWave = 0;
@@ -98,16 +115,20 @@ const runs = Number(process.argv[2] ?? 10);
 const strategy = (process.argv[3] ?? 'greedy') as Strategy;
 const metaLevel = Number(process.argv[4] ?? 0);
 const challengeId = process.argv[6]; // 선택: ZUNRAN DAILY 규칙 id
+const useDeck = process.argv[7] === 'deck'; // 선택: 덱을 짜고 플레이
 const results: ReturnType<typeof runOnce>[] = [];
-for (let i = 0; i < runs; i++) results.push(runOnce(1000 + i * 7919, strategy, 80, metaLevel, challengeId));
+for (let i = 0; i < runs; i++) results.push(runOnce(1000 + i * 7919, strategy, 80, metaLevel, challengeId, useDeck));
 const waves = results.map((r) => r.wave);
 const avg = waves.reduce((a, b) => a + b, 0) / waves.length;
 const sorted = [...waves].sort((a, b) => a - b);
 const median = sorted[Math.floor(sorted.length / 2)];
 const sd = Math.sqrt(waves.reduce((a, b) => a + (b - avg) ** 2, 0) / waves.length);
+const times = results.map((r) => r.time);
+const avgTime = times.reduce((a, b) => a + b, 0) / times.length;
 const hpAt = (w: number) => results.filter((r) => r.waveHp.length > w).map((r) => r.waveHp[w]);
 const mean = (xs: number[]) => (xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(0) : '-');
-console.log(`strategy=${strategy} meta=${metaLevel} runs=${runs}${challengeId ? ` daily=${challengeId}` : ''}`);
+console.log(`strategy=${strategy} meta=${metaLevel} runs=${runs}${challengeId ? ` daily=${challengeId}` : ''}${useDeck ? ' deck=on' : ''}`);
+console.log(`한 판 길이: 평균 ${(avgTime / 60).toFixed(1)}분 (최장 ${(Math.max(...times) / 60).toFixed(1)}분)`);
 console.log(`waves: min=${Math.min(...waves)} median=${median} avg=${avg.toFixed(1)} max=${Math.max(...waves)} sd=${sd.toFixed(1)} (${((sd / avg) * 100).toFixed(0)}%)`);
 console.log(`mean hp entering wave: w5=${mean(hpAt(4))} w10=${mean(hpAt(9))} w11=${mean(hpAt(10))} w13=${mean(hpAt(12))} w14=${mean(hpAt(13))} w20=${mean(hpAt(19))} w21=${mean(hpAt(20))} w30=${mean(hpAt(29))} w31=${mean(hpAt(30))} w40=${mean(hpAt(39))} w41=${mean(hpAt(40))}`);
 const mvpCount = new Map<string, number>();
