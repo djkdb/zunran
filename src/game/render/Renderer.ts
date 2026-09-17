@@ -271,11 +271,14 @@ export class Renderer {
       ctx.restore();
     }
 
-    // 진열대 (슬롯 줄): 통로 사이 블록
+    // 진열대 (슬롯 줄): 통로 사이 블록.
+    // 줄 수는 지점마다 다르다(2~4줄). 팔레트가 모자라면 돌려 쓴다 —
+    // 3줄까지만 있던 탓에 4줄짜리 역앞 술집가점에서 캔버스가 통째로 안 그려졌다.
     const shelfColors = [
       ['#3b82f6', '#22d3ee', '#a78bfa', '#f472b6'],
       ['#f59e0b', '#ff4d8d', '#84cc16', '#f97316'],
       ['#ff4d8d', '#f97316', '#facc15', '#dc2626'],
+      ['#22d3ee', '#a78bfa', '#facc15', '#84cc16'],
     ];
     geo.rows.forEach((y, row) => {
       const top = y - 40;
@@ -287,7 +290,7 @@ export class Renderer {
       ctx.fillStyle = '#4b4080';
       ctx.fillRect(84, top, FIELD_W - 168, 3);
       // 상품 (작은 색 블록) — 슬롯 사이 빈 공간에만
-      const cols = shelfColors[row];
+      const cols = shelfColors[row % shelfColors.length];
       for (let x = 92; x < FIELD_W - 92; x += 12) {
         const nearSlot = geo.cols.some((sx) => Math.abs(sx - x) < 30);
         if (nearSlot) continue;

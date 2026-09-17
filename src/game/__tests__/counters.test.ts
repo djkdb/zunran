@@ -457,3 +457,36 @@ describe('지점(스테이지)', () => {
     for (let i = 1; i < mults.length; i++) expect(mults[i]).toBeGreaterThan(mults[i - 1]);
   });
 });
+
+describe('지점 렌더링 안전성', () => {
+  it('모든 지점의 줄 수가 렌더러 팔레트 범위를 넘어도 안전해야 한다', () => {
+    // 팔레트가 3줄까지만 있어서 4줄짜리 지점에서 캔버스가 통째로 안 그려졌다.
+    // 데이터가 늘어나도 렌더가 죽지 않도록, 줄 수의 상한을 테스트로 고정한다.
+    for (const st of STAGES) {
+      expect(st.rows.length).toBeGreaterThanOrEqual(2);
+      expect(st.rows.length).toBeLessThanOrEqual(4);
+      // 줄마다 이름과 보너스가 반드시 있어야 한다 (없으면 렌더에서 undefined 접근)
+      for (let row = 0; row < st.rows.length; row++) {
+        expect(st.aisleNames[row]).toBeTruthy();
+        expect(st.aisleBonus[row]).toBeTruthy();
+      }
+    }
+  });
+
+  it('모든 지점에서 한 판을 돌려도 깨지지 않는다', () => {
+    for (const st of STAGES) {
+      const engine = new Engine({ seed: 9, stageId: st.id });
+      for (let i = 0; i < 400; i++) {
+        const s = engine.state;
+        if (s.phase === 'promote' && s.promoteChoice) { engine.dispatch({ type: 'CHOOSE_PROMOTE', defId: s.promoteChoice.options[0] }); continue; }
+        if (s.phase === 'eventChoice') { engine.dispatch({ type: 'CHOOSE_EVENT', index: 0 }); continue; }
+        if (s.phase === 'reward') { engine.dispatch({ type: 'CHOOSE_REWARD', defId: s.rewardOffers[0].defId }); continue; }
+        engine.tick(0.1);
+        engine.drainFx();
+        if (i % 5 === 0) engine.dispatch({ type: 'DRAW' });
+      }
+      expect(Number.isFinite(engine.state.hp)).toBe(true);
+      expect(engine.snapshot().stageName).toBe(st.name);
+    }
+  });
+});
