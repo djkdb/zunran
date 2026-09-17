@@ -50,7 +50,6 @@ export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHin
   const hint = showHints && snap && snap.phase === 'playing' && snap.wave <= 8 ? hintFor(snap) : null;
   return (
     <div className="game">
-      {snap && <Hud snap={snap} bestWave={bestWave} />}
       <div className="field-wrap">
         <div className="field">
           <canvas
@@ -62,22 +61,14 @@ export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHin
             onPointerCancel={endDrag}
           />
           {snap && (
-            <div className="field-controls">
-              <button onClick={() => act({ type: 'TOGGLE_PAUSE' })} aria-label={snap.paused ? '계속하기' : '일시정지'}>
-                <Icon name={snap.paused ? 'play' : 'pause'} size={15} />
-              </button>
-              <button
-                className={snap.speed === 2 ? 'active' : ''}
-                onClick={() => act({ type: 'SET_SPEED', speed: snap.speed === 1 ? 2 : 1 })}
-                aria-label="2배속"
-                aria-pressed={snap.speed === 2}
-              >
-                <span className="px">×{snap.speed}</span>
-              </button>
-              <button onClick={onToggleMute} aria-label={muted ? '소리 켜기' : '소리 끄기'} aria-pressed={muted}>
-                <Icon name={muted ? 'mute' : 'sound'} size={15} strokeWidth={2.2} />
-              </button>
-            </div>
+            <Hud
+              snap={snap}
+              bestWave={bestWave}
+              muted={muted}
+              onTogglePause={() => act({ type: 'TOGGLE_PAUSE' })}
+              onToggleSpeed={() => act({ type: 'SET_SPEED', speed: snap.speed === 1 ? 2 : 1 })}
+              onToggleMute={onToggleMute}
+            />
           )}
           <BannerLayer banners={banners} />
           {toast && (

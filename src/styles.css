@@ -96,7 +96,6 @@ button:disabled {
    배경 이미지로 안쪽에 3px 링을 그린다. 네 귀퉁이를 3px씩 비워
    계단 모양(=픽셀 모서리)을 만든다. 레이아웃에 영향이 없고
    overflow:hidden 안에서도 잘리지 않는다. 색은 --fc 로 바꾼다. */
-.hud-card,
 .draw-btn,
 .ctrl,
 .skill-btn,
@@ -107,7 +106,6 @@ button:disabled {
 .inventory-empty,
 .selected-card,
 .sell-btn,
-.boss-bar,
 .reward-head,
 .reward-card,
 .banner-box,
@@ -176,20 +174,20 @@ button:disabled {
   height: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto auto minmax(0, 1fr);
-  grid-template-areas: 'hud' 'field' 'panel';
+  /* HUD 를 필드 위로 올린 뒤로 화면은 두 칸이다: 매장 / 조작.
+     매장이 먼저 가로폭만큼 정사각형을 차지하고, 남는 세로는 조작 패널이 받는다.
+     (예전에는 반대였다 — 패널이 제자리를 잡고 남은 자리를 매장이 받아서,
+      390×700 화면에서 매장이 350px, 딱 절반이었다.) */
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas: 'field' 'panel';
   background: var(--bg);
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
 }
-.hud,
 .panel,
 .field-wrap {
   min-width: 0;
-}
-.hud {
-  grid-area: hud;
 }
 .field-wrap {
   grid-area: field;
@@ -197,19 +195,27 @@ button:disabled {
   align-items: center;
   justify-content: center;
   min-height: 0;
-  padding: 8px;
+  padding: calc(2px + env(safe-area-inset-top)) 0 2px;
 }
 .field {
   position: relative;
   aspect-ratio: 1 / 1;
   max-width: 100%;
   max-height: 100%;
-  width: min(100%, 100svh);
-  width: min(100%, 100svh, 58dvh);
+  /* 가로폭이 한계다. 다만 화면이 짧으면 조작 패널에 자리를 내준다. */
+  width: min(100%, 100svh, 62dvh);
   overflow: hidden;
   background: #1d1836;
-  /* 필드는 캔버스가 꽉 채우므로 테두리를 바깥쪽 그림자로 그린다 */
-  box-shadow: 0 -3px 0 var(--mint), 0 3px 0 var(--mint), -3px 0 0 var(--mint), 3px 0 0 var(--mint);
+}
+/* 테두리를 안쪽에 덧댄다. inset 그림자는 캔버스 밑에 깔려 안 보이고,
+   바깥 그림자는 필드를 화면 끝까지 붙인 뒤로 잘린다. */
+.field::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px var(--mint);
 }
 .field-canvas {
   display: block;
@@ -220,40 +226,9 @@ button:disabled {
 }
 /* 일시정지·배속·음소거는 필드 오른쪽 위에 얹는다.
    패널에 두면 세로로 3칸을 잡아 뽑기 버튼까지 같이 늘어난다 (카톡 인앱 브라우저에서 98px). */
-.field-controls {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 4;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
 /* 30px 이었으나 Apple 44pt · Material 48dp 양쪽 미달이었다.
    ::after 로 히트 영역만 넓히면 버튼 3개의 영역이 서로 겹쳐 오탭이 나므로
    실제 크기를 키운다. 세로로 쌓이니 필드를 가리는 폭은 그대로다. */
-.field-controls button {
-  --fc: var(--edge);
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--dim);
-  background-color: rgba(18, 14, 36, 0.78);
-  background-image: linear-gradient(var(--fc), var(--fc)), linear-gradient(var(--fc), var(--fc)),
-    linear-gradient(var(--fc), var(--fc)), linear-gradient(var(--fc), var(--fc));
-  background-repeat: no-repeat;
-  background-size: calc(100% - 6px) 3px, calc(100% - 6px) 3px, 3px calc(100% - 6px), 3px calc(100% - 6px);
-  background-position: 3px 0, 3px 100%, 0 3px, 100% 3px;
-}
-.field-controls button.active {
-  --fc: var(--mint);
-  color: var(--mint);
-}
-.field-controls .px {
-  font-size: 11px;
-}
 
 .panel {
   grid-area: panel;
@@ -262,98 +237,11 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  min-height: 150px;
+  min-height: 0;
   overflow-y: auto;
 }
 
 /* ───────── HUD ───────── */
-.hud {
-  padding: calc(6px + env(safe-area-inset-top)) 8px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.hud-card {
-  --fc: var(--edge);
-  padding: 8px 11px 9px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-.hud-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-.hud-time {
-  font-size: 16px;
-  color: var(--mint);
-  white-space: nowrap;
-}
-.hud-meta,
-.hud-best {
-  font-size: 10px;
-  color: var(--dim);
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-.hud-spacer {
-  flex: 1;
-  min-width: 4px;
-}
-.hud-coin-label {
-  font-size: 10px;
-  color: var(--gold);
-  opacity: 0.75;
-}
-.hud-coin {
-  font-family: var(--font-px);
-  font-weight: 400;
-  font-size: 16px;
-  color: var(--gold);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.hud-key {
-  flex: none;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--text);
-  white-space: nowrap;
-}
-.hud-wave-num {
-  flex: none;
-  font-family: var(--font-px);
-  font-weight: 400;
-  font-size: 18px;
-  color: #fff;
-  min-width: 22px;
-}
-.hud-wave-timer {
-  flex: none;
-  font-size: 10px;
-  color: var(--off);
-  white-space: nowrap;
-}
-.hud-hp-num {
-  flex: none;
-  font-family: var(--font-px);
-  font-weight: 400;
-  font-size: 13px;
-  color: var(--green);
-  min-width: 26px;
-  text-align: right;
-}
-.hud-hp-num.warn {
-  color: var(--gold);
-}
-.hud-hp-num.danger {
-  color: var(--pink);
-}
 
 /* 칸으로 끊은 막대 */
 .bar {
@@ -375,12 +263,6 @@ button:disabled {
   inset: 0;
   pointer-events: none;
   background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), var(--barsep) calc(10% - 2px) 10%);
-}
-.bar-wave {
-  height: 7px;
-}
-.bar-wave::after {
-  background: repeating-linear-gradient(90deg, transparent 0 calc(20% - 2px), var(--barsep) calc(20% - 2px) 20%);
 }
 .bar-hp {
   height: 9px;
@@ -406,23 +288,6 @@ button:disabled {
 }
 
 /* ───────── HUD 보조 줄 (칩) ───────── */
-.hud-sub {
-  gap: 6px;
-  flex-wrap: wrap;
-  padding: 0 3px;
-}
-.hud-next-boss {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-family: var(--font-px);
-  font-size: 10px;
-  color: var(--pink);
-  background: var(--pink-bg);
-  padding: 4px 8px;
-  white-space: nowrap;
-  animation: blink 1.1s infinite;
-}
 .combo-chip {
   font-family: var(--font-px);
   font-size: 11px;
@@ -452,17 +317,6 @@ button:disabled {
 .event-bad {
   background: var(--pink-bg);
   color: var(--pink-s);
-}
-.boss-bar {
-  --fc: var(--pink);
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 170px;
-  background-color: var(--pink-bg);
-  --barsep: var(--pink-bg);
-  padding: 5px 9px 6px;
 }
 .boss-name {
   display: flex;
@@ -1260,7 +1114,7 @@ button:disabled {
 
 .banner-stack {
   position: absolute;
-  top: 10px;
+  top: 56px; /* 시계줄 바로 아래 */
   left: 0;
   right: 0;
   display: flex;
@@ -1313,7 +1167,9 @@ button:disabled {
 
 .toast {
   position: absolute;
-  bottom: 12px;
+  /* 아래에 두면 계산대를 가린다. 이 게임에서 제일 보고 있어야 하는 칸이다.
+     위쪽 HUD 는 높이가 고정(선 4 + 시계줄 34 + 여백)이라 바로 밑에 붙일 수 있다. */
+  top: 96px;
   left: 50%;
   transform: translateX(-50%);
   --fc: var(--gold);
@@ -1326,7 +1182,7 @@ button:disabled {
 }
 .hint {
   position: absolute;
-  bottom: 12px;
+  top: 96px;
   left: 50%;
   transform: translateX(-50%);
   --fc: var(--mint);
@@ -2571,8 +2427,8 @@ button:disabled {
 @media (min-aspect-ratio: 5/4) and (max-width: 699px) {
   .game {
     grid-template-columns: minmax(0, 1fr) 236px;
-    grid-template-rows: auto minmax(0, 1fr);
-    grid-template-areas: 'hud hud' 'field panel';
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: 'field panel';
   }
   .panel {
     min-height: 0;
@@ -2622,21 +2478,14 @@ button:disabled {
   .inventory {
     grid-template-columns: minmax(0, 1fr);
   }
-  .hud {
-    padding: 4px 6px 0;
-  }
-  .hud-card {
-    padding: 6px 9px 7px;
-    gap: 5px;
-  }
 }
 
 /* ───────── 가로 화면 (PC / 태블릿) ───────── */
 @media (min-aspect-ratio: 5/4) and (min-width: 700px) {
   .game {
     grid-template-columns: minmax(0, 1fr) 344px;
-    grid-template-rows: auto minmax(0, 1fr);
-    grid-template-areas: 'hud hud' 'field panel';
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: 'field panel';
   }
   .panel {
     min-height: 0;
@@ -2655,10 +2504,6 @@ button:disabled {
 /* ───────── 좁은 화면 (기본 규칙 뒤에 두어 우선한다) ───────── */
 /* ───────── 낮은 화면 (구형 폰): 필드를 줄여 조작 패널에 자리를 준다 ───────── */
 @media (max-height: 760px) and (max-width: 699px) {
-  .field {
-    /* 조작 버튼을 필드 위로 올리고 토글을 일시정지로 뺀 만큼 필드에 돌려준다 */
-    width: min(100%, 100svh, 50dvh);
-  }
   /* 유닛 상세는 낮은 화면에서 핵심만. 설명과 배치 안내는 접는다 */
   .selected-desc,
   .selected-hint {
@@ -2671,14 +2516,7 @@ button:disabled {
     padding: 5px 7px 6px;
   }
   .field-wrap {
-    padding: 5px;
-  }
-  .hud {
-    padding: calc(4px + env(safe-area-inset-top)) 6px 0;
-  }
-  .hud-card {
-    padding: 6px 9px 7px;
-    gap: 5px;
+    padding: calc(1px + env(safe-area-inset-top)) 0 1px;
   }
   .panel {
     padding: 5px 6px 8px;
@@ -2690,26 +2528,11 @@ button:disabled {
 }
 
 @media (max-width: 480px) {
-  .hud-card {
-    padding: 7px 9px 8px;
-  }
-  .hud-time {
-    font-size: 15px;
-  }
-  .hud-coin {
-    font-size: 15px;
-  }
   .inventory {
     grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
   }
 }
 @media (max-width: 360px) {
-  .hud-meta {
-    display: none; /* 좁으면 생존 시간을 접고 시계·코인만 남긴다 */
-  }
-  .hud-time {
-    font-size: 14px;
-  }
   .draw-title {
     font-size: 18px;
   }
@@ -3974,13 +3797,6 @@ button:disabled {
 }
 
 /* 웨이브 테마 칩: 이번 웨이브가 무엇을 시험하는지 / 다음엔 무엇이 오는지 */
-.hud-theme-row {
-  gap: 5px;
-  min-height: 0;
-}
-.hud-theme-row:empty {
-  display: none;
-}
 .theme-chip {
   font-size: 9.5px;
   font-weight: 700;
@@ -4448,4 +4264,169 @@ button:disabled {
   background: rgba(255, 216, 77, 0.05);
   color: var(--gold);
   opacity: 0.88;
+}
+
+/* ───────── 필드 위 HUD ─────────
+   예전에는 매장 위에 시계·웨이브·체력 카드가 따로 있었다. 390×700 에서
+   카드 90px · 매장 350px — 화면의 딱 절반이 게임이었다.
+   시계도 체력도 결국 '지금 매장이 어떤가'라서 매장 위에 얹으면 될 일이었다. */
+.fhud {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+.fhud button {
+  pointer-events: auto;
+}
+.fhud-head {
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 12px;
+  background: linear-gradient(180deg, rgba(11, 8, 24, 0.9) 0%, rgba(11, 8, 24, 0.72) 46%, rgba(11, 8, 24, 0) 100%);
+}
+/* 웨이브 진행은 필드 맨 윗선. 숫자보다 '얼마 안 남았다'가 먼저 읽혀야 한다. */
+.fhud-wave-line {
+  height: 4px;
+  background: rgba(239, 234, 255, 0.12);
+}
+.fhud-wave-fill {
+  height: 100%;
+  background: var(--mint);
+  transition: width 0.15s linear;
+}
+.fhud-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 0 7px;
+  min-width: 0;
+}
+.fhud-clock {
+  font-size: 13px;
+  color: var(--mint);
+  white-space: nowrap;
+  text-shadow: 0 1px 0 #0b0818;
+}
+.fhud-wave {
+  font-size: 13px;
+  color: #fff;
+  white-space: nowrap;
+}
+.fhud-timer {
+  font-size: 9px;
+  color: var(--off);
+  white-space: nowrap;
+}
+.fhud-gap {
+  flex: 1;
+  min-width: 2px;
+}
+.fhud-coin {
+  font-size: 14px;
+  color: var(--gold);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 #0b0818;
+}
+/* 일시정지·배속·음소거. 예전에는 필드 오른쪽에 44px 짜리가 세로로 쌓여
+   매장의 3분의 1을 가리고 있었다. 가로로 눕히면 벽 위에서 끝난다. */
+.fhud-ctrls {
+  display: flex;
+  gap: 2px;
+  flex: none;
+}
+.fhud-ctrls button {
+  width: 38px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 3px;
+  color: var(--dim);
+  background: rgba(18, 14, 36, 0.72);
+  cursor: pointer;
+}
+.fhud-ctrls button.active {
+  color: var(--mint);
+  background: rgba(79, 227, 208, 0.16);
+}
+.fhud-ctrls .px {
+  font-size: 11px;
+}
+.fhud-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 7px;
+}
+.fhud-sub {
+  margin-top: 1px;
+}
+.fhud-next-boss {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--pink);
+  background: var(--pink-bg);
+  padding: 3px 7px;
+  white-space: nowrap;
+  animation: blink 1.1s infinite;
+}
+.fhud-boss {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 7px;
+  padding: 4px 8px 5px;
+  background: rgba(61, 15, 34, 0.9);
+  --barsep: var(--pink-bg);
+}
+/* 체력은 필드 아래 가장자리. 손님이 계산대에 닿으면 깎이는 값이라
+   지켜야 할 선 위에 있는 게 맞다. */
+.fhud-foot {
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 16px 0 5px;
+  background: linear-gradient(0deg, rgba(11, 8, 24, 0.92) 0%, rgba(11, 8, 24, 0.86) 40%, rgba(11, 8, 24, 0.55) 72%, rgba(11, 8, 24, 0) 100%);
+}
+.fhud-hp {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px;
+}
+.fhud-hp-num {
+  flex: none;
+  font-size: 13px;
+  color: var(--green);
+  min-width: 24px;
+  text-align: right;
+  text-shadow: 0 1px 0 #0b0818;
+}
+.fhud-hp-num.warn {
+  color: var(--gold);
+}
+.fhud-hp-num.danger {
+  color: var(--pink);
+}
+.fhud-run {
+  flex: none;
+  font-size: 9px;
+  color: var(--off);
+  white-space: nowrap;
+}
+@media (max-width: 360px) {
+  .fhud-run,
+  .fhud-timer {
+    display: none; /* 좁으면 참고용 숫자부터 접는다 */
+  }
 }
