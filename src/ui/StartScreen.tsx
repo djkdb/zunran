@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { DailyRecord, SaveData } from '../game/save/storage';
-import { STAGES, STAGE_BY_ID, stageUnlocked } from '../game/data/stages';
+import { STAGES, STAGE_BY_ID, stageUnlocked, maxSlotsOf } from '../game/data/stages';
+import { START_SLOTS } from '../game/config';
 import { StoreFrontScene } from './StoreFrontScene';
 import type { DailySet } from '../game/daily';
 import { META_UPGRADES } from '../game/save/meta';
@@ -285,6 +286,21 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
                     </div>
                     <div className="shop-desc">{maxed ? u.desc(lvl) : `${u.desc(lvl)} → ${u.desc(lvl + 1)}`}</div>
                     {u.note && <div className="shop-sub">{u.note}</div>}
+                    {/* 지점마다 매장 크기가 다르다. 시골점은 14칸이 끝이라
+                        그 이상 증축해도 칸이 안 늘어난다 — 사기 전에 보여준다. */}
+                    {u.id === 'shelves' && (
+                      <div className="shop-stages">
+                        {STAGES.map((st) => {
+                          const cap = maxSlotsOf(st);
+                          const now = Math.min(cap, START_SLOTS + lvl);
+                          return (
+                            <span key={st.id} className={now >= cap ? 'full' : ''}>
+                              {st.short} <b>{now}</b>/{cap}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   <button className={`shop-buy ${can ? '' : 'disabled'}`} disabled={!can} onClick={() => onBuy(u.id)}>
                     {maxed ? 'MAX' : cost}

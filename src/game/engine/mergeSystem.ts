@@ -19,10 +19,13 @@ export function canMerge(state: GameState, defId: string, tier: Tier): boolean {
 }
 
 // 같은 유닛·같은 티어 3개 → 70% 강화 / 25% 상위 희귀도 랜덤 / 5% 특수
-export function mergeUnits(state: GameState, defId: string, tier: Tier): MergeResult {
+//
+// granted = 「한 개만 더 발주」로 돈을 내고 채운 재료 수. 그 몫은 보드에서 꺼내지
+// 않는다 (칸이 꽉 차 있어도 성립해야 하는 수단이라 가짜 유닛을 놓을 자리가 없다).
+export function mergeUnits(state: GameState, defId: string, tier: Tier, granted = 0): MergeResult {
   if (tier >= MAX_TIER) return { ok: false, reason: '최대 티어입니다' };
   const group = state.units.filter((u) => u.defId === defId && u.tier === tier);
-  const need = mergeCost(tier);
+  const need = mergeCost(tier) - granted;
   if (group.length < need) return { ok: false, reason: `같은 유닛 ${need}개가 필요합니다` };
   const def = UNIT_BY_ID[defId];
   const materials = group.slice(0, need);

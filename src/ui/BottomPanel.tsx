@@ -148,7 +148,7 @@ export function BottomPanel({ snap, act, denied }: Props) {
         <button
           className="clean-btn urgent"
           onClick={() => act({ type: 'SELL_JUNK' })}
-          title="짝이 없는 1티어 일반 유닛을 전부 판매"
+          title="짝이 없는 1티어 유닛(일반·희귀)을 전부 판매"
         >
           <Icon name="broom" size={16} strokeWidth={2.4} />
           칸이 다 찼어요 · 정리하고 뽑기
@@ -193,6 +193,35 @@ export function BottomPanel({ snap, act, denied }: Props) {
               <Icon name="merge" size={14} strokeWidth={2.4} />
             </span>
           </button>
+        </div>
+      )}
+
+      {/* 「한 개만 더」 — 합성까지 하나 남았을 때만 뜬다.
+          칸이 꽉 차면 뽑기도 발주도 막히는데, 이건 사자마자 합쳐져서 칸이 하나 빈다.
+          쌓이기만 하던 코인의 출구이자, 운이 나쁜 판을 돈으로 되돌리는 수단이다. */}
+      {snap.mergeBuy.length > 0 && (
+        <div className="merge-row">
+          {snap.mergeBuy.map((o) => {
+            const def = UNIT_BY_ID[o.defId];
+            const ok = snap.coins >= o.cost && snap.phase === 'playing';
+            return (
+              <button
+                key={`buy-${o.defId}`}
+                className={`merge-btn buy-one ${ok ? '' : 'disabled'}`}
+                disabled={snap.phase !== 'playing'}
+                onClick={() => act({ type: 'MERGE_BUY', defId: o.defId })}
+              >
+                <UnitIcon defId={o.defId} size={30} />
+                <span className="merge-label">
+                  <span>{def.name} 한 개만 더</span>
+                  <span className="buy-one-hint">사면 바로 합성 · 칸이 하나 빈다</span>
+                </span>
+                <span className="buy-one-cost px">
+                  {ok ? o.cost : `−${o.cost - snap.coins}`}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
 

@@ -404,6 +404,7 @@ export interface MetaEffects {
   startCoins: number;
   startHp: number;
   slots: number; // 이번 판에 쓸 수 있는 진열대 칸 수
+  shelfLevel: number; // 산 증축 단계 (지점 칸 상한을 넘었는지 판단하는 데 쓴다)
   drawCostReduce: number;
   rareBonus: number; // +확률(0.015 = +1.5%p)
   epicBonus: number;
@@ -530,6 +531,7 @@ export interface GameState {
   shake: number;
   nextId: number;
   meta: MetaEffects;
+  shelfSurplus: number; // 이 지점 칸 상한을 넘은 증축 단계 (진열 밀도로 환원된다)
   stage: import('./data/stages').StageDef;
   geo: import('./data/stages').StageGeometry;
 
@@ -558,6 +560,7 @@ export type GameAction =
   | { type: 'ORDER'; rarity: 'rare' | 'epic' | 'legendary' } // 본사 발주: 등급 지정 뽑기
   | { type: 'MERGE'; defId: string; tier: Tier }
   | { type: 'MERGE_TIER'; tier: Tier } // 고티어: 종류가 달라도 같은 티어끼리 합친다
+  | { type: 'MERGE_BUY'; defId: string } // 「한 개만 더」: 합성까지 하나 남은 재료를 돈으로 채운다
   | { type: 'SELL'; unitId: number }
   | { type: 'SELECT'; unitId: number | null }
   | { type: 'MOVE'; unitId: number; slot: number }
@@ -623,6 +626,8 @@ export interface UISnapshot {
   rarityOdds: Record<Exclude<Rarity, 'special'>, number>;
   disabledUnits: number;
   nextIsBoss: boolean;
+  // 「한 개만 더」 — 합성까지 하나 남은 1티어 짝을 돈으로 채워 바로 합친다
+  mergeBuy: { defId: string; tier: Tier; cost: number; need: number }[];
   junkCount: number; // 정리 판매 대상 수
   junkValue: number;
   rewardOffers: RewardOffer[];

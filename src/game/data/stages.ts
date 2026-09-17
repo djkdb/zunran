@@ -20,6 +20,7 @@ export interface AisleBonusDef {
 export interface StageDef {
   id: string;
   name: string;
+  short: string; // 좁은 자리(상점의 칸 표시 등)에서 쓰는 두세 글자
   sub: string; // 한 줄 소개
   desc: string; // 어떤 판이 되는지
   unlockWave: number; // 이전 지점에서 이 웨이브를 넘기면 열린다 (0이면 처음부터)
@@ -61,6 +62,7 @@ export const STAGES: StageDef[] = [
   {
     id: 'country',
     name: '국도변 시골점',
+    short: '시골',
     sub: '차 한 대 안 지나간다 · 쉬움',
     desc: '손님이 드물다. 대신 한 번 오면 장을 봐 간다 — 한 명당 벌이가 크다.',
     unlockWave: 0,
@@ -81,6 +83,7 @@ export const STAGES: StageDef[] = [
   {
     id: 'alley',
     name: '동네 골목점',
+    short: '골목',
     sub: '밤이 되면 하나둘 들어온다 · 보통',
     desc: '가장 균형 잡힌 지점. 모든 손님이 고르게 온다.',
     unlockWave: 15,
@@ -112,6 +115,7 @@ export const STAGES: StageDef[] = [
   {
     id: 'downtown',
     name: '역앞 술집가점',
+    short: '술집가',
     sub: '술집이 스물세 곳이다 · 어려움',
     desc: '유동인구가 터진다. 취한 손님과 단체 손님이 끝없이 온다. 다들 숙취 해소제 하나 사고 나간다.',
     unlockWave: 20,

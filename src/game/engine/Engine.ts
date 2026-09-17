@@ -1,5 +1,5 @@
 import type { ChallengeSpec, FxEvent, GameAction, GameState, MetaEffects, Rarity, Tier, UISnapshot, UnitGroup, Unit } from '../types';
-import { BASE_RARITY_ODDS, SELL_REFUND, MAX_TIER, MIXED_MERGE_TIER, drawCost, formatClock, EVENT_INTERVAL, isBossWave } from '../config';
+import { BASE_RARITY_ODDS, SELL_REFUND, MAX_TIER, MIXED_MERGE_TIER, START_SLOTS, mergeCost, drawCost, formatClock, EVENT_INTERVAL, isBossWave } from '../config';
 import { STAGE_BY_ID, DEFAULT_STAGE, buildGeometry, unlockOrderFor, type StageDef } from '../data/stages';
 import { UNIT_BY_ID, unitsOfRarity } from '../data/units';
 import { dupeWeight, PIN_GUARANTEE_DRAWS, PIN_TARGET_COPIES, EMPTY_ORDER, orderPrice, EPIC_PITY, type Order } from '../data/deck';
@@ -59,6 +59,16 @@ export class Engine {
       const idx = order[order.length - 1 - i];
       if (idx !== undefined) this.state.slots[idx].locked = true;
     }
+
+    // 좁은 지점에서 남는 증축은 '진열 밀도' 로 돌려준다.
+    //
+    // 국도변 시골점은 14칸이 끝이라 증축 12단계 중 5단계만 먹혔다. 나머지 7단계는
+    // 첫 지점에서 상점의 대표 강화를 사는 신규 플레이어에게 그대로 죽은 돈이었다
+    // (실측: 시골점 증축 8단계와 12단계의 결과가 소수점까지 같았다).
+    // 칸을 더 못 놓는 대신 놓은 칸이 진해진다 — 좁고 진한 가게라는 정체성과도 맞는다.
+    const surplus = Math.max(0, START_SLOTS + (this.state.meta.shelfLevel ?? 0) - all);
+    if (surplus > 0) this.state.perma.aisleMult += surplus * 0.09;
+    this.state.shelfSurplus = surplus;
 
     const cond = opts.condition ?? null;
     this.state.condition = cond;
@@ -181,6 +191,8 @@ export class Engine {
         return this.tapSlot(action.slot);
       case 'SELL_JUNK':
         return this.sellJunk();
+      case 'MERGE_BUY':
+        return this.mergeBuy(action.defId);
       case 'CHOOSE_PROMOTE':
         return { ok: choosePromote(s, action.defId) };
       case 'CHOOSE_EVENT':
@@ -406,11 +418,72 @@ export class Engine {
   }
 
   // 정리: 같은 종류가 하나뿐인 티어1 일반 유닛 (합성 가망 없음) 을 한 번에 판매
+  // 「정리」 대상 = 합성으로 이어질 가망이 없는 1티어 외톨이.
+  //
+  // 예전에는 일반 등급만 봤다. 그래서 보드가 희귀 이상으로 차면 정리 버튼이
+  // 아예 안 떴고, 칸이 꽉 찬 채로 뽑기·발주·합성이 전부 막히는 판이 나왔다
+  // (한 판 추적: w7~w14 동안 조작 0회, 코인 1,174 → 6,428 쌓이다 사망).
+  // 에픽·전설·특수는 한 장이 판을 바꾸므로 실수로 팔리지 않게 그대로 제외한다.
   junkUnits(): Unit[] {
     const s = this.state;
     const count = new Map<string, number>();
     for (const u of s.units) if (u.tier === 1) count.set(u.defId, (count.get(u.defId) ?? 0) + 1);
-    return s.units.filter((u) => u.tier === 1 && UNIT_BY_ID[u.defId].rarity === 'common' && (count.get(u.defId) ?? 0) === 1);
+    return s.units.filter((u) => {
+      if (u.tier !== 1 || (count.get(u.defId) ?? 0) !== 1) return false;
+      const r = UNIT_BY_ID[u.defId].rarity;
+      return r === 'common' || r === 'rare';
+    });
+  }
+
+  // 「한 개만 더」 — 합성까지 하나 남은 1티어 짝을 돈으로 채워서 바로 합친다.
+  //
+  // 칸이 꽉 차면 뽑기도 발주도 막히는데, 그때 보드에 2개짜리 짝이 남아 있어도
+  // 3개가 필요해서 아무것도 못 했다. 이 발주는 사자마자 합쳐지므로 칸이
+  // 오히려 하나 빈다 — 꽉 찬 상태에서도 누를 수 있는 유일한 수다.
+  // 운이 나쁜 판을 돈으로 되돌리는 수단이자, 쌓이기만 하던 코인의 출구다.
+  mergeBuyOffers(): { defId: string; tier: Tier; cost: number; need: number }[] {
+    const s = this.state;
+    if (s.phase !== 'playing') return [];
+    const count = new Map<string, number>();
+    for (const u of s.units) if (u.tier === 1) count.set(u.defId, (count.get(u.defId) ?? 0) + 1);
+    const out: { defId: string; tier: Tier; cost: number; need: number }[] = [];
+    for (const [defId, have] of count) {
+      const need = mergeCost(1) - have;
+      if (need !== 1) continue; // 딱 하나 남았을 때만
+      const def = UNIT_BY_ID[defId];
+      if (def.rarity === 'legendary' || def.rarity === 'special') continue;
+      out.push({ defId, tier: 1, cost: this.mergeBuyCost(def.rarity), need });
+    }
+    return out.sort((a, b) => a.cost - b.cost).slice(0, 2);
+  }
+
+  private mergeBuyCost(rarity: Rarity): number {
+    // 같은 등급 발주의 일부. 등급이 아니라 '이 유닛'을 콕 집어 주지만
+    // 사자마자 합성으로 사라지므로 한 장짜리 발주보다 싸야 한다.
+    const tier: 'rare' | 'epic' = rarity === 'epic' ? 'epic' : 'rare';
+    const base = orderPrice(tier, this.state.wave, this.currentDrawCost(), this.state.meta.orderDiscount ?? 0);
+    return Math.max(40, Math.round(base * (rarity === 'common' ? 0.3 : rarity === 'rare' ? 0.55 : 0.5)));
+  }
+
+  private mergeBuy(defId: string): { ok: boolean; reason?: string } {
+    const s = this.state;
+    const offer = this.mergeBuyOffers().find((o) => o.defId === defId);
+    if (!offer) return { ok: false, reason: '합성까지 하나 남은 유닛이 아니에요.' };
+    if (s.coins < offer.cost) return { ok: false, reason: `${offer.cost - s.coins}원 모자라요.` };
+    s.coins -= offer.cost;
+    s.stats.coinsSpent += offer.cost;
+    s.stats.orders++;
+    // 산 재료는 보드에 놓지 않고 합성에 바로 넣는다. 그래야 칸이 꽉 차 있어도 눌린다.
+    const r = mergeUnits(s, defId, 1, 1);
+    if (!r.ok) {
+      s.coins += offer.cost;
+      s.stats.coinsSpent -= offer.cost;
+      s.stats.orders--;
+      return { ok: false, reason: r.reason };
+    }
+    s.fx.push({ type: 'banner', text: '한 개만 더', sub: `${UNIT_BY_ID[defId].name} 합성`, style: 'good', dur: 1.6 });
+    this.snapshotDirty = true;
+    return { ok: true };
   }
 
   private sellJunk(): { ok: boolean; reason?: string } {
@@ -554,6 +627,7 @@ export class Engine {
       bestCombo: s.combo.best,
       riskWave: s.riskWave === s.wave,
       nextIsBoss: isBossWave(s.wave + 1),
+      mergeBuy: this.mergeBuyOffers(),
       junkCount: junk.length,
       junkValue: junk.reduce((a, u) => a + sellPrice(u), 0),
     };
@@ -690,6 +764,7 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number, s
     shake: 0,
     nextId: 1,
     meta,
+    shelfSurplus: 0,
     hitstop: 0,
     order: { pins: [], bans: [] },
     condition: null,

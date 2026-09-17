@@ -4430,3 +4430,54 @@ button:disabled {
     display: none; /* 좁으면 참고용 숫자부터 접는다 */
   }
 }
+
+/* 「한 개만 더」 — 합성까지 하나 남은 재료를 돈으로 채운다.
+   합성 줄과 같은 모양이되 금색이다. 돈을 쓰는 버튼이라 색을 나눈다. */
+.merge-btn.buy-one {
+  --fc: var(--gold);
+}
+.merge-btn.buy-one .merge-label > span:first-child {
+  color: var(--gold);
+}
+.buy-one-hint {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--off);
+}
+.buy-one-cost {
+  flex: none;
+  font-size: 14px;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+.merge-btn.buy-one.disabled {
+  --fc: var(--edge);
+  opacity: 0.55;
+}
+.merge-btn.buy-one.disabled .merge-label > span:first-child,
+.merge-btn.buy-one.disabled .buy-one-cost {
+  color: var(--off);
+}
+
+/* 상점의 진열대 항목 — 지점별로 몇 칸까지 쓰이는지.
+   시골점은 14칸이 끝이라 그 이상은 진열 밀도로 간다. 사기 전에 보이게 한다. */
+.shop-stages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 5px;
+  font-family: var(--font-px);
+  font-size: 9px;
+  color: var(--off);
+}
+.shop-stages b {
+  font-weight: 400;
+  color: var(--mint);
+}
+.shop-stages .full b {
+  color: var(--gold);
+}
+.shop-stages .full::after {
+  content: ' 꽉';
+  color: var(--gold);
+}

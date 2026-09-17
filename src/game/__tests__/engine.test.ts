@@ -7,8 +7,8 @@ import { ENEMY_DEFS } from '../data/enemies';
 import { EVENT_DEFS } from '../data/events';
 import { buildWave } from '../data/waves';
 import { createRng } from '../engine/rng';
-import { TOTAL_SLOTS, MAX_SHELF_LEVEL, MAX_TIER, formatClock, THREE_AM_WAVE } from '../config';
-import { buildGeometry, geoPos, STAGE_BY_ID } from '../data/stages';
+import { TOTAL_SLOTS, MAX_SHELF_LEVEL, MAX_TIER, START_SLOTS, formatClock, THREE_AM_WAVE } from '../config';
+import { buildGeometry, geoPos, STAGE_BY_ID, maxSlotsOf } from '../data/stages';
 
 // 경로는 지점마다 다르다. 테스트는 기준 지점(동네 골목점)으로 고정한다.
 const REF_GEO = buildGeometry(STAGE_BY_ID.alley);
@@ -330,5 +330,105 @@ describe('보상 카드: 뜨면 반드시 효과가 있어야 한다', () => {
       open[i].unitId = u.id;
     }
     expect(card('unmanned').available!(s)).toBe(false);
+  });
+});
+
+// ───────── 「한 개만 더」 ─────────
+//
+// 한 판을 추적해 보니 w7~w14 동안 조작이 0회였다. 보드가
+// scanner×2 · coffee×2 · freezer×2 + 외톨이 3 으로 꽉 차서
+// 합성(3개 필요) · 뽑기(칸 없음) · 발주(칸 없음) · 정리(일반 등급만)가 전부 막혔다.
+// 코인은 1,174 → 6,428 으로 쌓이기만 했다.
+describe('교착 해소', () => {
+  function fillPairs(engine: Engine) {
+    const s = engine.state;
+    const open = s.slots.filter((sl) => !sl.locked && !sl.blocked);
+    // 2개짜리 짝으로만 채운다 = 합성도 정리도 안 되는 상태
+    const kinds = ['scanner', 'coffee', 'freezer', 'cctv'];
+    let k = 0;
+    for (let i = 0; i + 1 < open.length; i += 2) {
+      const defId = kinds[k++ % kinds.length];
+      for (const sl of [open[i], open[i + 1]]) {
+        const u = createUnit(s, defId, 1, sl.index);
+        s.units.push(u);
+        sl.unitId = u.id;
+      }
+    }
+    return s;
+  }
+
+  it('2개짜리 짝만 남아도 「한 개만 더」로 판이 이어진다', () => {
+    const engine = new Engine({ stageId: 'alley', seed: 9, meta: metaEffects(DEFAULT_META_LEVELS) });
+    const s = fillPairs(engine);
+    const snap = engine.snapshot();
+    expect(snap.emptySlots, '칸이 꽉 차 있어야 하는 상황').toBe(s.units.length % 2 === 0 ? snap.totalSlots - s.units.length : snap.emptySlots);
+    expect(snap.groups.some((g) => g.mergeable), '3개가 없으니 합성은 불가').toBe(false);
+    expect(snap.mergeBuy.length, '「한 개만 더」가 제시돼야 한다').toBeGreaterThan(0);
+
+    const offer = snap.mergeBuy[0];
+    s.coins = offer.cost;
+    const before = s.units.length;
+    const r = engine.dispatch({ type: 'MERGE_BUY', defId: offer.defId });
+    expect(r.ok).toBe(true);
+    // 산 재료는 보드에 놓지 않고 바로 합성된다 → 2개가 1개로, 칸이 하나 빈다
+    expect(s.units.length, '칸이 하나 비어야 한다').toBe(before - 1);
+    expect(s.coins).toBe(0);
+  });
+
+  it('코인이 모자라면 사지지 않고 코인도 안 줄어든다', () => {
+    const engine = new Engine({ stageId: 'alley', seed: 10, meta: metaEffects(DEFAULT_META_LEVELS) });
+    const s = fillPairs(engine);
+    const offer = engine.snapshot().mergeBuy[0];
+    s.coins = offer.cost - 1;
+    const r = engine.dispatch({ type: 'MERGE_BUY', defId: offer.defId });
+    expect(r.ok).toBe(false);
+    expect(s.coins).toBe(offer.cost - 1);
+  });
+
+  it('정리 대상에 희귀 외톨이도 들어간다 (일반만 보면 버튼이 안 떴다)', () => {
+    const engine = new Engine({ stageId: 'alley', seed: 11, meta: metaEffects(DEFAULT_META_LEVELS) });
+    const s = engine.state;
+    const open = s.slots.filter((sl) => !sl.locked && !sl.blocked);
+    for (const [i, defId] of ['cctv', 'onigiri', 'coffee'].entries()) {
+      const u = createUnit(s, defId, 1, open[i].index);
+      s.units.push(u);
+      open[i].unitId = u.id;
+    }
+    for (const id of ['cctv', 'onigiri', 'coffee']) {
+      expect(['rare', 'common']).toContain(UNIT_BY_ID[id].rarity);
+    }
+    expect(engine.snapshot().junkCount, '짝 없는 1티어는 전부 정리 대상').toBe(3);
+    expect(engine.dispatch({ type: 'SELL_JUNK' }).ok).toBe(true);
+    expect(s.units.length).toBe(0);
+  });
+
+  it('에픽·전설은 실수로 팔리지 않는다', () => {
+    const engine = new Engine({ stageId: 'alley', seed: 12, meta: metaEffects(DEFAULT_META_LEVELS) });
+    const s = engine.state;
+    const epic = UNIT_DEFS.find((u) => u.rarity === 'epic')!;
+    const u = createUnit(s, epic.id, 1, s.slots.findIndex((sl) => !sl.locked));
+    s.units.push(u);
+    s.slots[u.slot].unitId = u.id;
+    expect(engine.snapshot().junkCount).toBe(0);
+  });
+});
+
+describe('좁은 지점의 남는 증축', () => {
+  it('시골점에서 칸 상한을 넘은 증축은 진열 밀도로 돌아온다', () => {
+    const cap = maxSlotsOf(STAGE_BY_ID.country);
+    const useful = cap - START_SLOTS;
+    const under = new Engine({ stageId: 'country', seed: 2, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: useful }) });
+    const over = new Engine({ stageId: 'country', seed: 2, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: MAX_SHELF_LEVEL }) });
+    // 칸은 더 안 열린다
+    expect(under.state.slots.filter((sl) => !sl.locked).length).toBe(cap);
+    expect(over.state.slots.filter((sl) => !sl.locked).length).toBe(cap);
+    // 대신 코너 보너스가 진해진다
+    expect(over.state.shelfSurplus).toBe(MAX_SHELF_LEVEL - useful);
+    expect(over.state.perma.aisleMult).toBeGreaterThan(under.state.perma.aisleMult);
+  });
+  it('칸이 남는 지점에서는 아무 일도 없다', () => {
+    const e = new Engine({ stageId: 'alley', seed: 2, meta: metaEffects({ ...DEFAULT_META_LEVELS, shelves: MAX_SHELF_LEVEL }) });
+    expect(e.state.shelfSurplus).toBe(0);
+    expect(e.state.perma.aisleMult).toBe(1);
   });
 });
