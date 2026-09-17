@@ -19,6 +19,12 @@ export interface SubmitResult {
 
 const TIMEOUT_MS = 6000;
 
+// 앱으로 감싸면(Capacitor) 페이지 출처가 capacitor://localhost 라서
+// 상대 경로 '/api/...' 는 로컬 번들을 가리키고 랭킹이 전부 실패한다.
+// 빌드 타임에 VITE_API_BASE 를 넣으면 그 절대 주소로 보낸다. 웹은 그대로 상대 경로.
+const API_BASE = (import.meta.env?.VITE_API_BASE ?? '').replace(/\/$/, '');
+const apiUrl = (path: string) => `${API_BASE}${path}`;
+
 // 로컬 dev/preview 처럼 Functions 가 안 붙은 곳에서는 /api/* 가 index.html 을 돌려준다.
 // JSON 이 아니면 서버가 없는 것으로 본다 (파싱 에러로 겁주지 않는다).
 function isJson(res: Response): boolean {
@@ -40,7 +46,7 @@ async function req(path: string, init?: RequestInit): Promise<Response | null> {
 
 export async function fetchBoard(board: 'all' | 'daily' | string, me?: string): Promise<FetchBoardResult> {
   const q = me ? `?me=${encodeURIComponent(me.slice(0, 8))}` : '';
-  const res = await req(`/api/rank/${encodeURIComponent(board)}${q}`);
+  const res = await req(apiUrl(`/api/rank/${encodeURIComponent(board)}${q}`));
   if (!res) return { status: 'offline', board: null, myRank: null };
   if (res.status === 503 || !isJson(res)) return { status: 'unconfigured', board: null, myRank: null };
   if (!res.ok) return { status: 'error', board: null, myRank: null };
@@ -54,7 +60,7 @@ export async function fetchBoard(board: 'all' | 'daily' | string, me?: string): 
 }
 
 export async function submitScore(payload: ScorePayload): Promise<SubmitResult> {
-  const res = await req('/api/rank/submit', {
+  const res = await req(apiUrl('/api/rank/submit'), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
@@ -75,7 +81,7 @@ export async function submitScore(payload: ScorePayload): Promise<SubmitResult> 
 
 // 이미 올라간 기록의 표시 이름을 바꾼다. 실패해도 조용히 넘어간다 (다음 판에 어차피 갱신된다).
 export async function renameScore(playerId: string, name: string, date: string): Promise<boolean> {
-  const res = await req('/api/rank/rename', {
+  const res = await req(apiUrl('/api/rank/rename'), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ playerId, name, date }),

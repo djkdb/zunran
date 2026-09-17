@@ -200,8 +200,8 @@ button:disabled {
   aspect-ratio: 1 / 1;
   max-width: 100%;
   max-height: 100%;
-  width: min(100%, 100vh);
-  width: min(100%, 100vh, 58dvh);
+  width: min(100%, 100svh);
+  width: min(100%, 100svh, 58dvh);
   overflow: hidden;
   background: #1d1836;
   /* 필드는 캔버스가 꽉 채우므로 테두리를 바깥쪽 그림자로 그린다 */
@@ -225,10 +225,13 @@ button:disabled {
   flex-direction: column;
   gap: 4px;
 }
+/* 30px 이었으나 Apple 44pt · Material 48dp 양쪽 미달이었다.
+   ::after 로 히트 영역만 넓히면 버튼 3개의 영역이 서로 겹쳐 오탭이 나므로
+   실제 크기를 키운다. 세로로 쌓이니 필드를 가리는 폭은 그대로다. */
 .field-controls button {
   --fc: var(--edge);
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1321,10 +1324,10 @@ button:disabled {
 }
 .title-mute {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 36px;
-  height: 36px;
+  top: 2px;
+  right: 2px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2552,7 +2555,7 @@ button:disabled {
 @media (max-height: 760px) and (max-width: 699px) {
   .field {
     /* 조작 버튼을 필드 위로 올리고 토글을 일시정지로 뺀 만큼 필드에 돌려준다 */
-    width: min(100%, 100vh, 50dvh);
+    width: min(100%, 100svh, 50dvh);
   }
   /* 유닛 상세는 낮은 화면에서 핵심만. 설명과 배치 안내는 접는다 */
   .selected-desc,
