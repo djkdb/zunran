@@ -18,7 +18,7 @@ import { mergeUnits, choosePromote, canMerge, canTierMerge, mergeByTier, tierMer
 import { createUnit } from './unitFactory';
 import { RECIPE_BY_ID, pickMaterials } from '../data/recipes';
 import { spendCoins, addCoins } from './economy';
-import { sfx, addFloater, unitDef, freeSlots, openSlots, recomputeAdjacency } from './helpers';
+import { sfx, addFloater, unitDef, freeSlots, openSlots, recomputeAdjacency, ADJ_SAME_ROLE, ADJ_NEAR_SUPPORT } from './helpers';
 import { metaEffects } from '../save/meta';
 import { DEFAULT_META_LEVELS } from '../save/meta';
 
@@ -530,6 +530,20 @@ export class Engine {
     }
     s.selectedUnitId = null;
     sfx(s, 'click');
+    // 놓는 순간 옆자리가 붙었는지 손으로 알려 준다.
+    // 규칙을 글로 읽는 것보다 한 번 뜨는 게 빠르다.
+    recomputeAdjacency(s);
+    const adj = u.adj;
+    if (adj && (adj.sameRole > 0 || adj.nearSupport)) {
+      const sl = s.slots[u.slot];
+      const parts: string[] = [];
+      if (adj.sameRole > 0) parts.push(`공격력 +${Math.round(adj.sameRole * ADJ_SAME_ROLE * s.perma.adjMult * 100)}%`);
+      if (adj.nearSupport) parts.push(`공속 +${Math.round(ADJ_NEAR_SUPPORT * s.perma.adjMult * 100)}%`);
+      if (parts.length > 0) {
+        addFloater(s, { x: sl.x, y: sl.y - 40, text: parts.join(' · '), color: adj.nearSupport ? '#4fe3d0' : '#ffd84d', size: 13, life: 1.3 });
+        s.fx.push({ type: 'merge', slot: u.slot, rarity: 'rare', upgraded: false });
+      }
+    }
     return { ok: true };
   }
 
