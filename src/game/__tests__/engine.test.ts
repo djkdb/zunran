@@ -5,7 +5,7 @@ import { UNIT_BY_ID, UNIT_DEFS } from '../data/units';
 import type { Tier } from '../types';
 import { ENEMY_DEFS, bossForWave } from '../data/enemies';
 import { EVENT_DEFS } from '../data/events';
-import { buildWave } from '../data/waves';
+import { buildWave, THEME_WANTS, type WaveTheme } from '../data/waves';
 import { startWave } from '../engine/waveSystem';
 import { spawnEnemy } from '../engine/enemySystem';
 import { createRng } from '../engine/rng';
@@ -952,5 +952,27 @@ describe('정리와 발주 단가', () => {
     stock(s, ['ramenShelf', 'ramenShelf', 'ramenShelf', 'vacuum', 'vacuum', 'vacuum', 'onigiri', 'alba', 'coffee', 'scanner']);
     e.dispatch({ type: 'SELL_JUNK' });
     expect(s.drawCount).toBeGreaterThanOrEqual(0);
+  });
+});
+
+// 웨이브 테마 ↔ 전문점 상성. 좁힌 대가가 눈에 보여야 대비가 판단이 된다.
+describe('테마가 요구하는 계열', () => {
+  it('네 테마 모두 정의돼 있고, mixed 만 요구가 없다', () => {
+    const themes: WaveTheme[] = ['mixed', 'fast', 'swarm', 'armor'];
+    for (const t of themes) expect(THEME_WANTS).toHaveProperty(t);
+    expect(THEME_WANTS.mixed).toBeNull();
+    expect(THEME_WANTS.fast).toBe('control');
+    expect(THEME_WANTS.swarm).toBe('aoe');
+    expect(THEME_WANTS.armor).toBe('dps');
+  });
+
+  it('요구하는 계열의 유닛이 실제로 존재한다 (답이 없는 문제를 내지 않는다)', () => {
+    for (const t of ['fast', 'swarm', 'armor'] as const) {
+      const want = THEME_WANTS[t]!;
+      const pool = UNIT_DEFS.filter((d) => d.role === want && d.rarity !== 'special');
+      expect(pool.length, `${t} 가 요구하는 ${want} 유닛이 없다`).toBeGreaterThan(1);
+      // 일반 등급에도 하나는 있어야 초반 테마에 대응할 수 있다
+      expect(pool.some((d) => d.rarity === 'common' || d.rarity === 'rare'), `${want} 저등급 유닛이 없다`).toBe(true);
+    }
   });
 });

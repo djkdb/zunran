@@ -5173,3 +5173,17 @@ button:disabled {
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
+
+/* 다음 웨이브가 내 전문점과 맞는지 */
+.theme-vs {
+  margin-left: 5px;
+  padding: 0 3px;
+  font-size: 9.5px;
+  font-weight: 900;
+}
+.theme-vs.good {
+  color: var(--green);
+}
+.theme-vs.bad {
+  color: var(--pink-s);
+}

@@ -1,4 +1,4 @@
-import type { RNG, SpawnEntry } from '../types';
+import type { RNG, SpawnEntry, UnitRole } from '../types';
 import { ENEMY_DEFS, bossForWave } from './enemies';
 import { BOSS_WAVE_DURATION, waveDuration, THREE_AM_WAVE, isBossWave } from '../config';
 
@@ -6,6 +6,16 @@ import { BOSS_WAVE_DURATION, waveDuration, THREE_AM_WAVE, isBossWave } from '../
 // 숫자만 컸다 (docs/AUDIT.md 6절). 각 웨이브가 '무엇을 시험하는가'를 정하고 미리 알려준다.
 // 예고가 있어야 대비할 수 있고, 대비할 수 있어야 판단이 생긴다.
 export type WaveTheme = 'mixed' | 'fast' | 'swarm' | 'armor';
+
+// 각 테마가 요구하는 계열. 「전문점」과 맞물린다 — 보드를 한 계열로 좁히면
+// 그 계열이 잘 들어오는 대신, 다른 문제를 내는 웨이브에서는 뽑기로 못 빠져나온다.
+// 그 대가가 눈에 보여야 대비가 판단이 된다 (안 보이면 그냥 억울한 죽음이다).
+export const THEME_WANTS: Record<WaveTheme, UnitRole | null> = {
+  mixed: null,
+  fast: 'control', // 빠르다 — 감속으로 붙잡아야 한다
+  swarm: 'aoe', // 뭉친다 — 한꺼번에 쳐야 한다
+  armor: 'dps', // 두껍다 — 한 방이 커야 한다
+};
 
 export const THEME_INFO: Record<WaveTheme, { label: string; hint: string }> = {
   mixed: { label: '평범한 밤', hint: '여러 손님이 섞여 온다' },

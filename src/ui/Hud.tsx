@@ -1,7 +1,7 @@
 import type { UISnapshot } from '../game/types';
 import { formatTime } from '../game/config';
 import { Icon } from './Icon';
-import { THEME_INFO } from '../game/data/waves';
+import { THEME_INFO, THEME_WANTS } from '../game/data/waves';
 
 interface Props {
   snap: UISnapshot;
@@ -25,6 +25,14 @@ export function Hud({ snap, bestWave, muted, onTogglePause, onToggleSpeed, onTog
   const hpClass = hpPct <= 25 ? 'danger' : hpPct <= 50 ? 'warn' : '';
   const waveProgress = snap.prep > 0 ? 1 : 1 - snap.waveTimer / snap.waveDuration;
   const showThemes = snap.waveTheme !== 'mixed' || snap.nextIsBoss || snap.nextWaveTheme !== 'mixed';
+  // 전문점으로 좁혔을 때만 의미가 있는 신호다. 잡탕 보드에는 '맞다/안 맞다'가 없다.
+  const wants = THEME_WANTS[snap.nextWaveTheme];
+  const matchup =
+    !snap.nextIsBoss && wants && snap.focus.role && snap.focus.weight > 1
+      ? snap.focus.role === wants
+        ? { good: true, text: '유리' }
+        : { good: false, text: '불리' }
+      : null;
   return (
     <>
     <div className="fhud fhud-head">
@@ -91,7 +99,12 @@ export function Hud({ snap, bestWave, muted, onTogglePause, onToggleSpeed, onTog
             <span className="theme-chip next t-boss">다음 · 보스</span>
           ) : (
             snap.nextWaveTheme !== 'mixed' && (
-              <span className={`theme-chip next t-${snap.nextWaveTheme}`}>다음 · {THEME_INFO[snap.nextWaveTheme].label}</span>
+              <span className={`theme-chip next t-${snap.nextWaveTheme}`}>
+                다음 · {THEME_INFO[snap.nextWaveTheme].label}
+                {/* 전문점으로 좁힌 대가는 여기서 드러난다. 내 계열이 다음 웨이브가
+                    내는 문제와 맞는지 아닌지를 미리 알려준다. */}
+                {matchup && <b className={`theme-vs ${matchup.good ? 'good' : 'bad'}`}>{matchup.text}</b>}
+              </span>
             )
           )}
         </div>
