@@ -20,9 +20,9 @@ export function tutorialSteps(snap: UISnapshot): TutorialStep[] {
   const adjSeen = snap.selected ? snap.selected.adjSameRole > 0 || snap.selected.adjNearSupport : false;
   return [
     { id: 'draw', label: '유닛을 뽑는다', done: snap.stats.draws >= 1 },
-    { id: 'move', label: '유닛을 끌어 원하는 칸에 놓는다', done: snap.stats.moves >= 1 },
-    { id: 'merge', label: '같은 유닛 3개를 모아 합성한다', done: snap.stats.merges >= 1 },
-    { id: 'reward', label: '보상 3장 중 하나를 고른다', done: snap.rewardsTaken >= 1 },
-    { id: 'adj', label: '옆자리에 같은 계열이나 지원 유닛을 붙인다', done: adjSeen || snap.stats.moves >= 4 },
+    { id: 'move', label: '유닛을 끌어 자리를 옮긴다', done: snap.stats.moves >= 1 },
+    { id: 'merge', label: '같은 유닛 3개를 합성한다', done: snap.stats.merges >= 1 },
+    { id: 'reward', label: '보상 카드를 고른다', done: snap.rewardsTaken >= 1 },
+    { id: 'adj', label: '옆자리에 같은 계열을 붙인다', done: adjSeen || snap.stats.moves >= 4 },
   ];
 }

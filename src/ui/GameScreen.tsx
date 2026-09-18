@@ -85,7 +85,6 @@ export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHin
               {toast}
             </div>
           )}
-          {snap && coachOn && !toast && <Coach snap={snap} onClose={() => setCoachOff(true)} />}
           {hint && !toast && (
             <div className="hint" role="status" aria-live="polite">
               {hint}
@@ -118,6 +117,7 @@ export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHin
           )}
         </div>
       </div>
+      {snap && coachOn && <Coach snap={snap} onClose={() => setCoachOff(true)} />}
       {snap && <BottomPanel snap={snap} act={act} denied={denied} />}
       {snap && <RewardOverlay snap={snap} act={act} />}
       {snap && <PromoteOverlay snap={snap} act={act} />}

@@ -174,8 +174,11 @@ button:disabled {
      매장이 먼저 가로폭만큼 정사각형을 차지하고, 남는 세로는 조작 패널이 받는다.
      (예전에는 반대였다 — 패널이 제자리를 잡고 남은 자리를 매장이 받아서,
       390×700 화면에서 매장이 350px, 딱 절반이었다.) */
-  grid-template-rows: auto minmax(0, 1fr);
-  grid-template-areas: 'field' 'panel';
+  /* 첫 판 안내 줄이 매장과 조작 패널 사이에 한 칸 들어간다. 안내가 없으면
+     그 행은 auto = 0 이라 평소 배치는 그대로다. (매장 위에 겹쳐 띄웠더니
+     웨이브 배너와 진열대를 가렸다.) */
+  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-areas: 'field' 'coach' 'panel';
   background: var(--bg);
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
@@ -5105,23 +5108,20 @@ button:disabled {
 
 /* ───────── 첫 판 단계 안내 ───────── */
 
-/* 한 줄 힌트와 같은 자리를 쓴다 (동시에 뜨지 않는다). */
+/* 매장과 조작 패널 사이 한 줄. 손이 가 있는 쪽에 붙여 둔다. */
 .coach {
-  position: absolute;
-  top: 92px;
-  left: 50%;
-  transform: translateX(-50%);
+  grid-area: coach;
   --fc: var(--gold);
   display: flex;
   align-items: center;
-  gap: 7px;
-  max-width: 94%;
-  padding: 6px 8px 7px 9px;
-  background: rgba(10, 12, 18, 0.9);
+  gap: 8px;
+  margin: 4px 8px 0;
+  padding: 6px 8px 7px 10px;
   color: var(--gold);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 800;
-  z-index: 6;
+  white-space: nowrap;
+  overflow: hidden;
 }
 .coach.done {
   --fc: var(--mint);
@@ -5133,8 +5133,10 @@ button:disabled {
   flex: none;
 }
 .coach-label {
+  flex: 1;
   min-width: 0;
-  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .coach-dots {
   display: flex;
