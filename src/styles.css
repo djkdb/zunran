@@ -116,7 +116,6 @@ button:disabled {
 .start-btn,
 .records button,
 .howto,
-.tabs button,
 .shop-points,
 .shop-item,
 .shop-buy,
@@ -1230,19 +1229,89 @@ button:disabled {
 }
 
 /* ───────── 시작 화면 ───────── */
-.start {
+/* ───────── 앱 셸 ─────────
+   내비바(고정) · 본문(여기만 스크롤) · 탭바(고정).
+   예전에는 화면 전체가 하나의 스크롤이었고 가게 그림과 제목이 모든 탭 위에
+   같이 얹혀 스크롤됐다 — 웹페이지 배너 그대로였다. */
+.app {
   height: 100%;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--bg);
 }
-.start-inner {
-  max-width: 560px;
-  margin: 0 auto;
-  padding: 20px max(14px, env(safe-area-inset-right)) 28px max(14px, env(safe-area-inset-left));
+.app-nav {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: env(safe-area-inset-top) max(14px, env(safe-area-inset-right)) 0 max(14px, env(safe-area-inset-left));
+  box-sizing: content-box;
+  background: var(--bg);
+  border-bottom: 2px solid var(--edge);
+}
+.app-nav-title {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--text);
+}
+.app-nav-btn {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--edge);
+  border-radius: 3px;
+  background: none;
+  color: var(--dim);
+  cursor: pointer;
+}
+.app-nav-btn:active {
+  transform: translateY(1px);
+}
+/* 본문만 스크롤한다. 모멘텀 스크롤을 켜야 손가락이 앱처럼 논다. */
+.app-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 100%;
+  max-width: 560px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 12px max(14px, env(safe-area-inset-right)) 16px max(14px, env(safe-area-inset-left));
+  animation: tabIn 0.16s ease-out both;
+}
+/* 시작 탭은 가게 그림이 화면 끝까지 닿아야 한다 */
+.app-body.is-home {
+  padding-top: 0;
+}
+.app-body.is-home .hero {
+  margin-top: calc(-1 * env(safe-area-inset-top));
+}
+@keyframes tabIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-body {
+    animation: none;
+  }
 }
 .title-block {
   --fc: var(--mint);
@@ -1252,16 +1321,24 @@ button:disabled {
   flex-direction: column;
   gap: 2px;
 }
+/* 예전 제목 상자 시절의 잔재로 position:absolute 였다. 히어로의 토글 줄로
+   옮긴 뒤에도 그대로라 소리·진동 버튼이 같은 자리에 포개져 있었다
+   (셋 다 322,10 에 44x44). 줄 안에 나란히 놓는다. */
 .title-mute {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 44px;
-  height: 44px;
+  flex: none;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--off);
+  border: 0;
+  border-radius: 4px;
+  background: rgba(11, 8, 24, 0.55);
+  color: var(--dim);
+  cursor: pointer;
+}
+.title-mute:active {
+  background: rgba(11, 8, 24, 0.8);
 }
 .title-mute[aria-pressed='true'] {
   color: var(--pink);
@@ -1314,7 +1391,11 @@ button:disabled {
   display: flex;
   align-items: stretch;
   gap: 0;
-  margin: -2px 0 2px;
+  /* 남는 세로 공간은 위쪽(가게 그림·시작 버튼)에 준다. 기록과 팁은 바닥에 붙인다.
+     경계선을 하나 그어 '빈 구멍' 이 아니라 '푸터' 로 읽히게 한다. */
+  margin: auto 0 2px;
+  padding-top: 8px;
+  border-top: 2px solid var(--edge);
 }
 .rec-strip button {
   flex: 1;
@@ -1395,32 +1476,37 @@ button:disabled {
 .tip svg {
   flex: none;
 }
+/* 탭바 — 박스 여섯 개가 아니라 한 줄이다.
+   선 하나로 본문과 나누고, 활성 탭만 색이 들어온다. */
 .tabs {
+  flex: none;
   display: flex;
-  gap: 4px;
-  margin-top: auto;
-  /* 스크롤 컨테이너 바닥에 고정. 처음 켰을 때 탭이 있다는 걸 바로 봐야 한다. */
-  position: sticky;
-  bottom: 0;
+  gap: 0;
   z-index: 5;
-  padding: 7px 0 calc(7px + env(safe-area-inset-bottom));
-  background: var(--bg);
-  box-shadow: 0 -12px 16px -6px var(--bg);
+  padding: 6px max(6px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+  background: var(--panel);
+  border-top: 2px solid var(--edge);
 }
 .tabs button {
   position: relative;
   flex: 1;
-  min-height: 48px;
-  color: var(--dim);
-  font-weight: 800;
-  font-size: 11px;
+  min-height: 50px;
+  color: var(--off);
+  font-weight: 700;
+  font-size: 10.5px;
   white-space: nowrap;
   padding: 0 2px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.tabs button:active {
+  opacity: 0.6;
 }
 .tab-label {
   font-size: 11px;
@@ -1429,16 +1515,26 @@ button:disabled {
 /* 강화 탭에 살 게 있으면 점을 찍는다 */
 .tab-dot {
   position: absolute;
-  top: 6px;
+  top: 8px;
   right: 50%;
-  margin-right: -16px;
+  margin-right: -15px;
   width: 6px;
   height: 6px;
   background: var(--gold);
 }
+/* 활성 탭은 색과 위쪽 짧은 선으로만 표시한다 */
 .tabs button.active {
-  --fc: var(--mint);
   color: var(--mint);
+}
+.tabs button.active::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 26px;
+  height: 3px;
+  background: var(--mint);
 }
 .reset-link {
   font-size: 11px;
@@ -1468,15 +1564,19 @@ button:disabled {
   color: var(--gold);
   padding: 9px;
 }
+/* 상점 항목 — 큰 카드가 아니라 리스트 행이다.
+   설명이 세 줄로 접히고 가격이 큰 사각형이라 항목 하나가 160px 였다.
+   앱의 목록 행은 한눈에 훑을 수 있어야 한다. */
 .shop-item {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: 0;
   padding: 3px;
 }
 .shop-icon {
   flex: none;
-  width: 44px;
+  width: 40px;
+  align-self: stretch;
   background: var(--sunk);
   display: flex;
   align-items: center;
@@ -1486,7 +1586,7 @@ button:disabled {
 .shop-info {
   flex: 1;
   min-width: 0;
-  padding: 8px 11px;
+  padding: 7px 10px;
 }
 .shop-name {
   font-family: var(--font-display);
@@ -1508,13 +1608,20 @@ button:disabled {
   font-size: 11px;
   font-weight: 500;
   color: var(--dim);
-  margin-top: 3px;
-  line-height: 1.45;
+  margin-top: 2px;
+  line-height: 1.35;
+  /* 두 줄까지만. 그 아래는 사기 전에 꼭 읽어야 하는 내용이 아니다. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .shop-buy {
   --fc: var(--mint);
   flex: none;
-  min-width: 70px;
+  min-width: 62px;
+  min-height: 40px;
+  align-self: center;
   margin: 3px;
   padding: 0 10px;
   background-color: #102b2c;
@@ -3056,6 +3163,12 @@ button:disabled {
 }
 .ach-reward.got {
   color: var(--green);
+}
+.shop-item .shop-sub {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .shop-sub {
   margin-top: 3px;
@@ -4768,4 +4881,90 @@ button:disabled {
 .adj-off {
   color: var(--off);
   font-weight: 700;
+}
+
+/* ───────── 바텀시트 ─────────
+   앱에서 보조 동작은 화면 한가운데가 아니라 아래에서 올라온다. */
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(11, 8, 24, 0.7);
+  display: flex;
+  align-items: flex-end;
+  animation: fadeIn 0.16s ease-out both;
+}
+.sheet {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 14px calc(14px + env(safe-area-inset-bottom));
+  background: var(--panel);
+  border-top: 2px solid var(--edge);
+  animation: sheetUp 0.2s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    animation: none;
+  }
+}
+/* 손잡이 — 아래에서 올라온 것이라는 표시 */
+.sheet-grip {
+  width: 38px;
+  height: 4px;
+  margin: 2px auto 6px;
+  background: var(--edge);
+  border-radius: 2px;
+}
+.sheet-title {
+  padding: 0 4px 4px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text);
+}
+.sheet-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--sunk);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.sheet-row:active {
+  background: var(--slot);
+}
+.sheet-row.danger {
+  color: var(--pink);
+}
+.sheet-cancel {
+  min-height: 48px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--dim);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
 }

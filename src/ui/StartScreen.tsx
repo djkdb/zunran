@@ -55,6 +55,7 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
   const [deckOpen, setDeckOpen] = useState(false);
   const [dailyOpen, setDailyOpen] = useState(false);
   const [couponOpen, setCouponOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const upcoming = nextUnlock(save.bestWave);
   const tip = TIPS[save.totalPlays % TIPS.length];
   const achCount = save.achievements.length;
@@ -66,8 +67,8 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
 
   if (deckOpen) {
     return (
-      <div className="start">
-        <div className="start-inner">
+      <div className="app">
+        <div className="app-body">
           <OrderScreen order={order} bestWave={save.bestWave} onChange={onSetOrder} onClose={() => setDeckOpen(false)} />
         </div>
       </div>
@@ -77,35 +78,54 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
   // 아직 못 연 지점 중 가장 가까운 것 (없으면 null)
   const nextBranch = STAGES.find((st) => !stageUnlocked(st, save.bestByStage)) ?? null;
 
-  return (
-    <div className="start">
-      <div className="start-inner">
-        {/* 켜는 순간 보이는 건 상자가 아니라 가게여야 한다 */}
-        <div className="hero">
-          <StoreFrontScene />
-          <div className="hero-toggles">
-            <button className="title-mute" onClick={onToggleMute} aria-label={save.muted ? '소리 켜기' : '소리 끄기'} aria-pressed={save.muted}>
-              <Icon name={save.muted ? 'mute' : 'sound'} size={16} strokeWidth={2.2} />
-            </button>
-            {/* 진동은 소리와 별개다 — 소리를 끄고 하는 사람이 대부분이라 손의 피드백이 남아야 한다 */}
-            <button
-              className={`title-mute title-haptics ${save.haptics ? '' : 'off'}`}
-              onClick={onToggleHaptics}
-              aria-label={save.haptics ? '진동 끄기' : '진동 켜기'}
-              aria-pressed={save.haptics}
-            >
-              <Icon name="gem" size={16} strokeWidth={2.2} />
-            </button>
-          </div>
-          <div className="hero-title">
-            <h1 className="title">편의점 야간근무</h1>
-            <p className="subtitle">새벽 3시, 혼자 남았다.</p>
-          </div>
-        </div>
+  const current = TABS.find((t) => t.id === tab)!;
 
-        <div className="start-content">
+  return (
+    // 앱 셸: 내비바(고정) · 본문(여기만 스크롤) · 탭바(고정).
+    //
+    // 예전에는 화면 전체가 하나의 스크롤이었고 가게 그림과 제목이 모든 탭 위에
+    // 같이 얹혀 스크롤됐다. 웹페이지의 배너 그대로였다 — 강화 탭을 열면
+    // 상점이 400px 아래에서 시작했다.
+    // 그림은 시작 탭의 것이고, 나머지 탭은 제 이름을 단 제 화면을 가진다.
+    <div className="app">
+      {tab !== 'main' && (
+        <header className="app-nav">
+          <h1 className="app-nav-title">{current.aria}</h1>
+          <button className="app-nav-btn" onClick={() => setTab('main')} aria-label="시작 화면으로">
+            <Icon name="store" size={17} strokeWidth={2.3} />
+          </button>
+        </header>
+      )}
+
+      <div className={`app-body ${tab === 'main' ? 'is-home' : ''}`} key={tab}>
         {tab === 'main' && (
           <>
+            {/* 켜는 순간 보이는 건 상자가 아니라 가게여야 한다 */}
+            <div className="hero">
+              <StoreFrontScene />
+              <div className="hero-toggles">
+                <button className="title-mute" onClick={onToggleMute} aria-label={save.muted ? '소리 켜기' : '소리 끄기'} aria-pressed={save.muted}>
+                  <Icon name={save.muted ? 'mute' : 'sound'} size={16} strokeWidth={2.2} />
+                </button>
+                {/* 진동은 소리와 별개다 — 소리를 끄고 하는 사람이 대부분이라 손의 피드백이 남아야 한다 */}
+                <button
+                  className={`title-mute title-haptics ${save.haptics ? '' : 'off'}`}
+                  onClick={onToggleHaptics}
+                  aria-label={save.haptics ? '진동 끄기' : '진동 켜기'}
+                  aria-pressed={save.haptics}
+                >
+                  <Icon name="gem" size={16} strokeWidth={2.2} />
+                </button>
+                <button className="title-mute" onClick={() => setSettingsOpen(true)} aria-label="설정">
+                  <Icon name="restart" size={16} strokeWidth={2.2} />
+                </button>
+              </div>
+              <div className="hero-title">
+                <h1 className="title">편의점 야간근무</h1>
+                <p className="subtitle">새벽 3시, 혼자 남았다.</p>
+              </div>
+            </div>
+
             {/* 이름 입력칸은 홈에서 뺐다. 제목 화면에 입력 폼이 있으면 게임이 아니라
                 가입 페이지처럼 보인다. 이름은 판이 끝난 뒤(결과 화면)와 랭킹 탭에서 받는다. */}
             {/* 출근 블록: 시작 버튼이 화면의 주인공이고, 준비물은 그 아래 한 줄로 붙는다.
@@ -329,35 +349,46 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
         {tab === 'ach' && <AchievementsScreen save={save} />}
         {tab === 'history' && <HistoryScreen save={save} />}
         {tab === 'rank' && <RankScreen save={save} onSetNickname={onSetNickname} onToggleOptIn={onToggleRankOptIn} />}
-        </div>
-
-        <nav className="tabs">
-          {TABS.map((t) => (
-            <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)} aria-label={t.aria}>
-              <Icon name={t.icon} size={15} strokeWidth={2.3} />
-              <span className="tab-label">{t.label}</span>
-              {t.id === 'shop' && canAfford && <span className="tab-dot" aria-label="구매 가능" />}
-            </button>
-          ))}
-        </nav>
-        {couponOpen && (
-          <CouponModal used={save.usedCoupons} onRedeem={onRedeemCoupon} onClose={() => setCouponOpen(false)} />
-        )}
-
-        <div className="start-links">
-          <button className="reset-link" onClick={onReplayIntro}>
-            오프닝 다시 보기
-          </button>
-          <button
-            className="reset-link"
-            onClick={() => {
-              if (confirm('모든 기록과 업적, 업그레이드를 삭제할까요?')) onReset();
-            }}
-          >
-            기록 초기화
-          </button>
-        </div>
       </div>
+
+      <nav className="tabs">
+        {TABS.map((t) => (
+          <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)} aria-label={t.aria}>
+            <Icon name={t.icon} size={19} strokeWidth={2.2} />
+            <span className="tab-label">{t.label}</span>
+            {t.id === 'shop' && canAfford && <span className="tab-dot" aria-label="구매 가능" />}
+          </button>
+        ))}
+      </nav>
+
+      {couponOpen && <CouponModal used={save.usedCoupons} onRedeem={onRedeemCoupon} onClose={() => setCouponOpen(false)} />}
+
+      {/* 설정 — 예전에는 화면 맨 아래에 밑줄 친 텍스트 링크 두 개였다.
+          그건 웹사이트 푸터지 앱이 아니다. 아래에서 올라오는 시트로 옮긴다. */}
+      {settingsOpen && (
+        <div className="sheet-scrim" onClick={() => setSettingsOpen(false)}>
+          <div className="sheet" role="dialog" aria-label="설정" onClick={(e) => e.stopPropagation()}>
+            <div className="sheet-grip" />
+            <div className="sheet-title">설정</div>
+            <button className="sheet-row" onClick={onReplayIntro}>
+              <Icon name="play" size={16} strokeWidth={2.3} />
+              오프닝 다시 보기
+            </button>
+            <button
+              className="sheet-row danger"
+              onClick={() => {
+                if (confirm('모든 기록과 업적, 업그레이드를 삭제할까요?')) onReset();
+              }}
+            >
+              <Icon name="restart" size={16} strokeWidth={2.3} />
+              기록 초기화
+            </button>
+            <button className="sheet-cancel" onClick={() => setSettingsOpen(false)}>
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
