@@ -1,6 +1,7 @@
 import type { RewardCardDef } from '../types';
 import { UNIT_BY_ID } from './units';
 import { freeSlots, openSlots } from '../engine/helpers';
+import { sellPrice } from '../engine/Engine';
 import { MAX_TIER } from '../config';
 
 // 웨이브 보상 카드. 3장 중 1장을 고른다 — 이 판만 유지되는 로그라이크 강화.
@@ -352,16 +353,17 @@ export const REWARD_CARDS: RewardCardDef[] = [
   {
     id: 'backOffice',
     name: '창고 정리',
-    desc: '지원 유닛 공격력 +120% · 뽑기 비용 +40원',
+    desc: '지원 유닛 공격력 +120% · 오라 +40% · 뽑기 비용 +40원',
     icon: 'store',
     tone: 'good',
     kind: 'build',
     weight: 5,
     minWave: 5,
     apply: (c) => {
-      // 지원 유닛은 대부분 공격력이 0 이거나 낮다. 이 카드는 그 계열을
-      // '오라만 주는 장식' 에서 '자리를 차지할 값을 하는 유닛' 으로 바꾼다.
+      // 지원 5종 중 냉장고·CCTV 는 공격력이 0 이라 배율만 올리면 0 × 2.2 = 0,
+      // 즉 절반에게는 아무 일도 안 일어났다. 오라도 같이 올려야 계열 전체가 산다.
       c.state.perma.roleDmg.support *= 2.2;
+      c.state.perma.auraMult *= 1.4;
       c.state.perma.drawDiscount -= 40;
       c.banner('창고 정리', '뒤에 있던 것들을 앞으로');
     },
@@ -452,20 +454,46 @@ export const REWARD_CARDS: RewardCardDef[] = [
     kind: 'build',
     weight: 4,
     minWave: 10,
-    // 막을 빈 칸이 3개는 있어야 한다. 없으면 '3칸이 막힌다' 는 대가 없이
-    // 오라 2배만 먹는 카드가 된다.
-    available: (s) => openSlots(s).length > 12 && freeSlots(s).length >= 3,
+    // 예전에는 '빈 칸이 3개 있을 때만' 이었다. 전수조사에서 이 카드만 제시 0회였다 —
+    // 보상 화면이 뜨는 시점에 칸을 세 개나 비워 두는 사람은 없다.
+    // 대가를 없애는 대신, 빈 칸이 모자라면 싼 유닛부터 정리하고 그 자리를 막는다.
+    // 무인 운영은 원래 사람을 줄이는 이야기다. 유닛이 나가는 게 맞는 대가다.
+    available: (s) => openSlots(s).length > 12,
     apply: (c) => {
       c.state.perma.auraMult *= 2;
-      // 뒤쪽 빈 칸부터 막는다. 유닛이 있는 칸은 건드리지 않는다.
       let left = 3;
+      const block = (sl: { blocked?: boolean; locked?: boolean; unitId: number | null }) => {
+        sl.blocked = true;
+        left--;
+      };
+      // 1) 뒤쪽 빈 칸부터
       for (let i = c.state.slots.length - 1; i >= 0 && left > 0; i--) {
         const sl = c.state.slots[i];
         if (sl.blocked || sl.locked || sl.unitId !== null) continue;
-        sl.blocked = true;
-        left--;
+        block(sl);
       }
-      c.banner('무인 운영', '사람이 줄고 기계가 는다');
+      // 2) 모자라면 값이 가장 싼 유닛을 내보내고 그 칸을 막는다 (판매 대금은 준다).
+      //    전설·특수는 건드리지 않는다 — 한 장이 판을 바꾸는 것을 말없이 뺏지 않는다.
+      if (left > 0) {
+        const RANK: Record<string, number> = { common: 0, rare: 1, epic: 2 };
+        const sellable = c.state.units
+          .filter((u) => {
+            const r = UNIT_BY_ID[u.defId]?.rarity;
+            return r === 'common' || r === 'rare' || r === 'epic';
+          })
+          .sort((a, b) => a.tier - b.tier || (RANK[UNIT_BY_ID[a.defId].rarity] ?? 9) - (RANK[UNIT_BY_ID[b.defId].rarity] ?? 9));
+        for (const u of sellable) {
+          if (left <= 0) break;
+          const sl = c.state.slots[u.slot];
+          if (!sl || sl.blocked || sl.locked) continue;
+          c.addCoins(sellPrice(u, c.state.perma.sellMult));
+          sl.unitId = null;
+          c.state.units = c.state.units.filter((x) => x.id !== u.id);
+          if (c.state.selectedUnitId === u.id) c.state.selectedUnitId = null;
+          block(sl);
+        }
+      }
+      c.banner('무인 운영', `사람이 줄고 기계가 는다 · ${3 - left}칸 봉쇄`);
     },
   },
 ];

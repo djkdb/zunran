@@ -529,6 +529,7 @@ export class Engine {
       target.unitId = u.id;
     }
     s.selectedUnitId = null;
+    s.stats.moves++;
     sfx(s, 'click');
     // 놓는 순간 옆자리가 붙었는지 손으로 알려 준다.
     // 규칙을 글로 읽는 것보다 한 번 뜨는 게 빠르다.
@@ -625,7 +626,8 @@ export class Engine {
       speed: s.speed,
       paused: s.paused,
       enemyCount: s.enemies.length,
-      nearCheckout: s.enemies.filter((e) => !e.dead && !e.reached && e.dist > s.geo.length * 0.78).length,
+      nearCheckout: s.nearCheckout,
+      nearDrain: s.nearDrain,
       bossAlive: !!boss,
       bossHp: boss?.hp ?? 0,
       bossMaxHp: boss?.maxHp ?? 0,
@@ -725,6 +727,8 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number, s
     seed,
     rng,
     coinDrain: 0,
+    nearCheckout: 0,
+    nearDrain: 0,
     time: 0,
     realTime: 0,
     speed: 1,
@@ -777,6 +781,8 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number, s
       merges: 0,
     recipesMade: 0,
     orders: 0,
+    revenueLost: 0,
+    moves: 0,
       bossKills: 0,
       legendaryDraws: 0,
       unitDamage: {},

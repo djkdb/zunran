@@ -5,6 +5,7 @@ import type { ChallengeSpec, MetaEffects, UISnapshot } from '../game/types';
 import { useGame } from './useGame';
 import { Hud } from './Hud';
 import { BottomPanel } from './BottomPanel';
+import { Coach } from './Coach';
 import { BannerLayer } from './Banner';
 import { RewardOverlay } from './RewardOverlay';
 import { PromoteOverlay } from './PromoteOverlay';
@@ -18,6 +19,8 @@ interface Props {
   autoMerge: boolean;
   autoSell: boolean;
   showHints: boolean;
+  coach: boolean; // 첫 판이면 단계 안내를 띄운다
+
   order: { pins: string[]; bans: string[] };
   condition: ShiftCondition | null;
   stageId: string;
@@ -39,15 +42,20 @@ function hintFor(snap: UISnapshot): string | null {
   return null;
 }
 
-export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHints, order, condition, stageId, challenge, onToggleMute, onToggleAutoMerge, onToggleAutoSell, onGameOver }: Props) {
+export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHints, coach, order, condition, stageId, challenge, onToggleMute, onToggleAutoMerge, onToggleAutoSell, onGameOver }: Props) {
   const { canvasRef, snap, banners, act, toast, denied, onPointerDown, onPointerMove, endDrag } = useGame({ meta, bestWave, muted, autoMerge, autoSell, order, condition, stageId, challenge, onGameOver });
   // 퇴근은 되돌릴 수 없으니 두 번 눌러야 한다. 일시정지를 풀면 초기화한다.
   const [confirmExit, setConfirmExit] = useState(false);
+  // 첫 판 안내. 다 하거나 닫으면 그 판 동안 다시 안 뜬다.
+  const [coachOff, setCoachOff] = useState(false);
   const paused = snap?.paused ?? false;
   useEffect(() => {
     if (!paused) setConfirmExit(false);
   }, [paused]);
-  const hint = showHints && snap && snap.phase === 'playing' && snap.wave <= 8 ? hintFor(snap) : null;
+  const coachOn = coach && !coachOff;
+  // 단계 안내가 떠 있는 동안에는 한 줄 힌트를 끈다. 같은 것을 두 군데서
+  // 말하면 둘 다 안 읽는다. 두 번째 판부터는 힌트만 남는다.
+  const hint = !coachOn && showHints && snap && snap.phase === 'playing' && snap.wave <= 8 ? hintFor(snap) : null;
   return (
     <div className="game">
       <div className="field-wrap">
@@ -77,6 +85,7 @@ export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHin
               {toast}
             </div>
           )}
+          {snap && coachOn && !toast && <Coach snap={snap} onClose={() => setCoachOff(true)} />}
           {hint && !toast && (
             <div className="hint" role="status" aria-live="polite">
               {hint}

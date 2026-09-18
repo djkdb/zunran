@@ -7,8 +7,9 @@ import { ENEMY_DEFS, bossForWave } from '../data/enemies';
 import { EVENT_DEFS } from '../data/events';
 import { buildWave } from '../data/waves';
 import { startWave } from '../engine/waveSystem';
+import { spawnEnemy } from '../engine/enemySystem';
 import { createRng } from '../engine/rng';
-import { TOTAL_SLOTS, MAX_SHELF_LEVEL, MAX_TIER, START_SLOTS, needsPrep, PREP_SECONDS, formatClock, THREE_AM_WAVE } from '../config';
+import { TOTAL_SLOTS, MAX_SHELF_LEVEL, MAX_TIER, START_SLOTS, needsPrep, PREP_SECONDS, nearDrainPct, formatClock, THREE_AM_WAVE } from '../config';
 import { buildGeometry, geoPos, STAGE_BY_ID, maxSlotsOf } from '../data/stages';
 
 // 경로는 지점마다 다르다. 테스트는 기준 지점(동네 골목점)으로 고정한다.
@@ -19,6 +20,7 @@ import { REWARD_CARDS } from '../data/rewards';
 import { chooseReward } from '../engine/rewardSystem';
 import { recomputeAdjacency, unitDamage, unitInterval } from '../engine/helpers';
 import { sellCandidate } from '../../ui/useGame';
+import { tutorialSteps } from '../data/tutorial';
 
 // 진열대 증축 만렙 엔진. 칸 번호를 직접 쓰는 테스트는 21칸이 다 열려 있어야 한다.
 function fullEngine(seed: number): Engine {
@@ -322,17 +324,52 @@ describe('보상 카드: 뜨면 반드시 효과가 있어야 한다', () => {
     s.units[0].tier = (MAX_TIER - 1) as Tier;
     expect(card('promote').available!(s)).toBe(true);
   });
-  it('무인 운영 — 막을 빈 칸이 3개 없으면 뜨지 않는다', () => {
+  // 예전 계약은 '빈 칸이 3개 있을 때만 뜬다' 였다. 전수조사에서 이 카드만
+  // 제시 0회였다 — 보상 화면이 뜨는 시점에 칸을 세 개나 비워 두는 사람은 없다.
+  // 이제는 늘 뜨고, 빈 칸이 모자라면 싼 유닛을 내보내고 그 자리를 막는다.
+  it('무인 운영 — 보드가 꽉 차 있어도 반드시 3칸을 막는다', () => {
     const engine = fullEngine(4);
     const s = engine.state;
     const open = s.slots.filter((sl) => !sl.locked && !sl.blocked);
-    expect(card('unmanned').available!(s)).toBe(true);
-    for (let i = 0; i < open.length - 2; i++) {
-      const u = createUnit(s, 'onigiri', 1, open[i].index);
+    expect(card('unmanned').available!(s), '칸이 충분하면 늘 뜬다').toBe(true);
+    // 한 칸도 남기지 않고 채운다
+    for (const sl of open) {
+      const u = createUnit(s, 'onigiri', 1, sl.index);
       s.units.push(u);
-      open[i].unitId = u.id;
+      sl.unitId = u.id;
     }
-    expect(card('unmanned').available!(s)).toBe(false);
+    expect(card('unmanned').available!(s), '꽉 차 있어도 뜬다').toBe(true);
+
+    const beforeUnits = s.units.length;
+    const beforeCoins = s.coins;
+    s.phase = 'reward';
+    const def = card('unmanned');
+    s.rewardOffers = [{ defId: 'unmanned', tone: def.tone, kind: def.kind, name: def.name, desc: def.desc, icon: def.icon }];
+    expect(chooseReward(s, 'unmanned')).toBe(true);
+
+    expect(s.slots.filter((sl) => sl.blocked).length, '약속대로 3칸을 막는다').toBe(3);
+    expect(s.units.length, '자리를 만들려고 유닛을 내보낸다').toBe(beforeUnits - 3);
+    expect(s.coins, '내보낸 유닛의 판매 대금은 준다').toBeGreaterThan(beforeCoins);
+    expect(s.perma.auraMult).toBe(2);
+    // 막힌 칸에 유닛이 남아 있으면 안 된다
+    for (const sl of s.slots) if (sl.blocked) expect(sl.unitId).toBeNull();
+  });
+
+  it('무인 운영 — 전설·특수는 말없이 뺏지 않는다', () => {
+    const engine = fullEngine(9);
+    const s = engine.state;
+    const open = s.slots.filter((sl) => !sl.locked && !sl.blocked);
+    const legend = UNIT_DEFS.find((u) => u.rarity === 'legendary')!;
+    for (const [i, sl] of open.entries()) {
+      const u = createUnit(s, i < 2 ? legend.id : 'onigiri', 1, sl.index);
+      s.units.push(u);
+      sl.unitId = u.id;
+    }
+    const def = card('unmanned');
+    s.phase = 'reward';
+    s.rewardOffers = [{ defId: 'unmanned', tone: def.tone, kind: def.kind, name: def.name, desc: def.desc, icon: def.icon }];
+    chooseReward(s, 'unmanned');
+    expect(s.units.filter((u) => u.defId === legend.id).length, '전설은 그대로').toBe(2);
   });
 });
 
@@ -650,5 +687,115 @@ describe('보스 예고', () => {
     expect(snap.prep).toBeGreaterThan(0);
     expect(snap.prepBoss?.name).toBe(ENEMY_DEFS.find((e) => e.id === bossForWave(10))!.name);
     expect(snap.prepBoss?.hint.length).toBeGreaterThan(10);
+  });
+});
+
+// ───────── 계산대 앞 매출 손실 ─────────
+//
+// 난이도가 곡선이 아니라 계단이었다 — 25웨이브 무피해 → 2웨이브 사망.
+// 손님이 계산대에 '닿을 때만' 피해가 나니 다 막거나 다 뚫리거나였다.
+// 닿기 전에도 대가가 있어야 죽기 전에 신호가 온다.
+describe('계산대 앞 매출 손실', () => {
+  it('비율은 인원수에 비례하고 60%에서 멈춘다', () => {
+    expect(nearDrainPct(0)).toBe(0);
+    expect(nearDrainPct(1)).toBeCloseTo(0.06, 5);
+    expect(nearDrainPct(5)).toBeCloseTo(0.3, 5);
+    expect(nearDrainPct(10)).toBeCloseTo(0.6, 5);
+    expect(nearDrainPct(30), '아무리 밀려도 상한').toBeCloseTo(0.6, 5);
+  });
+
+  it('계산대 앞에 손님이 밀리면 코인이 샌다', () => {
+    const engine = fullEngine(61);
+    const s = engine.state;
+    s.coins = 5000;
+    startWave(s, 12);
+    if (s.phase !== 'playing') s.phase = 'playing';
+    s.spawnQueue = [];
+    // 계산대 코앞에 여섯 명을 세운다
+    for (let i = 0; i < 6; i++) {
+      const e = spawnEnemy(s, 'basic', { silent: true });
+      if (e) e.dist = s.geo.length * 0.9;
+    }
+    const before = s.coins;
+    for (let i = 0; i < 120; i++) engine.tick(1 / 60); // 2초
+    expect(s.nearCheckout, '여섯 명이 계산대 앞에 있다').toBeGreaterThanOrEqual(6);
+    expect(s.nearDrain).toBeCloseTo(nearDrainPct(s.nearCheckout), 5);
+    expect(s.coins, '매출이 샌다').toBeLessThan(before);
+    expect(s.stats.revenueLost, '보고서에 남는다').toBeGreaterThan(0);
+  });
+
+  it('계산대가 비어 있으면 한 푼도 안 샌다', () => {
+    const engine = fullEngine(62);
+    const s = engine.state;
+    s.coins = 5000;
+    startWave(s, 12);
+    if (s.phase !== 'playing') s.phase = 'playing';
+    s.spawnQueue = [];
+    s.enemies.length = 0;
+    const before = s.coins;
+    for (let i = 0; i < 120; i++) engine.tick(1 / 60);
+    expect(s.nearCheckout).toBe(0);
+    expect(s.nearDrain).toBe(0);
+    expect(s.coins).toBe(before);
+    expect(s.stats.revenueLost).toBe(0);
+  });
+
+  it('코인이 0이면 더 깎지 않는다 (음수로 가지 않는다)', () => {
+    const engine = fullEngine(63);
+    const s = engine.state;
+    s.coins = 0;
+    startWave(s, 20);
+    if (s.phase !== 'playing') s.phase = 'playing';
+    s.spawnQueue = [];
+    for (let i = 0; i < 10; i++) {
+      const e = spawnEnemy(s, 'basic', { silent: true });
+      if (e) e.dist = s.geo.length * 0.9;
+    }
+    for (let i = 0; i < 180; i++) engine.tick(1 / 60);
+    expect(s.coins).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('첫 판 안내', () => {
+  it('아무것도 안 했으면 다섯 단계가 모두 미완료다', () => {
+    const e = fullEngine(4242);
+    const steps = tutorialSteps(e.snapshot());
+    expect(steps).toHaveLength(5);
+    expect(steps.every((s) => !s.done)).toBe(true);
+  });
+
+  it('실제로 뽑고 옮기고 합성하면 그 단계가 켜진다', () => {
+    const e = fullEngine(4242);
+    const s = e.state;
+    s.coins = 99999;
+    e.dispatch({ type: 'DRAW' });
+    expect(tutorialSteps(e.snapshot()).find((t) => t.id === 'draw')!.done).toBe(true);
+    expect(tutorialSteps(e.snapshot()).find((t) => t.id === 'move')!.done).toBe(false);
+
+    // 옮기기: 첫 유닛을 빈 칸으로
+    const u = s.units[0];
+    const empty = s.slots.find((sl) => !sl.locked && !sl.blocked && sl.unitId === null)!;
+    e.dispatch({ type: 'MOVE', unitId: u.id, slot: empty.index });
+    expect(tutorialSteps(e.snapshot()).find((t) => t.id === 'move')!.done).toBe(true);
+
+    // 합성: 같은 유닛 3개를 직접 만들어 붙인다
+    const defId = s.units[0].defId;
+    while (s.units.filter((x) => x.defId === defId && x.tier === 1).length < 3) {
+      const sl = s.slots.find((x) => !x.locked && !x.blocked && x.unitId === null)!;
+      const nu = createUnit(s, defId, 1, sl.index);
+      s.units.push(nu);
+      sl.unitId = nu.id;
+    }
+    expect(mergeUnits(s, defId, 1).ok).toBe(true);
+    expect(tutorialSteps(e.snapshot()).find((t) => t.id === 'merge')!.done).toBe(true);
+
+    // 보상은 아직 안 골랐다
+    expect(tutorialSteps(e.snapshot()).find((t) => t.id === 'reward')!.done).toBe(false);
+  });
+
+  it('많이 옮겨보면 인접 단계도 통과한다 (아무것도 못 고른 채 갇히지 않는다)', () => {
+    const e = fullEngine(77);
+    e.state.stats.moves = 4;
+    expect(tutorialSteps(e.snapshot()).find((t) => t.id === 'adj')!.done).toBe(true);
   });
 });

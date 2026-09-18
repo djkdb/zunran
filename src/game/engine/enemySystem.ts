@@ -1,6 +1,6 @@
 import type { Enemy, GameState, OnHitEffect, Unit } from '../types';
 import { ENEMY_BY_ID } from '../data/enemies';
-import { enemyHpScale, enemyDamageScale, MAX_ENEMIES_ON_FIELD, LOW_HP_THRESHOLD, formatClock, armorAt, ARMOR_FLOOR } from '../config';
+import { enemyHpScale, enemyDamageScale, MAX_ENEMIES_ON_FIELD, LOW_HP_THRESHOLD, formatClock, armorAt, ARMOR_FLOOR, NEAR_CHECKOUT_FRAC, nearDrainPct, waveIncome } from '../config';
 import { geoPos } from '../data/stages';
 import { addFloater, sfx, unitDef, auraRadius, auraValue, dist2, isTargetable } from './helpers';
 import { rewardKill } from './economy';
@@ -193,6 +193,7 @@ export function killEnemy(state: GameState, e: Enemy, killer: Unit | null, bonus
 
 export function updateEnemies(state: GameState, dt: number): void {
   const m = state.modifiers;
+  drainNearCheckout(state, dt);
   // 냉장고 감속 오라, 사장님불러 버프는 위치 기반이라 먼저 소스 목록을 모은다.
   const slowAuras: { x: number; y: number; r2: number; v: number }[] = [];
   for (const u of state.units) {
@@ -574,6 +575,28 @@ function updateBoss(state: GameState, e: Enemy, dt: number, pattern: 'lunchbox' 
       }
       break;
     }
+  }
+}
+
+// 계산대 앞에 밀린 손님 수만큼 매출이 샌다.
+// 시급을 기준으로 깎으므로 웨이브가 올라가도 체감이 같다.
+function drainNearCheckout(state: GameState, dt: number): void {
+  const line = state.geo.length * NEAR_CHECKOUT_FRAC;
+  let near = 0;
+  for (const e of state.enemies) if (!e.dead && !e.reached && e.dist > line) near++;
+  state.nearCheckout = near;
+  const pct = nearDrainPct(near);
+  state.nearDrain = pct;
+  if (pct <= 0 || state.coins <= 0) return;
+  // 웨이브 시급을 초당으로 환산한 뒤 그 비율만큼 뺀다
+  const perSec = (waveIncome(state.wave) * state.stage.traffic.coin) / Math.max(1, state.waveDuration);
+  state.coinDrain += perSec * pct * dt;
+  if (state.coinDrain >= 1) {
+    const n = Math.floor(state.coinDrain);
+    state.coinDrain -= n;
+    const lost = Math.min(state.coins, n);
+    state.coins -= lost;
+    state.stats.revenueLost += lost;
   }
 }
 

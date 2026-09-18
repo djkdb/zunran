@@ -372,6 +372,8 @@ export interface RunStats {
   lastDamageClock: string; // 마지막으로 체력이 깎인 순간의 게임 내 시계
   recipesMade: number; // 조합 레시피 완성 횟수
   orders: number; // 본사 발주(등급 지정 뽑기) 횟수
+  revenueLost: number; // 계산대가 막혀 날아간 매출 (보고서용)
+  moves: number; // 유닛을 직접 옮긴 횟수 (첫 판 안내가 '해봤는지' 를 판단한다)
 }
 
 // ───────────────────────── 데일리 챌린지 ─────────────────────────
@@ -490,7 +492,9 @@ export interface GameState {
   phase: GamePhase;
   seed: number;
   rng: RNG;
-  coinDrain: number; // 월말 마감 보스의 코인 흡수 누적치
+  coinDrain: number; // 코인 흡수 누적치 (월말 마감 보스 · 계산대 앞 매출 손실)
+  nearCheckout: number; // 계산대 앞에 밀린 손님 수
+  nearDrain: number; // 그만큼 새는 매출 비율 (0~0.6)
   time: number;
   realTime: number;
   speed: 1 | 2;
@@ -628,6 +632,7 @@ export interface UISnapshot {
   // 체력만 보면 아무 경고가 없다가 한 웨이브에 반 토막 난다.
   // "밀리고 있다"를 체력이 깎이기 전에 보여주는 신호다.
   nearCheckout: number;
+  nearDrain: number; // 계산대가 막혀 새는 매출 비율 (0~0.6)
   bossAlive: boolean;
   bossHp: number;
   bossMaxHp: number;

@@ -482,6 +482,7 @@ export function App() {
         autoMerge={save.autoMerge}
         autoSell={save.autoSell}
         showHints={!save.hintsSeen}
+        coach={save.totalPlays === 0}
         order={order}
         condition={condition}
         stageId={save.stageId}

@@ -101,7 +101,11 @@ export function Hud({ snap, bestWave, muted, onTogglePause, onToggleSpeed, onTog
         <div className="fhud-chips fhud-sub">
           {/* 밀리고 있다는 신호. 체력이 깎이기 전에 보여야 대응할 수 있다. */}
           {snap.nearCheckout >= 3 && (
-            <span className={`near-chip ${snap.nearCheckout >= 7 ? 'bad' : ''}`}>계산대 앞 {snap.nearCheckout}명</span>
+            <span className={`near-chip ${snap.nearCheckout >= 7 ? 'bad' : ''}`}>
+              계산대 앞 {snap.nearCheckout}명
+              {/* 줄이 막히면 매출이 샌다. 체력이 깎이기 전에 돈으로 먼저 보인다. */}
+              {snap.nearDrain > 0 && <b> 매출 −{Math.round(snap.nearDrain * 100)}%</b>}
+            </span>
           )}
           {snap.nextIsBoss && !snap.bossAlive && (
             <span className="fhud-next-boss px">

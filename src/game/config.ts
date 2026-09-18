@@ -145,6 +145,25 @@ export function isBossWave(w: number): boolean {
 // 끊김 없이 이어져서, 「다음 · 보스」를 읽어도 할 수 있는 게 없었다.
 // 예고 → 대비 → 시험 의 순서를 만든다.
 export const PREP_SECONDS = 8;
+
+// ───── 계산대 앞 매출 손실 ─────
+//
+// 난이도가 곡선이 아니라 계단이었다. 실플레이 기록:
+//   W1 100 … W20 100 … W25 100 → W26 57 → W27 24 사망
+// 25웨이브 동안 무피해다가 2웨이브 만에 죽는다. 손님이 계산대에 *닿을 때만*
+// 피해가 나니 "다 막거나 다 뚫리거나" 가 되고, 중간이 없었다.
+//
+// 닿기 전에도 대가가 있어야 한다. 계산대 앞에 손님이 밀려 있으면 줄이 막혀
+// 매출이 샌다 — 체력이 아니라 돈이 먼저 줄고, 돈이 줄면 뽑기가 줄고,
+// 그게 다시 화력을 줄인다. 부드럽게 내려가는 대신 죽기 전에 신호가 온다.
+export const NEAR_CHECKOUT_FRAC = 0.78; // 이 지점을 넘으면 '계산대 앞'
+export const NEAR_DRAIN_PER_ENEMY = 0.06; // 한 명당 시급의 6%
+export const NEAR_DRAIN_MAX = 0.6; // 아무리 밀려도 시급의 60%까지만
+
+/** 계산대 앞 인원 수 → 매출 손실 비율 (0~0.6) */
+export function nearDrainPct(near: number): number {
+  return Math.min(NEAR_DRAIN_MAX, near * NEAR_DRAIN_PER_ENEMY);
+}
 export function needsPrep(wave: number): boolean {
   return wave > 1 && (isBossWave(wave) || wave === THREE_AM_WAVE);
 }

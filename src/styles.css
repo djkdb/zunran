@@ -112,6 +112,7 @@ button:disabled {
 .pill,
 .toast,
 .hint,
+.coach,
 .title-block,
 .start-btn,
 .records button,
@@ -5091,4 +5092,72 @@ button:disabled {
   font-size: 11px;
   font-weight: 700;
   color: var(--dim);
+}
+
+/* 계산대 앞 매출 손실 — 칩 안에서 숫자만 강조한다 */
+.near-chip b {
+  font-weight: 800;
+  color: var(--gold);
+}
+.near-chip.bad b {
+  color: var(--pink-s);
+}
+
+/* ───────── 첫 판 단계 안내 ───────── */
+
+/* 한 줄 힌트와 같은 자리를 쓴다 (동시에 뜨지 않는다). */
+.coach {
+  position: absolute;
+  top: 92px;
+  left: 50%;
+  transform: translateX(-50%);
+  --fc: var(--gold);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 94%;
+  padding: 6px 8px 7px 9px;
+  background: rgba(10, 12, 18, 0.9);
+  color: var(--gold);
+  font-size: 11.5px;
+  font-weight: 800;
+  z-index: 6;
+}
+.coach.done {
+  --fc: var(--mint);
+  color: var(--mint);
+}
+.coach-count {
+  font-size: 10px;
+  opacity: 0.8;
+  flex: none;
+}
+.coach-label {
+  min-width: 0;
+  line-height: 1.25;
+}
+.coach-dots {
+  display: flex;
+  gap: 3px;
+  flex: none;
+}
+.coach-dots b {
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.24);
+}
+.coach-dots b.on {
+  background: var(--gold);
+}
+.coach-x {
+  flex: none;
+  background: none;
+  border: 0;
+  color: inherit;
+  opacity: 0.6;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 3px;
+  min-height: 0;
+  cursor: pointer;
 }
