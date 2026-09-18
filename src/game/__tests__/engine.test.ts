@@ -21,6 +21,7 @@ import { chooseReward } from '../engine/rewardSystem';
 import { recomputeAdjacency, unitDamage, unitInterval } from '../engine/helpers';
 import { sellCandidate } from '../../ui/useGame';
 import { tutorialSteps } from '../data/tutorial';
+import { yardstickDps } from '../data/units';
 
 // 진열대 증축 만렙 엔진. 칸 번호를 직접 쓰는 테스트는 21칸이 다 열려 있어야 한다.
 function fullEngine(seed: number): Engine {
@@ -564,7 +565,7 @@ describe('옆자리 시너지', () => {
     recomputeAdjacency(s);
     const alone = unitDamage(s, mid);
 
-    place(s, 'hotbar', 0); // dps
+    place(s, 'alba', 0); // dps
     recomputeAdjacency(s);
     const one = unitDamage(s, mid);
     expect(one / alone).toBeCloseTo(1.12, 5);
@@ -598,7 +599,7 @@ describe('옆자리 시너지', () => {
     const firstOfRow1 = s.slots.find((sl) => sl.row === 1)!;
     expect(firstOfRow1.index).toBe(lastOfRow0.index + 1);
     const a = place(s, 'onigiri', lastOfRow0.index);
-    place(s, 'hotbar', firstOfRow1.index);
+    place(s, 'alba', firstOfRow1.index);
     recomputeAdjacency(s);
     expect(a.adj?.sameRole ?? 0).toBe(0);
   });
@@ -607,7 +608,7 @@ describe('옆자리 시너지', () => {
     const e = fullEngine(44);
     const s = e.state;
     const mid = place(s, 'onigiri', 1);
-    place(s, 'hotbar', 0);
+    place(s, 'alba', 0);
     recomputeAdjacency(s);
     const base = unitDamage(s, mid);
 
@@ -624,7 +625,7 @@ describe('옆자리 시너지', () => {
     const e = fullEngine(45);
     const s = e.state;
     const a = place(s, 'onigiri', 1);
-    place(s, 'hotbar', 0);
+    place(s, 'alba', 0);
     recomputeAdjacency(s);
     expect(a.adj?.sameRole).toBe(1);
     // 멀리 옮긴다
@@ -797,5 +798,28 @@ describe('첫 판 안내', () => {
     const e = fullEngine(77);
     e.state.stats.moves = 4;
     expect(tutorialSteps(e.snapshot()).find((t) => t.id === 'adj')!.done).toBe(true);
+  });
+});
+
+describe('등급과 역할의 기본선', () => {
+  it('일반 등급에도 범위 공격이 있다 (범위 빌드를 에픽까지 못 기다린다)', () => {
+    const commonAoe = UNIT_DEFS.filter((d) => d.rarity === 'common' && d.role === 'aoe');
+    expect(commonAoe.length, '일반 범위 유닛이 없으면 초반 범위 빌드가 성립하지 않는다').toBeGreaterThan(0);
+    // 범위는 aoeRadius 로 표현된다 (attack 은 'aoe' 든 'projectile' 이든 된다)
+    for (const d of commonAoe) expect(d.aoeRadius ?? 0, `${d.name}`).toBeGreaterThan(0);
+  });
+
+  it('같은 역할에서 희귀가 일반보다 못하지 않다', () => {
+    // 피해/간격만 보면 범위·도트가 빠져 떡볶이 같은 유닛을 잘못 읽는다.
+    const dps = yardstickDps;
+    for (const role of ['dps', 'aoe', 'control'] as const) {
+      const commons = UNIT_DEFS.filter((d) => d.rarity === 'common' && d.role === role);
+      const rares = UNIT_DEFS.filter((d) => d.rarity === 'rare' && d.role === role);
+      if (commons.length === 0 || rares.length === 0) continue;
+      const bestCommon = Math.max(...commons.map(dps));
+      for (const r of rares) {
+        expect(dps(r), `${r.name}(희귀)이 일반 최고(${bestCommon.toFixed(1)})보다 못하다`).toBeGreaterThan(bestCommon);
+      }
+    }
   });
 });

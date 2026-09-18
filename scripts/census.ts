@@ -7,7 +7,7 @@
 // 실행: npx tsx scripts/census.ts [runs]
 import { Engine } from '../src/game/engine/Engine';
 import { metaEffects, DEFAULT_META_LEVELS } from '../src/game/save/meta';
-import { UNIT_DEFS, UNIT_BY_ID } from '../src/game/data/units';
+import { yardstickDps, UNIT_DEFS, UNIT_BY_ID } from '../src/game/data/units';
 import { ENEMY_DEFS, ENEMY_BY_ID } from '../src/game/data/enemies';
 import { REWARD_CARDS } from '../src/game/data/rewards';
 import { EVENT_DEFS } from '../src/game/data/events';
@@ -21,20 +21,10 @@ const RUNS = Number(process.argv[2] ?? 24);
 const CAP = 45;
 
 // ─────────── 1. 이론 수치 (시뮬 없이 데이터만으로) ───────────
+// 잣대는 units.ts 에 있다 (테스트와 같은 것을 써야 한다). 티어만 여기서 입힌다.
 function theoryDps(u: UnitDef, tier: Tier = 1): number {
-  if (u.interval <= 0 || u.dmg <= 0) return 0;
-  const dmg = u.dmg * tierDmgMult(tier);
-  const interval = u.interval * tierIntervalMult(tier);
-  let dps = dmg / interval;
-  // 범위 공격은 한 번에 여러 명을 친다. 평균 2.2명으로 잡는다 (관측치).
-  if (u.attack === 'aoe' || (u.aoeRadius ?? 0) > 0) dps *= 2.2;
-  // 치명타
-  const c = u.onHit?.critChance ?? 0;
-  const cm = u.onHit?.critMult ?? 2;
-  if (c > 0) dps *= 1 + c * (cm - 1);
-  // 도트
-  if (u.onHit?.dot) dps += u.onHit.dot.dps * Math.min(1, u.onHit.dot.dur / u.interval);
-  return dps;
+  if (tier === 1) return yardstickDps(u);
+  return yardstickDps({ ...u, dmg: u.dmg * tierDmgMult(tier), interval: u.interval * tierIntervalMult(tier) });
 }
 
 console.log('═══════ 1. 유닛 이론치 (T1 / T4, 범위는 ×2.2 가정) ═══════');

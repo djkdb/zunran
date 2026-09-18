@@ -130,7 +130,8 @@ export const UNIT_DEFS: UnitDef[] = [
     role: 'control',
     desc: '흡입 공격. 손님을 입구 쪽으로 끌어당긴다.',
     quote: '위이이이잉',
-    dmg: 10,
+    // 희귀인데 DPS 10.0 으로 일반 라면 진열대와 똑같았다. 뽑아도 뽑은 것 같지 않다.
+    dmg: 13,
     interval: 1.0,
     range: 140,
     attack: 'instant',
@@ -147,8 +148,9 @@ export const UNIT_DEFS: UnitDef[] = [
     role: 'control',
     desc: '냉기를 쏜다. 맞은 손님이 크게 느려진다.',
     quote: '아이스크림 녹기 전에 사세요.',
-    dmg: 9,
-    interval: 1.1,
+    // 같은 이유. 희귀 제어는 일반 제어보다 확실히 위여야 한다.
+    dmg: 11,
+    interval: 0.95,
     range: 130,
     attack: 'projectile',
     targeting: 'first',
@@ -272,13 +274,19 @@ export const UNIT_DEFS: UnitDef[] = [
     id: 'hotbar',
     name: '핫바 기계',
     rarity: 'common',
-    role: 'dps',
-    desc: '가까이 온 손님을 뜨겁게 지진다. 사거리는 짧지만 한 방이 세다.',
+    // 일반 등급에 범위 공격이 하나도 없었다. 범위 빌드를 가려면 에픽(전자레인지)이
+    // 나올 때까지 기다려야 했고, 그동안은 빌드가 아니라 '뽑힌 대로' 였다.
+    // 핫바는 사거리가 92 로 제일 짧다 — 계산대 앞에 몰린 손님을 한꺼번에 지진다.
+    role: 'aoe',
+    desc: '가까이 몰린 손님을 한꺼번에 지진다. 사거리는 제일 짧다.',
     quote: '핫바 데워드릴까요?',
-    dmg: 19,
-    interval: 1.7,
+    // 범위를 공짜로 주지는 않는다. 단일 대상 DPS 는 11.2 → 9.0 으로 내려
+    // 같은 역할의 희귀(커피머신 9.2) 밑에 둔다. 몰려야 이득인 유닛이다.
+    dmg: 17,
+    interval: 1.9,
     range: 92,
-    attack: 'instant',
+    attack: 'aoe',
+    aoeRadius: 58,
     targeting: 'nearest',
     onHit: { dot: { dps: 4, dur: 2 } },
     sprite: 'hotbar',
@@ -467,3 +475,20 @@ export const NEXT_RARITY: Record<Rarity, Rarity | null> = {
   legendary: null,
   special: null,
 };
+
+// 유닛끼리 세기를 비교하기 위한 잣대.
+//
+// 엔진은 이 값을 쓰지 않는다. "희귀가 일반보다 약하지 않은가" 같은 질문에
+// 답하려면 피해/간격만으로는 모자라서(범위·도트·치명타가 빠진다) 한 줄로
+// 모아 둔다. 전수조사 스크립트와 테스트가 같은 잣대를 쓰게 하려는 것이다.
+//
+// 범위 ×2.2 는 관측치다 — 한 발이 평균 2.2명을 친다.
+export function yardstickDps(u: UnitDef): number {
+  if (u.interval <= 0 || u.dmg <= 0) return 0;
+  let dps = u.dmg / u.interval;
+  if (u.attack === 'aoe' || (u.aoeRadius ?? 0) > 0) dps *= 2.2;
+  const crit = u.onHit?.critChance ?? 0;
+  if (crit > 0) dps *= 1 + crit * ((u.onHit?.critMult ?? 2) - 1);
+  if (u.onHit?.dot) dps += u.onHit.dot.dps * Math.min(1, u.onHit.dot.dur / u.interval);
+  return dps;
+}
