@@ -9,7 +9,7 @@ import { buildWave } from '../data/waves';
 import { startWave } from '../engine/waveSystem';
 import { spawnEnemy } from '../engine/enemySystem';
 import { createRng } from '../engine/rng';
-import { TOTAL_SLOTS, MAX_SHELF_LEVEL, MAX_TIER, START_SLOTS, needsPrep, PREP_SECONDS, nearDrainPct, formatClock, THREE_AM_WAVE } from '../config';
+import { TOTAL_SLOTS, MAX_SHELF_LEVEL, MAX_TIER, START_SLOTS, needsPrep, PREP_SECONDS, nearDrainPct, formatClock, THREE_AM_WAVE, FOCUS_THRESHOLD, FOCUS_MAX_WEIGHT, JUNK_DRAW_ROLLBACK } from '../config';
 import { buildGeometry, geoPos, STAGE_BY_ID, maxSlotsOf } from '../data/stages';
 
 // 경로는 지점마다 다르다. 테스트는 기준 지점(동네 골목점)으로 고정한다.
@@ -18,7 +18,7 @@ import { createUnit } from '../engine/unitFactory';
 import { mergeUnits, choosePromote } from '../engine/mergeSystem';
 import { REWARD_CARDS } from '../data/rewards';
 import { chooseReward } from '../engine/rewardSystem';
-import { recomputeAdjacency, unitDamage, unitInterval } from '../engine/helpers';
+import { recomputeAdjacency, unitDamage, unitInterval, boardFocus } from '../engine/helpers';
 import { sellCandidate } from '../../ui/useGame';
 import { tutorialSteps } from '../data/tutorial';
 import { yardstickDps } from '../data/units';
@@ -821,5 +821,136 @@ describe('등급과 역할의 기본선', () => {
         expect(dps(r), `${r.name}(희귀)이 일반 최고(${bestCommon.toFixed(1)})보다 못하다`).toBeGreaterThan(bestCommon);
       }
     }
+  });
+});
+
+// 「전문점」 — 보드가 한 계열로 모이면 그 계열이 더 자주 뽑힌다.
+//
+// 계측(scripts/threats.ts)에서 나온 문제를 겨냥한다: 12웨이브부터 칸이 89% 로
+// 차고 판당 판매가 24회다. 특화로 가려면 더 팔아야 하는데 뽑기는 전체 풀에서
+// 나오니 원하는 계열은 네 번에 한 번만 온다 — 그래서 아무거나 뽑는 게 편하다.
+describe('전문점', () => {
+  function fill(s: Engine['state'], defIds: string[]) {
+    for (const u of [...s.units]) s.slots[u.slot].unitId = null;
+    s.units = [];
+    defIds.forEach((defId, i) => {
+      const sl = s.slots.filter((x) => !x.locked && !x.blocked)[i];
+      const u = createUnit(s, defId, 1, sl.index);
+      s.units.push(u);
+      sl.unitId = u.id;
+    });
+  }
+
+  it('유닛이 적으면 아무 일도 일어나지 않는다', () => {
+    const e = fullEngine(101);
+    fill(e.state, ['ramenShelf', 'ramenShelf']); // 전부 제어지만 5개 미만
+    expect(boardFocus(e.state).weight).toBe(1);
+  });
+
+  it('잡탕 보드는 걸리지 않는다 (표류로는 안 켜진다)', () => {
+    const e = fullEngine(102);
+    // 제어 3 · 단일 3 · 지원 2 → 주력 점유율 0.375
+    fill(e.state, ['ramenShelf', 'ramenShelf', 'ramenShelf', 'onigiri', 'alba', 'onigiri', 'fridge', 'fridge']);
+    const f = boardFocus(e.state);
+    expect(f.share).toBeLessThan(FOCUS_THRESHOLD);
+    expect(f.weight).toBe(1);
+  });
+
+  it('한 계열로 모으면 그 계열이 밀린다', () => {
+    const e = fullEngine(103);
+    fill(e.state, ['ramenShelf', 'ramenShelf', 'ramenShelf', 'ramenShelf', 'ramenShelf', 'ramenShelf', 'onigiri', 'fridge']);
+    const f = boardFocus(e.state);
+    expect(f.role).toBe('control');
+    expect(f.share).toBeGreaterThan(FOCUS_THRESHOLD);
+    expect(f.weight).toBeGreaterThan(1);
+    expect(f.weight).toBeLessThanOrEqual(FOCUS_MAX_WEIGHT);
+  });
+
+  it('티어가 높은 유닛이 더 크게 친다 (팔려고 둔 1티어 잡탕이 주력을 정하지 않게)', () => {
+    const e = fullEngine(104);
+    const s = e.state;
+    fill(s, ['ramenShelf', 'onigiri', 'onigiri', 'onigiri', 'alba', 'alba']);
+    expect(boardFocus(s).role).toBe('dps'); // 머릿수로는 단일이 5
+    s.units.find((u) => u.defId === 'ramenShelf')!.tier = 4; // ★4 제어 하나
+    // 제어 4 vs 단일 5 — 아직 단일. 하나 더 올리면 뒤집힌다.
+    s.units.find((u) => u.defId === 'alba')!.tier = 1;
+    const f = boardFocus(s);
+    expect(f.share).toBeGreaterThan(0.3);
+  });
+
+  it('풀에서 빼는 게 아니라 가중치만 올린다 (다른 계열도 계속 나온다)', () => {
+    const e = fullEngine(105);
+    const s = e.state;
+    s.coins = 999999;
+    fill(s, ['ramenShelf', 'ramenShelf', 'ramenShelf', 'ramenShelf', 'ramenShelf', 'ramenShelf']);
+    expect(boardFocus(s).weight).toBeGreaterThan(1);
+    // 일반 등급만 200번 뽑아 계열 분포를 본다
+    const roles = new Set<string>();
+    for (let i = 0; i < 200; i++) {
+      const before = s.units.length;
+      s.coins = 999999;
+      e.dispatch({ type: 'DRAW' });
+      if (s.units.length === before) break; // 칸이 다 찼다
+      const last = s.units[s.units.length - 1];
+      roles.add(UNIT_BY_ID[last.defId].role);
+      // 방금 뽑은 걸 치워 칸을 비운다 (분포만 보려는 것)
+      s.slots[last.slot].unitId = null;
+      s.units = s.units.filter((u) => u !== last);
+    }
+    expect(roles.size, '전문점이 켜져도 다른 계열이 나와야 한다').toBeGreaterThan(1);
+  });
+});
+
+// 정리 → 발주 단가 되돌림. 전문점일 때만 준다.
+//
+// 조건 없이 줬더니 잡탕 보드가 제일 크게 이득을 봤다 (대조군 21 → 24,
+// 빌드 격차 1.11 → 1.20). 정리할 1티어 외톨이가 늘 많은 쪽이 잡탕이기 때문이다.
+describe('정리와 발주 단가', () => {
+  function stock(s: Engine['state'], defIds: string[]) {
+    for (const u of [...s.units]) s.slots[u.slot].unitId = null;
+    s.units = [];
+    const open = s.slots.filter((x) => !x.locked && !x.blocked);
+    defIds.forEach((defId, i) => {
+      const u = createUnit(s, defId, 1, open[i].index);
+      s.units.push(u);
+      open[i].unitId = u.id;
+    });
+  }
+
+  it('전문점이면 정리한 수의 절반만큼 발주 단가가 내려간다', () => {
+    const e = fullEngine(201);
+    const s = e.state;
+    s.drawCount = 30;
+    // 제어 6 (짝이 있어 정리 대상 아님) + 정리될 외톨이 4
+    stock(s, ['ramenShelf', 'ramenShelf', 'ramenShelf', 'vacuum', 'vacuum', 'vacuum', 'onigiri', 'alba', 'coffee', 'scanner']);
+    const junk = e.junkUnits().length;
+    expect(junk, '외톨이가 정리 대상이어야 한다').toBeGreaterThan(0);
+    const before = e.currentDrawCost();
+    expect(e.dispatch({ type: 'SELL_JUNK' }).ok).toBe(true);
+    expect(boardFocus(s).weight, '정리 후에는 제어만 남아 전문점이다').toBeGreaterThan(1);
+    expect(s.drawCount).toBe(30 - Math.floor(junk * JUNK_DRAW_ROLLBACK));
+    expect(e.currentDrawCost()).toBeLessThan(before);
+  });
+
+  it('잡탕이면 정리해도 발주 단가가 그대로다', () => {
+    const e = fullEngine(202);
+    const s = e.state;
+    s.drawCount = 30;
+    // 어느 계열도 60% 를 못 넘게 섞는다
+    stock(s, ['onigiri', 'onigiri', 'alba', 'ramenShelf', 'ramenShelf', 'fridge', 'fridge', 'hotbar', 'hotbar', 'coffee']);
+    const before = e.currentDrawCost();
+    e.dispatch({ type: 'SELL_JUNK' });
+    expect(boardFocus(s).weight).toBe(1);
+    expect(s.drawCount).toBe(30);
+    expect(e.currentDrawCost()).toBe(before);
+  });
+
+  it('되돌림은 0 아래로 내려가지 않는다', () => {
+    const e = fullEngine(203);
+    const s = e.state;
+    s.drawCount = 1;
+    stock(s, ['ramenShelf', 'ramenShelf', 'ramenShelf', 'vacuum', 'vacuum', 'vacuum', 'onigiri', 'alba', 'coffee', 'scanner']);
+    e.dispatch({ type: 'SELL_JUNK' });
+    expect(s.drawCount).toBeGreaterThanOrEqual(0);
   });
 });

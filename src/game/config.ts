@@ -1,5 +1,5 @@
 // 게임 전역 상수. 밸런스 수치는 여기와 data/*.ts 에서만 조정한다.
-import type { Rarity, Tier } from './types';
+import type { Rarity, Tier, UnitRole } from './types';
 
 export const FIELD_W = 640;
 export const FIELD_H = 640;
@@ -40,6 +40,57 @@ export const SELL_REFUND: Record<Rarity, number> = {
 // 예전에는 420원에서 멈췄는데, 그 결과 웨이브 27에 잔고가 44,361원(109회분)이 쌓여
 // "뽑을까 아낄까"라는 결정이 게임에서 사라졌다 (측정: docs/AUDIT.md 문제 1).
 // 제곱 항을 넣어 후반에도 코인이 계속 자원으로 남게 한다.
+// ── 전문점 ──
+//
+// 계측(scripts/threats.ts, 40판)에서 나온 문제: 12웨이브부터 칸 점유율이 89% 에
+// 붙박이고, 그때부터 판당 판매가 23회 · 합성이 9회다. 후반 조작의 대부분이
+// "뭘 팔아 자리를 만들까" 다. 특화 빌드로 가려면 여기서 더 팔아야 하는데,
+// 뽑기는 25종 전체에서 나오므로 원하는 계열은 네 번에 한 번만 온다.
+// 그래서 "아무거나 계속 뽑기" 가 제일 편한 전략이 된다.
+//
+// 보드가 한 계열로 모이면 그 계열 물건이 더 자주 들어오게 한다. 편의점이
+// 주력 상품군을 정하면 그쪽 발주가 늘어나는 것과 같다.
+//
+// 공짜가 아니다 — 다른 계열이 그만큼 안 온다. 웨이브 테마(급한 손님/단체/
+// 두꺼운 손님)가 내 계열의 약점을 찌르면 뽑기로는 못 빠져나온다.
+// 그때는 본사 발주(등급 지정·유료)나 합성으로 풀어야 한다.
+export const FOCUS_MIN_UNITS = 6; // 보드가 이만큼은 차야 판정한다 (초반 두세 개로 고정되지 않게)
+// 0.5 로 뒀더니 '잡탕으로 놔둔 보드' 도 우연히 넘겨서, 고르지도 않은 계열로
+// 뽑기가 쏠렸다 (대조군 생존이 22 → 20 으로 떨어졌다 — 플레이어가 한 결정이
+// 없는데 벌을 받은 셈이다). 표류가 아니라 '작정하고 모은' 보드만 걸리게 올린다.
+export const FOCUS_THRESHOLD = 0.6;
+export const FOCUS_MAX_WEIGHT = 2.6; // 보드 전체가 한 계열일 때의 가중치
+
+/** 주력 계열의 점유율(0~1) → 뽑기 가중치. 절반 이하면 1 (아무 일도 안 일어난다). */
+export function focusWeight(share: number): number {
+  if (share < FOCUS_THRESHOLD) return 1;
+  const t = (share - FOCUS_THRESHOLD) / (1 - FOCUS_THRESHOLD);
+  return 1 + t * (FOCUS_MAX_WEIGHT - 1);
+}
+
+// ── 재고 정리와 발주 단가 ──
+//
+// 뽑기는 뽑을수록 제곱으로 비싸진다(DRAW_COST_ACCEL). 40번째 뽑기는 1,000원이
+// 넘는데, 그 유닛을 정리해도 일반 등급 환급은 40원이다 — 되돌리는 값이 산 값의
+// 4% 다. 그래서 "안 맞는 유닛을 버리고 원하는 계열로 다시 짠다" 가 사실상
+// 불가능하고, 처음부터 아무거나 뽑아 쌓는 쪽이 이긴다.
+//
+// 「정리」로 판 유닛 수의 절반만큼 발주 횟수를 되돌린다. 재고를 비웠으니 다음
+// 발주 단가가 그만큼 내려간다 — 환급액을 올리는 게 아니라 다시 짤 여지를 준다.
+// 절반만 되돌리는 이유: 전부 되돌리면 뽑고-버리고를 반복해 단가 상승이 통째로
+// 사라진다. 절반이면 회전은 되고 상승은 남는다.
+//
+// 단, 정리한 뒤 보드가 「전문점」일 때만 되돌린다.
+// 조건 없이 줬더니 정반대 결과가 나왔다 (scripts/builds.ts, 30판):
+// 잡탕으로 두는 대조군이 21 → 24 로 제일 크게 올랐다. 잡탕 보드는 1티어
+// 외톨이가 늘 많아서 정리 버튼이 계속 눌리고, 되돌림도 계속 받기 때문이다.
+// 특화 빌드는 애초에 종류가 좁아 정리할 외톨이가 적다 — 빌드 간 격차가
+// 1.11배에서 1.20배로 오히려 벌어졌다. 도우려던 쪽을 벌준 셈이다.
+//
+// 그래서 두 가지를 하나로 묶는다: 한 계열로 모으면 (1) 그 계열이 더 자주
+// 들어오고 (2) 정리할 때 발주 단가가 되돌아온다. 좁히는 것이 투자가 된다.
+export const JUNK_DRAW_ROLLBACK = 0.5;
+
 export function drawCost(drawCount: number, reduce: number): number {
   const n = drawCount;
   return Math.max(30, Math.round(DRAW_BASE_COST + DRAW_COST_STEP * n + DRAW_COST_ACCEL * n * n) - reduce);
@@ -59,6 +110,13 @@ export const RARITY_MULT: Record<Rarity, number> = {
   epic: 5,
   legendary: 14,
   special: 9,
+};
+
+export const ROLE_LABEL: Record<UnitRole, string> = {
+  dps: '단일',
+  aoe: '광역',
+  control: '제어',
+  support: '지원',
 };
 
 export const RARITY_LABEL: Record<Rarity, string> = {

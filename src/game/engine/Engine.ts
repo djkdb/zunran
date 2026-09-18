@@ -1,5 +1,5 @@
 import type { ChallengeSpec, FxEvent, GameAction, GameState, MetaEffects, Rarity, Tier, UISnapshot, UnitGroup, Unit } from '../types';
-import { BASE_RARITY_ODDS, SELL_REFUND, MAX_TIER, MIXED_MERGE_TIER, START_SLOTS, mergeCost, drawCost, formatClock, EVENT_INTERVAL, isBossWave } from '../config';
+import { BASE_RARITY_ODDS, SELL_REFUND, MAX_TIER, MIXED_MERGE_TIER, START_SLOTS, mergeCost, drawCost, formatClock, EVENT_INTERVAL, isBossWave, JUNK_DRAW_ROLLBACK } from '../config';
 import { STAGE_BY_ID, DEFAULT_STAGE, buildGeometry, unlockOrderFor, type StageDef } from '../data/stages';
 import { UNIT_BY_ID, unitsOfRarity } from '../data/units';
 import { dupeWeight, PIN_GUARANTEE_DRAWS, PIN_TARGET_COPIES, EMPTY_ORDER, orderPrice, EPIC_PITY, type Order } from '../data/deck';
@@ -18,7 +18,7 @@ import { mergeUnits, choosePromote, canMerge, canTierMerge, mergeByTier, tierMer
 import { createUnit } from './unitFactory';
 import { RECIPE_BY_ID, pickMaterials } from '../data/recipes';
 import { spendCoins, addCoins } from './economy';
-import { sfx, addFloater, unitDef, freeSlots, openSlots, recomputeAdjacency, ADJ_SAME_ROLE, ADJ_NEAR_SUPPORT } from './helpers';
+import { sfx, addFloater, unitDef, freeSlots, openSlots, recomputeAdjacency, boardFocus, ADJ_SAME_ROLE, ADJ_NEAR_SUPPORT } from './helpers';
 import { metaEffects } from '../save/meta';
 import { DEFAULT_META_LEVELS } from '../save/meta';
 
@@ -313,10 +313,17 @@ export class Engine {
 
     // 중복 가중: 이미 갖고 있는 유닛이 더 잘 온다.
     // 21종 풀에서 3장 모으기가 어려운 마찰을 푼다. 풀은 그대로 전체다.
+    //
+    // 여기에 「전문점」이 하나 더 곱해진다 — 보드가 한 계열로 모여 있으면
+    // 그 계열이 더 자주 온다. 풀에서 빼는 게 아니라 가중치만 올리므로
+    // 다른 계열도 계속 나온다 (웨이브 테마가 약점을 찌를 때 빠져나갈 구멍).
     if (!def) {
       const owned = new Map<string, number>();
       for (const u of s.units) owned.set(u.defId, (owned.get(u.defId) ?? 0) + 1);
-      const weights = candidates.map((d) => dupeWeight(owned.get(d.id) ?? 0));
+      const focus = boardFocus(s);
+      const weights = candidates.map(
+        (d) => dupeWeight(owned.get(d.id) ?? 0) * (focus.role && d.role === focus.role ? focus.weight : 1),
+      );
       const total = weights.reduce((a, b) => a + b, 0);
       let roll = s.rng.next() * total;
       def = candidates[candidates.length - 1];
@@ -506,7 +513,21 @@ export class Engine {
       total += sellPrice(u, this.state.perma.sellMult);
       this.sell(u.id);
     }
+    // 재고를 비운 만큼 발주 단가를 되돌린다. 환급액(40원)으로는 다시 못 짜기 때문에
+    // 「버리고 원하는 계열로 다시 짠다」가 성립하지 않았다 (config.JUNK_DRAW_ROLLBACK).
+    // 정리한 뒤 보드가 전문점일 때만 — 잡탕을 계속 굴리는 쪽이 이득이 되면 안 된다.
+    const focused = boardFocus(this.state).weight > 1;
+    const back = focused ? Math.floor(junk.length * JUNK_DRAW_ROLLBACK) : 0;
+    if (back > 0) {
+      const before = this.currentDrawCost();
+      this.state.drawCount = Math.max(0, this.state.drawCount - back);
+      const saved = before - this.currentDrawCost();
+      if (saved > 0) {
+        addFloater(this.state, { x: 320, y: 268, text: `전문점 · 발주 단가 -${saved}원`, color: '#7dd3fc', size: 13, life: 1.6 });
+      }
+    }
     addFloater(this.state, { x: 320, y: 300, text: `정리 완료 +${total}원`, color: '#fde047', size: 16, life: 1.4 });
+    this.snapshotDirty = true;
     return { ok: true };
   }
 
@@ -668,6 +689,7 @@ export class Engine {
       riskWave: s.riskWave === s.wave,
       nextIsBoss: isBossWave(s.wave + 1),
       mergeBuy: this.mergeBuyOffers(),
+      focus: boardFocus(s),
       junkCount: junk.length,
       junkValue: junk.reduce((a, u) => a + sellPrice(u, s.perma.sellMult), 0),
     };
@@ -783,6 +805,7 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number, s
     orders: 0,
     revenueLost: 0,
     moves: 0,
+    abilityActed: {},
       bossKills: 0,
       legendaryDraws: 0,
       unitDamage: {},

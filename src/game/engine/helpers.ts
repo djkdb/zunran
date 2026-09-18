@@ -1,7 +1,7 @@
-import type { Enemy, GameState, Unit, UnitDef, Tier, Rarity, Floater } from '../types';
+import type { Enemy, GameState, Unit, UnitDef, UnitRole, Tier, Rarity, Floater } from '../types';
 import { UNIT_BY_ID } from '../data/units';
 import { ENEMY_BY_ID } from '../data/enemies';
-import { tierDmgMult, tierIntervalMult, tierRangeBonus } from '../config';
+import { tierDmgMult, tierIntervalMult, tierRangeBonus, FOCUS_MIN_UNITS, focusWeight } from '../config';
 
 export function unitDef(u: Unit): UnitDef {
   return UNIT_BY_ID[u.defId];
@@ -195,4 +195,40 @@ export function sfx(state: GameState, id: Parameters<typeof pushSfx>[1]): void {
 }
 function pushSfx(state: GameState, id: import('../types').SfxId): void {
   state.fx.push({ type: 'sfx', id });
+}
+
+// 보드의 주력 계열. 「전문점」 뽑기 가중치의 근거다 (config.focusWeight).
+//
+// 티어를 무게로 쓴다. ★3 한 대는 ★1 한 대보다 '내가 이 계열을 하고 있다' 는
+// 뜻이 강하다. 안 그러면 방금 뽑혀서 팔려고 놔둔 1티어 잡탕이 주력을 정해 버린다.
+export interface BoardFocus {
+  role: UnitRole | null;
+  share: number; // 0~1
+  weight: number; // 뽑기 가중치 (1 = 효과 없음)
+}
+
+export const NO_FOCUS: BoardFocus = { role: null, share: 0, weight: 1 };
+
+export function boardFocus(state: GameState): BoardFocus {
+  if (state.units.length < FOCUS_MIN_UNITS) return NO_FOCUS;
+  const byRole = new Map<UnitRole, number>();
+  let total = 0;
+  for (const u of state.units) {
+    const w = u.tier; // ★2 는 두 몫
+    const r = unitDef(u).role;
+    byRole.set(r, (byRole.get(r) ?? 0) + w);
+    total += w;
+  }
+  if (total === 0) return NO_FOCUS;
+  let role: UnitRole | null = null;
+  let best = 0;
+  for (const [r, w] of byRole) {
+    if (w > best) {
+      best = w;
+      role = r;
+    }
+  }
+  const share = best / total;
+  const weight = focusWeight(share);
+  return weight > 1 && role ? { role, share, weight } : { role, share, weight: 1 };
 }

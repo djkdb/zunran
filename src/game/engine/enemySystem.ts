@@ -42,6 +42,7 @@ export function spawnEnemy(
     spawnedWave: wave,
     reached: false,
     dead: false,
+    acted: false,
     hitFlash: 0,
     x: pos.x,
     y: pos.y,
@@ -156,6 +157,14 @@ export function damageEnemy(state: GameState, e: Enemy, rawAmount: number, sourc
   if (e.hp <= 0) killEnemy(state, e, source, onHit?.coinOnKill ?? 0);
 }
 
+// 특수 행동이 실제로 한 번 일어났다고 표시한다. 개체당 한 번만 센다 —
+// 발동 횟수가 아니라 "능력을 쓰기 전에 죽었는가" 를 알고 싶은 것이다.
+function markAct(state: GameState, e: Enemy): void {
+  if (e.acted) return;
+  e.acted = true;
+  state.stats.abilityActed[e.defId] = (state.stats.abilityActed[e.defId] ?? 0) + 1;
+}
+
 export function applySlow(state: GameState, e: Enemy, pct: number, dur: number): void {
   const def = ENEMY_BY_ID[e.defId];
   if (def.immune?.includes('slow')) return;
@@ -220,6 +229,7 @@ export function updateEnemies(state: GameState, dt: number): void {
       t.hp = Math.min(t.maxHp, t.hp + t.maxHp * hb.healPerSec * dt);
       healed = true;
     }
+    if (healed) markAct(state, h);
     if (healed && (!h.bubble || h.bubble.until < state.time)) {
       h.bubble = { text: '♥ 챙겨줄게', until: state.time + 1.2 };
       addFloater(state, { x: h.x, y: h.y - 30, text: '♥', color: '#fda4af', size: 12, life: 0.8 });
@@ -273,6 +283,7 @@ export function updateEnemies(state: GameState, dt: number): void {
       if (bf === e) continue;
       const bb = ENEMY_BY_ID[bf.defId].behavior;
       if (bb.kind === 'buffer' && dist2(bf.x, bf.y, e.x, e.y) <= bb.radius * bb.radius) {
+        markAct(state, bf);
         speed *= 1 + bb.speedBuff;
         break;
       }
@@ -314,6 +325,7 @@ export function updateEnemies(state: GameState, dt: number): void {
         if (e.stateFlag === 0 && e.stateTimer >= b.wobbleEvery) {
           e.stateFlag = 1;
           e.stateTimer = 0;
+          markAct(state, e);
           if (state.rng.next() < 0.5) e.bubble = { text: def.lines[Math.floor(state.rng.next() * def.lines.length)], until: state.time + 1.5 };
         } else if (e.stateFlag === 1) {
           speed = -speed * 0.6; // 뒤로 비틀거림
@@ -328,6 +340,7 @@ export function updateEnemies(state: GameState, dt: number): void {
         if (e.stateFlag === 0 && e.dist >= state.geo.lingerDist) {
           e.stateFlag = 1;
           e.stateTimer = 0;
+          markAct(state, e);
           e.bubble = { text: '물 끓는 중…', until: state.time + b.duration };
         }
         if (e.stateFlag === 1) {
@@ -350,6 +363,7 @@ export function updateEnemies(state: GameState, dt: number): void {
         if (e.stateFlag === 0 && e.stateTimer <= 0) {
           e.stateFlag = 1;
           e.stateTimer = b.stopDur;
+          markAct(state, e);
           e.bubble = { text: def.lines[Math.floor(state.rng.next() * def.lines.length)], until: state.time + b.stopDur };
         } else if (e.stateFlag === 1) {
           move = false;
@@ -376,6 +390,7 @@ export function updateEnemies(state: GameState, dt: number): void {
             }
           }
           if (best) {
+            markAct(state, e);
             best.disabledUntil = Math.max(best.disabledUntil, state.time + b.disableDur);
             const s = state.slots[best.slot];
             addFloater(state, { x: s.x, y: s.y - 30, text: '충전 중…', color: '#a5f3fc', size: 11, life: 1 });
@@ -387,6 +402,7 @@ export function updateEnemies(state: GameState, dt: number): void {
       case 'panic': {
         if (e.stateTimer > 0) {
           e.stateTimer -= dt;
+          markAct(state, e);
           speed *= b.speedUp;
           if (!e.bubble || e.bubble.until < state.time) e.bubble = { text: '급해요!!', until: state.time + 0.8 };
         }
@@ -402,6 +418,7 @@ export function updateEnemies(state: GameState, dt: number): void {
           e.stateTimer = b.stopDur;
           const take = Math.min(state.coins, Math.round(b.amount * (1 + state.wave * 0.12)));
           if (take > 0) {
+            markAct(state, e);
             state.coins -= take;
             addFloater(state, { x: e.x, y: e.y - 30, text: `-${take}원`, color: '#f87171', size: 13, life: 1.2 });
           }
@@ -431,13 +448,17 @@ export function updateEnemies(state: GameState, dt: number): void {
             t.shield = t.maxHp * b.shieldPct;
             addFloater(state, { x: t.x, y: t.y - 28, text: '방어', color: '#c084fc', size: 11, life: 0.9 });
           }
-          if (targets.length > 0) e.bubble = { text: '여러분 힘내세요!', until: state.time + 1.5 };
+          if (targets.length > 0) {
+            markAct(state, e);
+            e.bubble = { text: '여러분 힘내세요!', until: state.time + 1.5 };
+          }
         }
         break;
       }
       case 'blink': {
         e.stateTimer += dt;
         if (!e.hidden && e.stateTimer >= b.visibleFor) {
+          markAct(state, e);
           e.hidden = true;
           e.stateTimer = 0;
         } else if (e.hidden && e.stateTimer >= b.hiddenFor) {

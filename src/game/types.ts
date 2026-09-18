@@ -193,6 +193,8 @@ export interface Enemy {
   spawnedWave: number;
   reached: boolean;
   dead: boolean;
+  /** 특수 행동을 한 번이라도 했는가. 계측용 — "이 손님이 능력을 쓰기 전에 죽는가" 를 잰다. */
+  acted: boolean;
   hitFlash: number;
   x: number; // 렌더 캐시 (경로 계산 결과)
   y: number;
@@ -374,6 +376,9 @@ export interface RunStats {
   orders: number; // 본사 발주(등급 지정 뽑기) 횟수
   revenueLost: number; // 계산대가 막혀 날아간 매출 (보고서용)
   moves: number; // 유닛을 직접 옮긴 횟수 (첫 판 안내가 '해봤는지' 를 판단한다)
+  // 손님별로 '특수 행동을 한 번이라도 한' 개체 수. enemySeen 과 나누면 발동률이 나온다.
+  // 특수 능력이 발동하기 전에 죽으면 그 손님은 그냥 체력 덩어리다 — 그걸 잴 수 있어야 한다.
+  abilityActed: Record<string, number>;
 }
 
 // ───────────────────────── 데일리 챌린지 ─────────────────────────
@@ -649,6 +654,9 @@ export interface UISnapshot {
   nextIsBoss: boolean;
   // 「한 개만 더」 — 합성까지 하나 남은 1티어 짝을 돈으로 채워 바로 합친다
   mergeBuy: { defId: string; tier: Tier; cost: number; need: number }[];
+  // 「전문점」 — 보드가 한 계열로 모이면 그 계열이 더 자주 뽑힌다.
+  // 안 보이면 마법이다. 뽑기 버튼에 무슨 계열이 밀리고 있는지 띄운다.
+  focus: { role: UnitRole | null; share: number; weight: number };
   junkCount: number; // 정리 판매 대상 수
   junkValue: number;
   rewardOffers: RewardOffer[];

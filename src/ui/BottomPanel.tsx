@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { GameAction, UISnapshot } from '../game/types';
 import { UNIT_BY_ID } from '../game/data/units';
 import { recipeStatus, recipeResultName } from '../game/data/recipes';
-import { RARITY_COLOR, RARITY_LABEL, tierDmgMult, mergeCost } from '../game/config';
+import { RARITY_COLOR, RARITY_LABEL, ROLE_LABEL, tierDmgMult, mergeCost } from '../game/config';
 import { UnitIcon } from './UnitIcon';
 import { Icon, TierTicks } from './Icon';
 
@@ -88,6 +88,12 @@ export function BottomPanel({ snap, act, denied }: Props) {
         <span className="odds-r">R {Math.round(odds.rare * 100)}</span>
         <span className="odds-e">E {(odds.epic * 100).toFixed(1)}</span>
         <span className="odds-l">L {(odds.legendary * 100).toFixed(1)}</span>
+        {/* 보이지 않으면 마법이다. 왜 같은 계열이 계속 들어오는지 여기서 읽힌다. */}
+        {snap.focus.role && snap.focus.weight > 1 && (
+          <span className="odds-focus" title="보드가 한 계열로 모이면 그 계열이 더 자주 들어옵니다">
+            전문점 · {ROLE_LABEL[snap.focus.role]} ×{snap.focus.weight.toFixed(1)}
+          </span>
+        )}
       </div>
 
       {/* 본사 발주: 등급을 지정해서 산다. 운이 나쁜 판을 돈으로 되돌리는 유일한 수단이다. */}

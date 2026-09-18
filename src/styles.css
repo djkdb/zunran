@@ -5163,3 +5163,13 @@ button:disabled {
   min-height: 0;
   cursor: pointer;
 }
+
+/* 전문점 — 왜 같은 계열이 계속 들어오는지 알려주는 칩 */
+.odds-focus {
+  margin-left: auto;
+  color: var(--gold);
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
