@@ -110,13 +110,22 @@ export function GameOverScreen({ result, save, rank, needName, onSubmitName, onR
           <div className="gameover-points">
             <Icon name="cash" size={18} strokeWidth={2.4} />
             야간 수당 +{result.metaPoints}
-            {(result.missionReward > 0 || result.achReward > 0) && (
+            {result.missionReward > 0 && (
               <span className="points-break">
-                {result.missionReward > 0 && <span>미션 +{result.missionReward}</span>}
-                {result.achReward > 0 && <span className="from-ach">업적 +{result.achReward}</span>}
+                <span>미션 +{result.missionReward}</span>
               </span>
             )}
           </div>
+
+          {/* 업적 보상은 여기서 들어가지 않는다. 숫자에 섞이면 무엇을 땄는지
+              모르고 지나간다 — 업적 탭에서 직접 받게 한다. */}
+          {result.achReward > 0 && (
+            <div className="gameover-ach-claim">
+              <Icon name="trophy" size={16} strokeWidth={2.4} />
+              새 업적 보상 <b className="px">+{result.achReward}</b>
+              <span>업적 탭에서 받으세요</span>
+            </div>
+          )}
 
           {needName ? (
             <div className="gameover-rank ask">

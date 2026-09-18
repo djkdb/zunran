@@ -34,6 +34,7 @@ interface Props {
   onSetOrder: (order: Order) => void;
   onReplayIntro: () => void;
   onRedeemCoupon: (coupon: Coupon) => void;
+  onClaimAchievements: (ids: string[]) => void;
   onReset: () => void;
 }
 
@@ -50,7 +51,7 @@ const TABS: { id: Tab; label: string; aria: string; icon: IconName }[] = [
 ];
 
 export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggleMute,
-  onToggleHaptics, onSetNickname, onToggleRankOptIn, order, onSetOrder, onReplayIntro, onRedeemCoupon, onReset }: Props) {
+  onToggleHaptics, onSetNickname, onToggleRankOptIn, order, onSetOrder, onReplayIntro, onRedeemCoupon, onClaimAchievements, onReset }: Props) {
   const [tab, setTab] = useState<Tab>('main');
   const [deckOpen, setDeckOpen] = useState(false);
   const [dailyOpen, setDailyOpen] = useState(false);
@@ -60,6 +61,13 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
   const tip = TIPS[save.totalPlays % TIPS.length];
   const achCount = save.achievements.length;
   // 살 수 있는 업그레이드가 있으면 강화 탭에 점을 찍는다 (있는지도 모르고 지나치지 않게)
+  // 받을 수 있는 업적 보상 수 — 탭에 점을 찍어 "가서 받으세요"를 알린다.
+  //
+  // 저장에 남은 id 를 그대로 세면 안 된다. 업적이 지워지거나 이름이 바뀌면
+  // 목록에 뜨지도 않는 것 때문에 점이 영원히 남는다. 실재하는 업적만 센다.
+  const claimableAch = ACHIEVEMENTS.filter(
+    (a) => save.achievements.includes(a.id) && !save.claimedAchievements.includes(a.id),
+  ).length;
   const canAfford = META_UPGRADES.some((u) => {
     const lvl = save.metaLevels[u.id];
     return lvl < u.maxLevel && save.metaPoints >= u.cost(lvl);
@@ -346,7 +354,7 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
         )}
 
         {tab === 'codex' && <CodexScreen save={save} />}
-        {tab === 'ach' && <AchievementsScreen save={save} />}
+        {tab === 'ach' && <AchievementsScreen save={save} onClaim={onClaimAchievements} />}
         {tab === 'history' && <HistoryScreen save={save} />}
         {tab === 'rank' && <RankScreen save={save} onSetNickname={onSetNickname} onToggleOptIn={onToggleRankOptIn} />}
       </div>
@@ -357,6 +365,7 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
             <Icon name={t.icon} size={19} strokeWidth={2.2} />
             <span className="tab-label">{t.label}</span>
             {t.id === 'shop' && canAfford && <span className="tab-dot" aria-label="구매 가능" />}
+            {t.id === 'ach' && claimableAch > 0 && <span className="tab-dot" aria-label="받을 업적 보상" />}
           </button>
         ))}
       </nav>

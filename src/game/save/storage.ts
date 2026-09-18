@@ -5,7 +5,7 @@ import { FIRST_STAGE } from '../data/stages';
 
 export const SAVE_KEY = 'cvs-night-shift:v1'; // 키는 유지 (기존 유저 데이터 보존)
 
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 export interface LastRun {
   wave: number;
@@ -106,6 +106,10 @@ export interface SaveData {
   // ── v6: 쿠폰 ──
   usedCoupons: string[]; // 이미 쓴 코드 (정규화된 대문자). 같은 코드를 두 번 못 쓰게 한다.
   couponFreeDraws: number; // 쿠폰으로 받은 무료 뽑기. 다음 판 시작 때 실려 들어가고 0 이 된다.
+  // ── v7: 업적 보상 수령 ──
+  // 업적은 달성과 수령을 나눈다. 판이 끝날 때 자동으로 주면 결과 화면 숫자에
+  // 섞여서 무엇을 땄는지 모르고 지나간다. 업적 탭에서 직접 받게 한다.
+  claimedAchievements: string[];
 }
 
 // crypto.randomUUID 가 없는 구형 웹뷰(카톡 인앱 등)도 있어서 폴백을 둔다.
@@ -157,13 +161,14 @@ export function defaultSave(): SaveData {
     order: { pins: [], bans: [] },
     usedCoupons: [],
     couponFreeDraws: 0,
+    claimedAchievements: [],
   };
 }
 
 const arr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
 const rec = <T>(v: unknown): Record<string, T> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, T>) : {});
 
-// v1~v5 → v6. 없는 필드는 기본값으로 채우고, 있던 값은 절대 건드리지 않는다.
+// v1~v6 → v7. 없는 필드는 기본값으로 채우고, 있던 값은 절대 건드리지 않는다.
 export function migrate(parsed: Partial<SaveData>): SaveData {
   const base = defaultSave();
   const out: SaveData = {
@@ -196,6 +201,9 @@ export function migrate(parsed: Partial<SaveData>): SaveData {
     order: { pins: arr(parsed.order?.pins), bans: arr(parsed.order?.bans) },
     usedCoupons: arr(parsed.usedCoupons),
     couponFreeDraws: typeof parsed.couponFreeDraws === 'number' ? Math.max(0, parsed.couponFreeDraws) : 0,
+    // v6 이하에서는 업적 보상이 판 끝에 자동 지급됐다. 이미 받은 것을 또 주면 안 되므로
+    // 그때까지 딴 업적은 전부 '수령 완료' 로 옮긴다.
+    claimedAchievements: Array.isArray(parsed.claimedAchievements) ? arr(parsed.claimedAchievements) : arr(parsed.achievements),
   };
   // 예전 저장에는 손님/유닛 통계가 없다. 도감에 이미 "봤다"고 기록된 것만 최소치로 살려 둔다.
   for (const id of out.seenEnemies) {

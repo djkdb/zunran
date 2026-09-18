@@ -208,7 +208,8 @@ export function App() {
         missionCleared,
       };
       const unlocked = evaluateAchievements(achCtx);
-      // 업적 보상: 이번 판에 새로 딴 것만 지급한다 (한 번 딴 업적은 다시 주지 않는다)
+      // 업적 보상은 여기서 주지 않는다. 결과 화면 숫자에 섞이면 무엇을 땄는지 모르고
+      // 지나간다. 업적 탭에서 직접 「받기」를 눌러야 들어온다.
       const achReward = unlocked.reduce((sum, id) => {
         const def = ACHIEVEMENT_BY_ID[id];
         return sum + (def ? achievementReward(def) : 0);
@@ -218,7 +219,7 @@ export function App() {
       // 지점 배율: 유동인구가 많은 곳은 힘든 만큼 수당도 크다.
       const stageMult = s.stage.scoreMult;
       const basePoints = metaPointsForRun(s.stats.coinsEarned, s.wave, s.stats.kills, meta.payMult * condMult * stageMult);
-      const points = basePoints + missionReward + achReward;
+      const points = basePoints + missionReward;
 
       const res: RunResult = {
         wave: s.wave,
@@ -354,6 +355,27 @@ export function App() {
     [save, persist],
   );
 
+  // 업적 보상 수령. 이미 받은 것은 걸러서 두 번 주지 않는다.
+  const claimAchievements = useCallback(
+    (ids: string[]) => {
+      const already = new Set(save.claimedAchievements);
+      const fresh = ids.filter((id) => save.achievements.includes(id) && !already.has(id));
+      if (fresh.length === 0) return;
+      const gain = fresh.reduce((sum, id) => {
+        const def = ACHIEVEMENT_BY_ID[id];
+        return sum + (def ? achievementReward(def) : 0);
+      }, 0);
+      audio.unlock();
+      audio.play('achievement');
+      persist({
+        ...save,
+        metaPoints: save.metaPoints + gain,
+        claimedAchievements: [...save.claimedAchievements, ...fresh],
+      });
+    },
+    [save, persist],
+  );
+
   // 이름을 정하면 이번 판 기록을 그 이름으로 올린다.
   const submitPendingRun = useCallback(
     (nickname: string) => {
@@ -418,6 +440,7 @@ export function App() {
         order={order}
         onSetOrder={setOrder}
         onRedeemCoupon={redeemCouponReward}
+        onClaimAchievements={claimAchievements}
         onReplayIntro={replayIntro}
         onReset={() => setSave(resetSave())}
       />

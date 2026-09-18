@@ -77,3 +77,33 @@ describe('쿠폰', () => {
     expect(redeemCoupon('NIGHT', s.usedCoupons).ok).toBe(true);
   });
 });
+
+describe('업적 보상 수령 (v6 → v7)', () => {
+  it('이미 자동 지급받은 사람은 전부 수령 완료로 넘어온다 — 두 번 주지 않는다', () => {
+    // v6 까지는 판이 끝날 때 업적 보상이 자동으로 들어갔다.
+    const old = { version: 6, achievements: ['first_shift', 'wave10'], metaPoints: 800 } as Parameters<typeof migrate>[0];
+    const out = migrate(old);
+    expect(out.version).toBe(SAVE_VERSION);
+    expect(out.claimedAchievements, '딴 업적은 전부 받은 것으로 친다').toEqual(['first_shift', 'wave10']);
+    expect(out.metaPoints, '수당은 그대로').toBe(800);
+    // 받을 게 남아 있지 않다
+    const claimable = out.achievements.filter((id) => !out.claimedAchievements.includes(id));
+    expect(claimable).toEqual([]);
+  });
+
+  it('v7 저장은 수령 목록을 그대로 보존한다', () => {
+    const out = migrate({
+      version: 7,
+      achievements: ['a', 'b', 'c'],
+      claimedAchievements: ['a'],
+    } as Parameters<typeof migrate>[0]);
+    expect(out.claimedAchievements).toEqual(['a']);
+    expect(out.achievements.filter((id) => !out.claimedAchievements.includes(id))).toEqual(['b', 'c']);
+  });
+
+  it('새 저장에는 딴 것도 받은 것도 없다', () => {
+    const s = defaultSave();
+    expect(s.achievements).toEqual([]);
+    expect(s.claimedAchievements).toEqual([]);
+  });
+});
