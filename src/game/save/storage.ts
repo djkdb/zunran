@@ -5,7 +5,7 @@ import { FIRST_STAGE } from '../data/stages';
 
 export const SAVE_KEY = 'cvs-night-shift:v1'; // 키는 유지 (기존 유저 데이터 보존)
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 export interface LastRun {
   wave: number;
@@ -103,6 +103,9 @@ export interface SaveData {
   introSeen: boolean; // 첫 판 오프닝을 봤는가 (건너뛰어도 본 것으로 친다)
   // ── v5 ──
   order: { pins: string[]; bans: string[] }; // 오늘 발주 (지명·제외). 비어도 된다.
+  // ── v6: 쿠폰 ──
+  usedCoupons: string[]; // 이미 쓴 코드 (정규화된 대문자). 같은 코드를 두 번 못 쓰게 한다.
+  couponFreeDraws: number; // 쿠폰으로 받은 무료 뽑기. 다음 판 시작 때 실려 들어가고 0 이 된다.
 }
 
 // crypto.randomUUID 가 없는 구형 웹뷰(카톡 인앱 등)도 있어서 폴백을 둔다.
@@ -152,13 +155,15 @@ export function defaultSave(): SaveData {
     rankOptIn: true,
     introSeen: false,
     order: { pins: [], bans: [] },
+    usedCoupons: [],
+    couponFreeDraws: 0,
   };
 }
 
 const arr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
 const rec = <T>(v: unknown): Record<string, T> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, T>) : {});
 
-// v1~v4 → v5. 없는 필드는 기본값으로 채우고, 있던 값은 절대 건드리지 않는다.
+// v1~v5 → v6. 없는 필드는 기본값으로 채우고, 있던 값은 절대 건드리지 않는다.
 export function migrate(parsed: Partial<SaveData>): SaveData {
   const base = defaultSave();
   const out: SaveData = {
@@ -189,6 +194,8 @@ export function migrate(parsed: Partial<SaveData>): SaveData {
     // 이미 플레이한 적 있는 사람에게 오프닝을 새로 띄우지는 않는다
     introSeen: typeof parsed.introSeen === 'boolean' ? parsed.introSeen : (parsed.totalPlays ?? 0) > 0,
     order: { pins: arr(parsed.order?.pins), bans: arr(parsed.order?.bans) },
+    usedCoupons: arr(parsed.usedCoupons),
+    couponFreeDraws: typeof parsed.couponFreeDraws === 'number' ? Math.max(0, parsed.couponFreeDraws) : 0,
   };
   // 예전 저장에는 손님/유닛 통계가 없다. 도감에 이미 "봤다"고 기록된 것만 최소치로 살려 둔다.
   for (const id of out.seenEnemies) {

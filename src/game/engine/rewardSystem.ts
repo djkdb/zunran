@@ -22,6 +22,8 @@ export function basePerma(): PermaBuffs {
     orderDiscount: 0,
     incomeMult: 1,
     aisleMult: 1,
+    adjMult: 1,
+    sellMult: 1,
     skillCdMult: 1,
     slowMult: 1,
   };

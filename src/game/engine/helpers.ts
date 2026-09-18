@@ -64,6 +64,75 @@ export function auraRadius(def: UnitDef, tier: Tier): number {
 }
 
 // 최종 피해량 (티어 · 코너 보너스 · 보상 강화 · 이벤트 배율 · 오라 버프)
+// ───────── 옆자리 시너지 ─────────
+//
+// 30판을 돌려 최종 보드를 봤더니 전부 잡탕 ★1 이었다 (냉장고1 삼각김밥1 냉장고1 …).
+// 보드가 '내가 만든 것' 이 아니라 '뽑기가 준 것' 이었다. 배치에 이유가 없었기 때문이다.
+// 코너 보너스는 줄 단위라 어느 줄에 놓을지만 정했지, 누구 옆에 놓을지는 아무 의미가 없었다.
+//
+// 규칙은 딱 둘이고, 서로 배타적이다 — 그래서 매번 고르게 된다.
+//   A. 같은 역할끼리 붙이면 화력이 는다 (옆 한 명당 +12%, 최대 두 명)
+//   B. 지원 유닛 옆에 서면 손이 빨라진다 (+14%, 중복 없음)
+// 몰아넣을 것인가, 섞어 넣을 것인가. 한 칸은 한 번만 쓸 수 있다.
+//
+// 지원 유닛(냉장고·CCTV)은 등장 63%·27% 인데 피해 지분도 MVP 도 0% 였다.
+// 이제 옆자리 값을 한다.
+export const ADJ_SAME_ROLE = 0.12;
+export const ADJ_NEAR_SUPPORT = 0.14;
+export const ADJ_MAX_SAME = 2;
+
+export interface Adjacency {
+  sameRole: number; // 옆에 붙은 같은 역할 수 (0~2)
+  nearSupport: boolean;
+  dmg: number; // 곱할 배율
+  atkSpeed: number;
+}
+
+const NO_ADJ: Adjacency = { sameRole: 0, nearSupport: false, dmg: 1, atkSpeed: 1 };
+
+// 같은 줄에서 좌우로 맞닿은 칸. 칸은 줄 단위로 이어 붙여 만들므로 index ±1 이 곧 옆칸이다.
+function neighbors(state: GameState, u: Unit): Unit[] {
+  const here = state.slots[u.slot];
+  if (!here) return [];
+  const out: Unit[] = [];
+  for (const idx of [u.slot - 1, u.slot + 1]) {
+    const sl = state.slots[idx];
+    if (!sl || sl.row !== here.row || sl.unitId === null) continue;
+    const n = state.units.find((x) => x.id === sl.unitId);
+    if (n) out.push(n);
+  }
+  return out;
+}
+
+export function computeAdjacency(state: GameState, u: Unit): Adjacency {
+  const def = unitDef(u);
+  const ns = neighbors(state, u);
+  if (ns.length === 0) return NO_ADJ;
+  let sameRole = 0;
+  let nearSupport = false;
+  for (const n of ns) {
+    const nd = unitDef(n);
+    if (nd.role === def.role) sameRole++;
+    if (nd.role === 'support' && n.id !== u.id) nearSupport = true;
+  }
+  sameRole = Math.min(ADJ_MAX_SAME, sameRole);
+  // 「합을 맞춘다」 는 이 값을 2배로, 「코너 장사」 는 0 으로 만든다.
+  const k = state.perma.adjMult;
+  return {
+    sameRole,
+    nearSupport,
+    dmg: 1 + sameRole * ADJ_SAME_ROLE * k,
+    atkSpeed: nearSupport ? 1 + ADJ_NEAR_SUPPORT * k : 1,
+  };
+}
+
+// 매 틱 유닛 갱신 직전에 한 번만 계산한다 (유닛 21개 × 이웃 2칸 = 무시할 비용).
+// 배치가 바뀌는 곳이 뽑기·이동·판매·합성·조합·보상으로 흩어져 있어서,
+// 각 지점에서 갱신하면 언젠가 하나를 빠뜨리고 낡은 값이 남는다.
+export function recomputeAdjacency(state: GameState): void {
+  for (const u of state.units) u.adj = computeAdjacency(state, u);
+}
+
 export function unitDamage(state: GameState, u: Unit): number {
   const def = unitDef(u);
   const m = state.modifiers;
@@ -78,6 +147,7 @@ export function unitDamage(state: GameState, u: Unit): number {
     (p.roleDmg[def.role] ?? 1) *
     m.unitDmg *
     byId *
+    (u.adj?.dmg ?? 1) *
     (1 + u.buffs.dmg)
   );
 }
@@ -85,7 +155,7 @@ export function unitDamage(state: GameState, u: Unit): number {
 export function unitInterval(state: GameState, u: Unit): number {
   const def = unitDef(u);
   const base = def.interval * tierIntervalMult(u.tier);
-  return base / (state.modifiers.unitAtkSpeed * state.perma.atkSpeed * aisleBonus(state, u).atkSpeed * (1 + u.buffs.atkSpeed));
+  return base / (state.modifiers.unitAtkSpeed * state.perma.atkSpeed * aisleBonus(state, u).atkSpeed * (u.adj?.atkSpeed ?? 1) * (1 + u.buffs.atkSpeed));
 }
 
 export function unitRange(state: GameState, u: Unit): number {

@@ -281,6 +281,17 @@ export function BottomPanel({ snap, act, denied }: Props) {
                   </span>
                 )}
               </div>
+              {/* 옆자리 시너지 — 지금 붙어서 얻고 있는 것, 그리고 못 얻고 있는 것.
+                  둘은 같은 칸을 놓고 다투므로 어느 쪽을 택할지가 매번 결정이 된다. */}
+              <div className="selected-adj">
+                {snap.selected.adjSameRole > 0 && (
+                  <span className="adj-on">옆 같은 계열 {snap.selected.adjSameRole} · 공격력 +{snap.selected.adjSameRole * 12}%</span>
+                )}
+                {snap.selected.adjNearSupport && <span className="adj-on mint">옆에 지원 · 공격속도 +14%</span>}
+                {snap.selected.adjSameRole === 0 && !snap.selected.adjNearSupport && (
+                  <span className="adj-off">옆자리 보너스 없음 · 같은 계열이나 지원 유닛 옆에 붙여보세요</span>
+                )}
+              </div>
               {snap.wave <= 6 && <div className="selected-hint">끌어서 옮기거나, 빈 칸을 탭해 배치하세요</div>}
             </div>
           </div>

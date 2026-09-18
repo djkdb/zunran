@@ -26,9 +26,18 @@ export type IconName =
   | 'chart'
   | 'book'
   | 'lock'
-  | 'unlock';
+  | 'unlock'
+  | 'gift';
 
 const PATHS: Record<IconName, JSX.Element> = {
+  // 쿠폰 (리본 달린 표)
+  gift: (
+    <>
+      <rect x="3" y="9" width="18" height="11" />
+      <path d="M12 9v11M3 13h18" />
+      <path d="M12 9 8.5 5.5M12 9l3.5-3.5" />
+    </>
+  ),
   // 자물쇠 (잠금) — 채워진 고리
   lock: (
     <>

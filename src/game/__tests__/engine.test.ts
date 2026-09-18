@@ -3,7 +3,7 @@ import { Engine } from '../engine/Engine';
 import { metaEffects, DEFAULT_META_LEVELS } from '../save/meta';
 import { UNIT_BY_ID, UNIT_DEFS } from '../data/units';
 import type { Tier } from '../types';
-import { ENEMY_DEFS } from '../data/enemies';
+import { ENEMY_DEFS, bossForWave } from '../data/enemies';
 import { EVENT_DEFS } from '../data/events';
 import { buildWave } from '../data/waves';
 import { startWave } from '../engine/waveSystem';
@@ -17,6 +17,7 @@ import { createUnit } from '../engine/unitFactory';
 import { mergeUnits, choosePromote } from '../engine/mergeSystem';
 import { REWARD_CARDS } from '../data/rewards';
 import { chooseReward } from '../engine/rewardSystem';
+import { recomputeAdjacency, unitDamage, unitInterval } from '../engine/helpers';
 import { sellCandidate } from '../../ui/useGame';
 
 // 진열대 증축 만렙 엔진. 칸 번호를 직접 쓰는 테스트는 21칸이 다 열려 있어야 한다.
@@ -505,5 +506,149 @@ describe('준비 시간', () => {
     expect(s.wave).toBe(20);
     // 준비 중이 아닐 때 누르면 아무 일도 없어야 한다
     expect(engine.dispatch({ type: 'SKIP_PREP' }).ok).toBe(false);
+  });
+});
+
+// ───────── 옆자리 시너지 ─────────
+//
+// 30판 계측에서 최종 보드가 전부 잡탕 ★1 이었다. 보드가 '내가 만든 것' 이 아니라
+// '뽑기가 준 것' 이었다 — 누구 옆에 놓든 아무 차이가 없었기 때문이다.
+describe('옆자리 시너지', () => {
+  function place(s: Engine['state'], defId: string, slot: number) {
+    const u = createUnit(s, defId, 1, slot);
+    s.units.push(u);
+    s.slots[slot].unitId = u.id;
+    return u;
+  }
+  it('같은 계열을 옆에 붙이면 공격력이 오른다 (옆 한 명당 +12%, 최대 둘)', () => {
+    const e = fullEngine(41);
+    const s = e.state;
+    const mid = place(s, 'onigiri', 1); // dps
+    recomputeAdjacency(s);
+    const alone = unitDamage(s, mid);
+
+    place(s, 'hotbar', 0); // dps
+    recomputeAdjacency(s);
+    const one = unitDamage(s, mid);
+    expect(one / alone).toBeCloseTo(1.12, 5);
+
+    place(s, 'scanner', 2); // dps
+    recomputeAdjacency(s);
+    const two = unitDamage(s, mid);
+    expect(two / alone).toBeCloseTo(1.24, 5);
+    expect(mid.adj?.sameRole).toBe(2);
+  });
+
+  it('지원 유닛 옆에 서면 공격속도가 오른다 (+14%, 중복 없음)', () => {
+    const e = fullEngine(42);
+    const s = e.state;
+    const mid = place(s, 'onigiri', 1);
+    recomputeAdjacency(s);
+    const alone = unitInterval(s, mid);
+    place(s, 'fridge', 0); // support
+    place(s, 'cctv', 2); // support
+    recomputeAdjacency(s);
+    expect(mid.adj?.nearSupport).toBe(true);
+    expect(alone / unitInterval(s, mid), '두 명이어도 한 번만').toBeCloseTo(1.14, 5);
+    expect(mid.adj?.sameRole, '지원은 dps 와 계열이 다르다').toBe(0);
+  });
+
+  it('줄이 다르면 옆이 아니다 (칸 번호만 붙어 있는 경우)', () => {
+    const e = fullEngine(43);
+    const s = e.state;
+    // 줄의 마지막 칸과 다음 줄의 첫 칸은 번호가 이어지지만 옆자리가 아니다
+    const lastOfRow0 = s.slots.filter((sl) => sl.row === 0).slice(-1)[0];
+    const firstOfRow1 = s.slots.find((sl) => sl.row === 1)!;
+    expect(firstOfRow1.index).toBe(lastOfRow0.index + 1);
+    const a = place(s, 'onigiri', lastOfRow0.index);
+    place(s, 'hotbar', firstOfRow1.index);
+    recomputeAdjacency(s);
+    expect(a.adj?.sameRole ?? 0).toBe(0);
+  });
+
+  it('「합을 맞춘다」는 옆자리를 2배로, 「코너 장사」는 0으로 만든다', () => {
+    const e = fullEngine(44);
+    const s = e.state;
+    const mid = place(s, 'onigiri', 1);
+    place(s, 'hotbar', 0);
+    recomputeAdjacency(s);
+    const base = unitDamage(s, mid);
+
+    s.perma.adjMult = 2;
+    recomputeAdjacency(s);
+    expect(unitDamage(s, mid) / base).toBeCloseTo(1.24 / 1.12, 5);
+
+    s.perma.adjMult = 0;
+    recomputeAdjacency(s);
+    expect(unitDamage(s, mid) / base).toBeCloseTo(1 / 1.12, 5);
+  });
+
+  it('배치를 바꾸면 값이 따라온다 (낡은 값이 남지 않는다)', () => {
+    const e = fullEngine(45);
+    const s = e.state;
+    const a = place(s, 'onigiri', 1);
+    place(s, 'hotbar', 0);
+    recomputeAdjacency(s);
+    expect(a.adj?.sameRole).toBe(1);
+    // 멀리 옮긴다
+    e.dispatch({ type: 'MOVE', unitId: a.id, slot: 5 });
+    expect(e.snapshot().selected?.unitId ?? a.id).toBeDefined();
+    recomputeAdjacency(s);
+    expect(a.adj?.sameRole).toBe(0);
+  });
+});
+
+describe('보상 카드: 빌드 축', () => {
+  it('새 빌드 카드가 전부 두 방향으로 작동한다 (얻는 것과 잃는 것)', () => {
+    const cases: [string, (p: Engine['state']['perma']) => boolean][] = [
+      ['crowdControl', (p) => p.roleDmg.control > 1 && p.roleDmg.dps < 1],
+      ['backOffice', (p) => p.roleDmg.support > 1 && p.drawDiscount < 0],
+      ['nightCafe', (p) => p.atkSpeed > 1 && p.range < 0],
+      ['wideAisle', (p) => p.range > 0 && p.atkSpeed < 1],
+      ['teamwork', (p) => p.adjMult > 1 && p.aisleMult === 0],
+      ['cornerShop', (p) => p.aisleMult > 1 && p.adjMult === 0],
+      ['clearance', (p) => p.sellMult > 1 && p.incomeMult < 1],
+    ];
+    for (const [id, check] of cases) {
+      const engine = fullEngine(50);
+      const s = engine.state;
+      const def = REWARD_CARDS.find((c) => c.id === id);
+      expect(def, `${id} 카드가 없다`).toBeTruthy();
+      expect(def!.kind, `${id} 는 빌드 카드여야 한다`).toBe('build');
+      s.phase = 'reward';
+      s.rewardOffers = [{ defId: id, tone: def!.tone, kind: def!.kind, name: def!.name, desc: def!.desc, icon: def!.icon }];
+      expect(chooseReward(s, id), `${id} 적용 실패`).toBe(true);
+      expect(check(s.perma), `${id} 의 장단점이 둘 다 적용되지 않았다`).toBe(true);
+    }
+  });
+
+  it('빌드 카드가 수치 카드보다 많다 — 3장이 전부 밋밋한 제시가 나오지 않게', () => {
+    const build = REWARD_CARDS.filter((c) => c.kind === 'build').length;
+    const stat = REWARD_CARDS.filter((c) => c.kind === 'stat').length;
+    expect(build).toBeGreaterThan(stat);
+  });
+});
+
+describe('보스 예고', () => {
+  it('보스마다 준비 힌트가 있다', () => {
+    for (const w of [10, 20, 30, 40]) {
+      const def = ENEMY_DEFS.find((e) => e.id === bossForWave(w))!;
+      expect(def, `w${w} 보스 없음`).toBeTruthy();
+      expect(def.counterHint, `${def.name} 에 대응 힌트가 없다`).toBeTruthy();
+      expect(def.counterHint!.length).toBeGreaterThan(10);
+    }
+  });
+  it('준비 중에는 어떤 보스인지 스냅샷에 실린다', () => {
+    const engine = fullEngine(46);
+    const s = engine.state;
+    startWave(s, 9);
+    if (s.phase !== 'playing') s.phase = 'playing';
+    s.waveTimer = 0.01;
+    s.spawnQueue = [];
+    for (let i = 0; i < 4; i++) engine.tick(1 / 60);
+    const snap = engine.snapshot();
+    expect(snap.prep).toBeGreaterThan(0);
+    expect(snap.prepBoss?.name).toBe(ENEMY_DEFS.find((e) => e.id === bossForWave(10))!.name);
+    expect(snap.prepBoss?.hint.length).toBeGreaterThan(10);
   });
 });

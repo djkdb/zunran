@@ -4,6 +4,7 @@ import { setHaptics, vibe } from './haptics';
 import type { MetaUpgradeId } from './game/types';
 import { loadSave, writeSave, resetSave, type DailyRecord, type RunRecord, type SaveData } from './game/save/storage';
 import { META_UPGRADES, metaEffects, metaPointsForRun } from './game/save/meta';
+import { normalizeCode, type Coupon } from './game/data/coupons';
 import { mergeRunStats, analyzeDefeat, type DefeatAnalysis } from './game/save/stats';
 import { evaluateAchievements, achievementReward, ACHIEVEMENT_BY_ID, type AchievementContext } from './game/data/achievements';
 import { pickRunTitle } from './game/data/runTitles';
@@ -72,6 +73,7 @@ export function App() {
   const [pendingRun, setPendingRun] = useState<RunSummary | null>(null);
   // 오늘의 규칙으로 플레이할지 (시작 화면에서 고른다)
   const [dailyMode, setDailyMode] = useState(false);
+  const [runFreeDraws, setRunFreeDraws] = useState(0); // 쿠폰으로 받은 무료 뽑기 (이번 판 한정)
 
   const persist = useCallback((next: SaveData) => {
     setSave(next);
@@ -92,6 +94,18 @@ export function App() {
 
 
   // 같은 조건으로 바로 다시. 게임오버 → 조건 고르기 → 시작은 모바일에서 마찰이 크다.
+  // 판에 들어가는 유일한 길목. 쿠폰으로 받아 둔 무료 뽑기를 여기서 한 번만 싣는다.
+  // (저장에서 바로 빼면 meta 가 이미 렌더된 뒤라 이번 판에 안 실린다.)
+  const enterGame = useCallback(() => {
+    if (save.couponFreeDraws > 0) {
+      setRunFreeDraws(save.couponFreeDraws);
+      persist({ ...save, couponFreeDraws: 0 });
+    } else {
+      setRunFreeDraws(0);
+    }
+    setScreen('game');
+  }, [save, persist]);
+
   const quickRestart = useCallback(() => {
     if (!condition) {
       beginRun(dailyMode);
@@ -102,8 +116,8 @@ export function App() {
     setPendingRun(null);
     setRunSeed((Math.random() * 0x7fffffff) | 0);
     setRunKey((k) => k + 1);
-    setScreen('game');
-  }, [condition, dailyMode, beginRun]);
+    enterGame();
+  }, [condition, dailyMode, beginRun, enterGame]);
 
   // 지점을 고르면 저장해 두고 근무 조건으로 넘어간다.
   const pickStage = useCallback(
@@ -115,12 +129,15 @@ export function App() {
     [save, persist],
   );
 
-  const pickCondition = useCallback((c: ShiftCondition) => {
-    audio.play('click');
-    setCondition(c);
-    setRunKey((k) => k + 1);
-    setScreen('game');
-  }, []);
+  const pickCondition = useCallback(
+    (c: ShiftCondition) => {
+      audio.play('click');
+      setCondition(c);
+      setRunKey((k) => k + 1);
+      enterGame();
+    },
+    [enterGame],
+  );
 
   const startGame = useCallback(
     (daily: boolean) => {
@@ -321,6 +338,22 @@ export function App() {
     [save, persist],
   );
 
+  // 쿠폰 사용. 코드를 쓴 목록에 남겨 같은 코드를 두 번 못 쓰게 한다.
+  // 보상은 이 게임에 이미 있는 재화뿐이다 — 야간 수당과 다음 판 무료 뽑기.
+  const redeemCouponReward = useCallback(
+    (coupon: Coupon) => {
+      audio.unlock();
+      audio.play('coin');
+      const used = [...save.usedCoupons, normalizeCode(coupon.code)];
+      if (coupon.reward.type === 'metaPoints') {
+        persist({ ...save, usedCoupons: used, metaPoints: save.metaPoints + coupon.reward.amount });
+      } else {
+        persist({ ...save, usedCoupons: used, couponFreeDraws: save.couponFreeDraws + coupon.reward.amount });
+      }
+    },
+    [save, persist],
+  );
+
   // 이름을 정하면 이번 판 기록을 그 이름으로 올린다.
   const submitPendingRun = useCallback(
     (nickname: string) => {
@@ -363,7 +396,8 @@ export function App() {
     persist({ ...save, muted });
   }, [save, persist]);
 
-  const meta = metaEffects(save.metaLevels);
+  const base = metaEffects(save.metaLevels);
+  const meta = runFreeDraws > 0 ? { ...base, freeDraws: base.freeDraws + runFreeDraws } : base;
   // 저장된 발주를 그대로 믿지 않는다. 해금 상태에 맞춰 늘 유효하게 맞춘다.
   const order = normalizeOrder(save.order, unlockedUnits(save.bestWave));
   const today = getDaily();
@@ -383,6 +417,7 @@ export function App() {
         onToggleRankOptIn={toggleRankOptIn}
         order={order}
         onSetOrder={setOrder}
+        onRedeemCoupon={redeemCouponReward}
         onReplayIntro={replayIntro}
         onReset={() => setSave(resetSave())}
       />

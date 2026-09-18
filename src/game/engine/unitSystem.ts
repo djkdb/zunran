@@ -1,7 +1,7 @@
 import type { Enemy, GameState, Projectile, Unit, UnitDef } from '../types';
 import { PROJECTILE_SPEED, COMBO_WINDOW } from '../config';
 import { ENEMY_BY_ID } from '../data/enemies';
-import { addFloater, sfx, unitDef, unitDamage, unitInterval, unitRange, auraRadius, auraValue, dist2, isTargetable } from './helpers';
+import { addFloater, sfx, unitDef, unitDamage, unitInterval, unitRange, auraRadius, auraValue, dist2, isTargetable, recomputeAdjacency } from './helpers';
 import { damageEnemy, applySlow } from './enemySystem';
 
 // 매 틱: 오라 버프 재계산 → 타겟팅/공격 → 스킬 → 투사체 이동
@@ -9,6 +9,7 @@ export function updateUnits(state: GameState, dt: number): void {
   // 콤보는 시간이 지나면 끊긴다
   if (state.combo.count > 0 && state.time > state.combo.until) state.combo.count = 0;
   void COMBO_WINDOW;
+  recomputeAdjacency(state);
   computeBuffs(state);
   const targetable = state.enemies.filter(isTargetable);
 

@@ -328,6 +328,121 @@ export const REWARD_CARDS: RewardCardDef[] = [
       c.banner('얼음 매장', '아무도 빨리 못 지나간다');
     },
   },
+  // ───────── 빌드 카드 ─────────
+  //
+  // 30판 계측: 장단점이 같이 있는 카드는 선택률 67~75%,
+  // 단순 수치 카드는 13~29% 였다. 플레이어는 이미 판을 바꾸는 카드를 고르고 있었는데
+  // 그런 카드가 네 장뿐이라 3장 중 3장이 다 밋밋한 제시가 자주 나왔다.
+  // 아래는 전부 '무엇을 포기하고 무엇을 얻을까' 를 묻는다.
+  {
+    id: 'crowdControl',
+    name: '줄 서서 기다리세요',
+    desc: '제어형 유닛 +90% · 단일 대상 유닛 -25%',
+    icon: 'clock',
+    tone: 'best',
+    kind: 'build',
+    weight: 5,
+    minWave: 7,
+    apply: (c) => {
+      c.state.perma.roleDmg.control *= 1.9;
+      c.state.perma.roleDmg.dps *= 0.75;
+      c.banner('줄 서서 기다리세요', '묶어두고 천천히');
+    },
+  },
+  {
+    id: 'backOffice',
+    name: '창고 정리',
+    desc: '지원 유닛 공격력 +120% · 뽑기 비용 +40원',
+    icon: 'store',
+    tone: 'good',
+    kind: 'build',
+    weight: 5,
+    minWave: 5,
+    apply: (c) => {
+      // 지원 유닛은 대부분 공격력이 0 이거나 낮다. 이 카드는 그 계열을
+      // '오라만 주는 장식' 에서 '자리를 차지할 값을 하는 유닛' 으로 바꾼다.
+      c.state.perma.roleDmg.support *= 2.2;
+      c.state.perma.drawDiscount -= 40;
+      c.banner('창고 정리', '뒤에 있던 것들을 앞으로');
+    },
+  },
+  {
+    id: 'nightCafe',
+    name: '심야 카페',
+    desc: '공격속도 +35% · 사거리 -35',
+    icon: 'coin',
+    tone: 'good',
+    kind: 'build',
+    weight: 6,
+    minWave: 4,
+    apply: (c) => {
+      c.state.perma.atkSpeed *= 1.35;
+      c.state.perma.range -= 35;
+      c.banner('심야 카페', '빠르게, 대신 가까이');
+    },
+  },
+  {
+    id: 'wideAisle',
+    name: '통로 넓히기',
+    desc: '사거리 +55 · 공격속도 -20%',
+    icon: 'chart',
+    tone: 'good',
+    kind: 'build',
+    weight: 6,
+    minWave: 4,
+    apply: (c) => {
+      c.state.perma.range += 55;
+      c.state.perma.atkSpeed *= 0.8;
+      c.banner('통로 넓히기', '멀리서 보고 있다가');
+    },
+  },
+  {
+    id: 'teamwork',
+    name: '합을 맞춘다',
+    desc: '옆자리 같은 계열 보너스 2배 · 코너 배치 보너스 없음',
+    icon: 'merge',
+    tone: 'best',
+    kind: 'build',
+    weight: 5,
+    minWave: 6,
+    apply: (c) => {
+      // 줄(코너)을 버리고 옆자리(계열)를 택하는 카드. 배치 전략의 축을 갈아끼운다.
+      c.state.perma.adjMult *= 2;
+      c.state.perma.aisleMult = 0;
+      c.banner('합을 맞춘다', '같은 것끼리 붙여라');
+    },
+  },
+  {
+    id: 'cornerShop',
+    name: '코너 장사',
+    desc: '코너 배치 보너스 2.5배 · 옆자리 보너스 없음',
+    icon: 'store',
+    tone: 'best',
+    kind: 'build',
+    weight: 5,
+    minWave: 6,
+    apply: (c) => {
+      c.state.perma.aisleMult *= 2.5;
+      c.state.perma.adjMult = 0;
+      c.banner('코너 장사', '어느 줄에 서느냐가 전부다');
+    },
+  },
+  {
+    id: 'clearance',
+    name: '떨이 장사',
+    desc: '판매 가격 3배 · 웨이브 시급 -50%',
+    icon: 'cash',
+    tone: 'good',
+    kind: 'build',
+    weight: 5,
+    minWave: 5,
+    apply: (c) => {
+      // 뽑고 팔기를 돌리는 경제 빌드. 가만히 있으면 손해라 손이 계속 움직인다.
+      c.state.perma.sellMult *= 3;
+      c.state.perma.incomeMult *= 0.5;
+      c.banner('떨이 장사', '재고를 남기지 않는다');
+    },
+  },
   {
     id: 'unmanned',
     name: '무인 운영',

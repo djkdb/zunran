@@ -6,7 +6,7 @@ import { dupeWeight, PIN_GUARANTEE_DRAWS, PIN_TARGET_COPIES, EMPTY_ORDER, orderP
 import type { ShiftCondition } from '../data/shiftConditions';
 import { basePerma, chooseReward } from './rewardSystem';
 import { useSkill, tickSkills } from './skillSystem';
-import { ENEMY_BY_ID } from '../data/enemies';
+import { ENEMY_BY_ID, bossForWave } from '../data/enemies';
 import { DRAW_LINES } from '../data/dialogue';
 import { createRng, randomSeed } from './rng';
 import { updateEnemies } from './enemySystem';
@@ -18,7 +18,7 @@ import { mergeUnits, choosePromote, canMerge, canTierMerge, mergeByTier, tierMer
 import { createUnit } from './unitFactory';
 import { RECIPE_BY_ID, pickMaterials } from '../data/recipes';
 import { spendCoins, addCoins } from './economy';
-import { sfx, addFloater, unitDef, freeSlots, openSlots } from './helpers';
+import { sfx, addFloater, unitDef, freeSlots, openSlots, recomputeAdjacency } from './helpers';
 import { metaEffects } from '../save/meta';
 import { DEFAULT_META_LEVELS } from '../save/meta';
 
@@ -417,7 +417,7 @@ export class Engine {
     const u = s.units.find((x) => x.id === unitId);
     if (!u) return { ok: false };
     const def = unitDef(u);
-    const price = sellPrice(u);
+    const price = sellPrice(u, s.perma.sellMult);
     s.slots[u.slot].unitId = null;
     s.units = s.units.filter((x) => x !== u);
     if (s.selectedUnitId === unitId) s.selectedUnitId = null;
@@ -503,7 +503,7 @@ export class Engine {
     if (junk.length === 0) return { ok: false, reason: '정리할 유닛이 없어요.' };
     let total = 0;
     for (const u of junk) {
-      total += sellPrice(u);
+      total += sellPrice(u, this.state.perma.sellMult);
       this.sell(u.id);
     }
     addFloater(this.state, { x: 320, y: 300, text: `정리 완료 +${total}원`, color: '#fde047', size: 16, life: 1.4 });
@@ -560,6 +560,7 @@ export class Engine {
   // ───────────── UI 스냅샷 ─────────────
 
   snapshot(): UISnapshot {
+    recomputeAdjacency(this.state);
     if (!this.snapshotDirty && this.cachedSnapshot) return this.cachedSnapshot;
     const s = this.state;
     this.snapshotVersion++;
@@ -586,6 +587,13 @@ export class Engine {
       wave: s.wave,
       waveTimer: s.waveTimer,
       prep: s.prep,
+      // 준비 시간에 "이번 보스는 뭘 준비하지?" 에 답한다. 기믹을 숨기면 대기 시간이 된다.
+      prepBoss: s.prep > 0 && isBossWave(s.wave + 1)
+        ? (() => {
+            const def = ENEMY_BY_ID[bossForWave(s.wave + 1)];
+            return def ? { name: def.name, hint: def.counterHint ?? '' } : null;
+          })()
+        : null,
       waveDuration: s.waveDuration,
       waveTheme: s.waveTheme,
       stageName: s.stage.name,
@@ -617,8 +625,10 @@ export class Engine {
             tier: sel.tier,
             kills: sel.kills,
             damage: Math.round(sel.damage),
-            sellPrice: sellPrice(sel),
+            sellPrice: sellPrice(sel, s.perma.sellMult),
             pinned: !!sel.pinned,
+            adjSameRole: sel.adj?.sameRole ?? 0,
+            adjNearSupport: !!sel.adj?.nearSupport,
             aisle: s.geo.aisleNames[s.slots[sel.slot].row],
             aisleBonus: s.geo.aisleBonus[s.slots[sel.slot].row].label,
             groupCount: s.units.filter((u) => u.defId === sel.defId && u.tier === sel.tier).length,
@@ -643,7 +653,7 @@ export class Engine {
       nextIsBoss: isBossWave(s.wave + 1),
       mergeBuy: this.mergeBuyOffers(),
       junkCount: junk.length,
-      junkValue: junk.reduce((a, u) => a + sellPrice(u), 0),
+      junkValue: junk.reduce((a, u) => a + sellPrice(u, s.perma.sellMult), 0),
     };
     return this.cachedSnapshot;
   }
@@ -659,9 +669,10 @@ export class Engine {
   }
 }
 
-export function sellPrice(u: Unit): number {
+// mult 는 「떨이 장사」 보상이 올린다 (판매 3배 · 시급 절반).
+export function sellPrice(u: Unit, mult = 1): number {
   const def = UNIT_BY_ID[u.defId];
-  return Math.round(SELL_REFUND[def.rarity] * Math.pow(2.2, u.tier - 1));
+  return Math.round(SELL_REFUND[def.rarity] * Math.pow(2.2, u.tier - 1) * mult);
 }
 
 function groupUnits(s: GameState): UnitGroup[] {

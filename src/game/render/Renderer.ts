@@ -475,6 +475,22 @@ export class Renderer {
       ctx.stroke();
       ctx.setLineDash([]);
     }
+    // 옆자리 시너지 — 붙어 있는 이웃을 향해 짧은 선을 긋는다.
+    // 숫자는 카드에 있으니 여기서는 "이 둘이 이어져 있다"만 보이면 된다.
+    const adj = u.adj;
+    if (adj && (adj.sameRole > 0 || adj.nearSupport)) {
+      ctx.strokeStyle = adj.nearSupport ? 'rgba(79,227,208,0.75)' : 'rgba(255,216,77,0.7)';
+      ctx.lineWidth = 2;
+      for (const idx of [u.slot - 1, u.slot + 1]) {
+        const sl = state.slots[idx];
+        if (!sl || sl.row !== s.row || sl.unitId === null) continue;
+        const dir = idx < u.slot ? -1 : 1;
+        ctx.beginPath();
+        ctx.moveTo(dir * 20, -12);
+        ctx.lineTo(dir * 30, -12);
+        ctx.stroke();
+      }
+    }
     // 사거리 (선택 시)
     if (selected && def.attack !== 'none') {
       ctx.strokeStyle = 'rgba(255,216,77,0.8)';

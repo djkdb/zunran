@@ -426,6 +426,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
   {
     id: 'boss_lunchbox',
     name: '폐기 직전 도시락',
+    counterHint: '체력 구간마다 조각으로 쪼개진다 · 감속이 안 통한다 — 범위 공격을 준비하세요',
     hp: 1900,
     speed: 30,
     bounty: 300,
@@ -445,6 +446,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
   {
     id: 'boss_party',
     name: '새벽 3시 단체 손님',
+    counterHint: '주기적으로 무리를 부른다 — 범위 공격과 화력 집중이 필요합니다',
     hp: 2500,
     speed: 40,
     bounty: 500,
@@ -463,6 +465,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
   {
     id: 'boss_inspector',
     name: '본사 직원',
+    counterHint: '유닛을 하나씩 점검해 멈춘다 · 기절이 안 통한다 — 화력을 한 명에게 몰지 마세요',
     hp: 3100,
     speed: 45,
     bounty: 800,
@@ -482,6 +485,7 @@ export const ENEMY_DEFS: EnemyDef[] = [
   {
     id: 'boss_closing',
     name: '월말 매출 마감',
+    counterHint: '보호막을 두르고 코인을 빨아들인다 · 상태이상 전부 무효 — 순수 화력만 통합니다',
     hp: 4400,
     speed: 35,
     bounty: 1500,

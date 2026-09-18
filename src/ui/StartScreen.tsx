@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { DailyRecord, SaveData } from '../game/save/storage';
 import { STAGES, STAGE_BY_ID, stageUnlocked, maxSlotsOf } from '../game/data/stages';
 import { START_SLOTS } from '../game/config';
+import { CouponModal } from './CouponModal';
+import type { Coupon } from '../game/data/coupons';
 import { StoreFrontScene } from './StoreFrontScene';
 import type { DailySet } from '../game/daily';
 import { META_UPGRADES } from '../game/save/meta';
@@ -31,6 +33,7 @@ interface Props {
   order: Order;
   onSetOrder: (order: Order) => void;
   onReplayIntro: () => void;
+  onRedeemCoupon: (coupon: Coupon) => void;
   onReset: () => void;
 }
 
@@ -47,10 +50,11 @@ const TABS: { id: Tab; label: string; aria: string; icon: IconName }[] = [
 ];
 
 export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggleMute,
-  onToggleHaptics, onSetNickname, onToggleRankOptIn, order, onSetOrder, onReplayIntro, onReset }: Props) {
+  onToggleHaptics, onSetNickname, onToggleRankOptIn, order, onSetOrder, onReplayIntro, onRedeemCoupon, onReset }: Props) {
   const [tab, setTab] = useState<Tab>('main');
   const [deckOpen, setDeckOpen] = useState(false);
   const [dailyOpen, setDailyOpen] = useState(false);
+  const [couponOpen, setCouponOpen] = useState(false);
   const upcoming = nextUnlock(save.bestWave);
   const tip = TIPS[save.totalPlays % TIPS.length];
   const achCount = save.achievements.length;
@@ -268,6 +272,12 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
             <div className="shop-points">
               <Icon name="cash" size={20} strokeWidth={2.2} />
               보유 야간 수당 {save.metaPoints}
+              {/* 쿠폰 보상이 야간 수당이니 그 수당을 보고 있는 자리에 둔다.
+                  홈에 또 만들면 같은 입구가 두 번이 된다. */}
+              <button className="coupon-open" onClick={() => setCouponOpen(true)}>
+                <Icon name="gift" size={14} strokeWidth={2.4} />
+                쿠폰
+              </button>
             </div>
             {META_UPGRADES.map((u) => {
               const lvl = save.metaLevels[u.id];
@@ -330,6 +340,10 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
             </button>
           ))}
         </nav>
+        {couponOpen && (
+          <CouponModal used={save.usedCoupons} onRedeem={onRedeemCoupon} onClose={() => setCouponOpen(false)} />
+        )}
+
         <div className="start-links">
           <button className="reset-link" onClick={onReplayIntro}>
             오프닝 다시 보기

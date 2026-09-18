@@ -57,14 +57,18 @@ export function Hud({ snap, bestWave, muted, onTogglePause, onToggleSpeed, onTog
       {/* 준비 시간 — 보스와 새벽 3시 앞에만 온다.
           예고를 읽어도 손쓸 틈이 없으면 예고가 아니다. */}
       {snap.prep > 0 && (
-        <div className="fhud-prep">
-          <span className="fhud-prep-label">
-            {snap.nextIsBoss ? '보스 준비' : '새벽 3시 준비'}
-          </span>
-          <span className="fhud-prep-sec px">{Math.ceil(snap.prep)}</span>
-          <button className="fhud-prep-go" onClick={onSkipPrep}>
-            지금 시작
-          </button>
+        <div className="fhud-prep-wrap">
+          <div className="fhud-prep">
+            <span className="fhud-prep-label">
+              {snap.prepBoss ? snap.prepBoss.name : '새벽 3시 준비'}
+            </span>
+            <span className="fhud-prep-sec px">{Math.ceil(snap.prep)}</span>
+            <button className="fhud-prep-go" onClick={onSkipPrep}>
+              지금 시작
+            </button>
+          </div>
+          {/* 무엇을 준비해야 하는지 말해 준다. 이게 없으면 8초는 그냥 대기 시간이다. */}
+          {snap.prepBoss?.hint && <div className="fhud-prep-hint">{snap.prepBoss.hint}</div>}
         </div>
       )}
 
