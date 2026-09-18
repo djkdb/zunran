@@ -140,9 +140,17 @@ export function updateWave(state: GameState, dt: number): void {
         state.fx.push({ type: 'banner', text: `웨이브 ${state.wave} 클리어`, sub: `+${bonus}원`, style: 'clear', dur: 1.4 });
         addFloater(state, { x: 320, y: 560, text: `+${bonus}원 웨이브 클리어`, color: '#fde047', size: 15, life: 1.4 });
         sfx(state, 'waveClear');
-        // 초반: 클리어하면 바로 다음 웨이브 (지루함 방지)
-        if (state.wave <= 3) state.waveTimer = Math.min(state.waveTimer, 3);
-        else state.waveTimer = Math.min(state.waveTimer, 6);
+        // 다 잡았으면 기다릴 이유가 없다.
+        //
+        // 실플레이를 찍어 보니 3분짜리 판에서 처음 13웨이브(약 2분)가 무피해였다.
+        // 손이 빠른 사람은 웨이브를 즉시 비우고도 6초를 더 기다렸다 — 13웨이브면
+        // 그 대기만 1분이 넘는다.
+        //
+        // 난이도를 올려 초반을 채우는 대신 대기를 줄인다. 빨리 비우는 사람만
+        // 빨라지고, 버거운 사람은 웨이브 시간을 그대로 다 쓴다.
+        // 고무줄 난이도가 아니라 '잘하면 빨리 넘어간다' 는 그냥 보상이다.
+        if (state.wave <= 3) state.waveTimer = Math.min(state.waveTimer, 1.5);
+        else state.waveTimer = Math.min(state.waveTimer, 2.5);
       }
     }
   }
