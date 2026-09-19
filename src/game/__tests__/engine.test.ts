@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Engine } from '../engine/Engine';
 import { metaEffects, DEFAULT_META_LEVELS } from '../save/meta';
 import { UNIT_BY_ID, UNIT_DEFS } from '../data/units';
-import type { Tier } from '../types';
+import type { Tier, UISnapshot } from '../types';
 import { ENEMY_DEFS, bossForWave } from '../data/enemies';
 import { EVENT_DEFS } from '../data/events';
 import { buildWave, THEME_WANTS, type WaveTheme } from '../data/waves';
@@ -21,6 +21,7 @@ import { chooseReward } from '../engine/rewardSystem';
 import { recomputeAdjacency, unitDamage, unitInterval, boardFocus } from '../engine/helpers';
 import { sellCandidate } from '../../ui/useGame';
 import { tutorialSteps } from '../data/tutorial';
+import { nextMove } from '../data/nextMove';
 import { yardstickDps } from '../data/units';
 
 // 진열대 증축 만렙 엔진. 칸 번호를 직접 쓰는 테스트는 21칸이 다 열려 있어야 한다.
@@ -974,5 +975,72 @@ describe('테마가 요구하는 계열', () => {
       // 일반 등급에도 하나는 있어야 초반 테마에 대응할 수 있다
       expect(pool.some((d) => d.rarity === 'common' || d.rarity === 'rare'), `${want} 저등급 유닛이 없다`).toBe(true);
     }
+  });
+});
+
+// 뽑기를 못 누를 때 무엇을 알려주는가.
+//
+// 베타 10명에서 첫 판에 누른 것의 47% 가 아무 일도 일으키지 않았다.
+// 그런데 그 정체 36번을 뜯어 보니 36번 모두 정리·스킬·배치가 가능했다 —
+// 갇힌 게 아니라 몰랐던 것이다.
+describe('막혔을 때 다음 수 안내', () => {
+  function snapOf(over: Partial<UISnapshot>): UISnapshot {
+    const e = fullEngine(900);
+    return { ...e.snapshot(), ...over } as UISnapshot;
+  }
+
+  it('뽑을 수 있으면 아무 말도 하지 않는다', () => {
+    expect(nextMove(snapOf({ canDraw: true }))).toBeNull();
+  });
+
+  it('칸이 없으면 기다려도 안 풀린다고 알려준다 (돈 이야기를 하지 않는다)', () => {
+    const m = nextMove(snapOf({ canDraw: false, emptySlots: 0, junkCount: 3, junkValue: 160, groups: [], mergeBuy: [] }))!;
+    expect(m.blocked).toBe(true);
+    expect(m.text).toContain('칸이 없어요');
+    expect(m.text).toContain('정리');
+    expect(m.text).not.toContain('원 더');
+    expect(m.progress, '돈 문제가 아니므로 차오르지 않는다').toBeNull();
+  });
+
+  it('칸이 없고 합성할 게 있으면 합성을 먼저 권한다', () => {
+    const m = nextMove(snapOf({
+      canDraw: false, emptySlots: 0, junkCount: 3, junkValue: 160,
+      groups: [{ defId: 'onigiri', tier: 1, count: 3, unitIds: [1, 2, 3], mergeable: true, pinned: false }],
+    }))!;
+    expect(m.text).toContain('합성');
+  });
+
+  it('돈이 모자라면 얼마나 모자란지와 그동안 할 일을 말한다', () => {
+    const m = nextMove(snapOf({
+      canDraw: false, emptySlots: 4, coins: 300, drawCost: 800, junkCount: 0, groups: [], mergeBuy: [],
+      tierMerge: null, unitCount: 5, enemyCount: 0, skillReady: { shutter: false, dump: false },
+    }))!;
+    expect(m.blocked).toBe(false);
+    expect(m.text).toContain('500원 더');
+    expect(m.text).toContain('자리를 바꿔');
+    expect(m.progress).toBeCloseTo(300 / 800, 5);
+  });
+
+  it('빈 칸이 있을 때는 정리를 권하지 않는다 (그 버튼은 칸이 꽉 차야 나온다)', () => {
+    const m = nextMove(snapOf({
+      canDraw: false, emptySlots: 4, coins: 300, drawCost: 800, junkCount: 5, junkValue: 200,
+      groups: [], mergeBuy: [], tierMerge: null, unitCount: 5, enemyCount: 0, skillReady: { shutter: false, dump: false },
+    }))!;
+    expect(m.text, '화면에 없는 버튼을 가리키면 안 된다').not.toContain('정리');
+  });
+
+  it('할 수 있는 다른 수가 정말 없으면 금액만 말한다 (없는 수를 권하지 않는다)', () => {
+    const m = nextMove(snapOf({
+      canDraw: false, emptySlots: 4, coins: 10, drawCost: 100, junkCount: 0, groups: [], mergeBuy: [],
+      tierMerge: null, unitCount: 0, enemyCount: 0, skillReady: { shutter: false, dump: false },
+    }))!;
+    expect(m.text).toBe('90원 더');
+  });
+
+  it('진행도는 0~1 을 벗어나지 않는다', () => {
+    const rich = nextMove(snapOf({ canDraw: false, emptySlots: 4, coins: 9999, drawCost: 100 }))!;
+    expect(rich.progress).toBeLessThanOrEqual(1);
+    const broke = nextMove(snapOf({ canDraw: false, emptySlots: 4, coins: 0, drawCost: 100 }))!;
+    expect(broke.progress).toBe(0);
   });
 });

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { GameAction, UISnapshot } from '../game/types';
 import { UNIT_BY_ID } from '../game/data/units';
 import { recipeStatus, recipeResultName } from '../game/data/recipes';
+import { nextMove } from '../game/data/nextMove';
 import { RARITY_COLOR, RARITY_LABEL, ROLE_LABEL, tierDmgMult, mergeCost } from '../game/config';
 import { UnitIcon } from './UnitIcon';
 import { Icon, TierTicks } from './Icon';
@@ -64,6 +65,7 @@ export function BottomPanel({ snap, act, denied }: Props) {
   const needsConfirm = !!sel && (sel.rarity !== 'common' || (snap.selected?.tier ?? 1) > 1);
   const odds = snap.rarityOdds;
   const free = snap.freeDraws > 0;
+  const next = nextMove(snap);
   return (
     <section className="panel" ref={panelRef}>
       <div className="panel-top">
@@ -73,10 +75,14 @@ export function BottomPanel({ snap, act, denied }: Props) {
           disabled={snap.phase !== 'playing'}
         >
           <Icon name="draw" size={26} strokeWidth={2.2} />
+          {/* 못 누를 때는 돈이 얼마나 모였는지 버튼이 직접 차오른다 */}
+          {next?.progress != null && <span className="draw-fill" style={{ width: `${Math.round(next.progress * 100)}%` }} />}
           <span className="draw-body">
             <span className="draw-title">유닛 뽑기</span>
-            <span className={`draw-slots ${snap.emptySlots === 0 ? 'full' : ''}`}>
-              {snap.emptySlots === 0 ? 'SLOT FULL · 정리하세요' : `SLOT ${snap.emptySlots}/${snap.totalSlots} FREE`}
+            {/* 눌러도 아무 일이 없으면 사람은 계속 누른다. 베타에서 누른 것의
+                47% 가 그런 탭이었다. 그 자리에서 할 수 있는 다른 수를 말해준다. */}
+            <span className={`draw-slots ${next ? (next.blocked ? 'full' : 'short') : ''}`}>
+              {next ? next.text : `SLOT ${snap.emptySlots}/${snap.totalSlots} FREE`}
             </span>
           </span>
           <span className="draw-cost">{free ? `무료 ×${snap.freeDraws}` : snap.drawCost}</span>

@@ -260,7 +260,17 @@ async function play(browser, person) {
       idleSince ??= Date.now();
       const stuckFor = (Date.now() - idleSince) / 1000;
       if (stuckFor > 6) {
-        log.stuck.push({ w: s.wave, sec: Math.round(stuckFor), coins: s.coins, empty: s.emptySlots, junk: s.junkCount, cost: s.drawCost });
+        // 그때 진짜 할 게 없었는지, 다른 수가 있었는지 같이 남긴다.
+        const other = {
+          합성: s.groups.some((g) => g.mergeable) || !!s.tierMerge,
+          한개더: s.mergeBuy.some((o) => o.cost <= s.coins),
+          조합: !!bs.find((b) => /조합|COMBINE/.test(b.t) && !b.dis),
+          정리: s.junkCount > 0,
+          발주: !!bs.find((b) => /희귀|에픽|전설/.test(b.t) && !b.dis),
+          스킬: s.skillReady.shutter || s.skillReady.dump,
+          배치: s.unitCount > 0 && s.emptySlots > 0,
+        };
+        log.stuck.push({ w: s.wave, sec: Math.round(stuckFor), coins: s.coins, empty: s.emptySlots, cost: s.drawCost, other: Object.keys(other).filter((k) => other[k]) });
         idleSince = Date.now();
       }
     }
@@ -287,8 +297,10 @@ const browser = await chromium.launch({
   args: ['--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'],
 });
 const results = [];
-for (let i = 0; i < PEOPLE.length; i += 5) {
-  const batch = PEOPLE.slice(i, i + 5);
+const ONLY = (process.env.BETA_ONLY ?? '').split(',').filter(Boolean).map(Number);
+const ROSTER = ONLY.length ? PEOPLE.filter((x) => ONLY.includes(x.id)) : PEOPLE;
+for (let i = 0; i < ROSTER.length; i += 5) {
+  const batch = ROSTER.slice(i, i + 5);
   process.stderr.write(`▶ ${batch.map((b) => b.name).join(', ')}\n`);
   results.push(...(await Promise.all(batch.map((b) => play(browser, b)))));
 }
@@ -320,7 +332,13 @@ console.log('\n── 할 일이 없어 멈춰 있던 구간 (6초 이상) ─�
 const anyStuck = results.filter((r) => r.stuck.length);
 if (!anyStuck.length) console.log('  없음');
 for (const r of anyStuck) {
-  console.log(`  ${pad(`${r.id}. ${r.name}`, 22)} ${r.stuck.length}회 · ${r.stuck.map((s) => `W${s.w} ${s.sec}s(코인${s.coins}/빈칸${s.empty}/뽑기값${s.cost})`).join(', ')}`);
+  console.log(`  ${r.id}. ${r.name} — ${r.stuck.length}회`);
+  const hadOther = r.stuck.filter((x) => x.other.length).length;
+  console.log(`     그때 다른 수가 있었던 경우: ${hadOther}/${r.stuck.length}`);
+  const tally = {};
+  for (const x of r.stuck) for (const k of x.other) tally[k] = (tally[k] ?? 0) + 1;
+  console.log(`     가능했던 수: ${Object.entries(tally).map(([k, v]) => `${k}${v}`).join(' ') || '없음 — 정말 기다릴 수밖에 없었다'}`);
+  console.log(`     예: ${r.stuck.slice(0, 3).map((x) => `W${x.w} 코인${x.coins}/뽑기값${x.cost}`).join(' · ')}`);
 }
 
 console.log('\n── 체력이 처음 깎인 웨이브 ──');
