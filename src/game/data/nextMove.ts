@@ -49,8 +49,12 @@ export function nextMove(snap: UISnapshot): NextMove | null {
         ? '그동안 「한 개만 더」를 보세요'
         : snap.enemyCount >= 8 && (snap.skillReady.shutter || snap.skillReady.dump)
           ? '그동안 셔터를 내려보세요'
-          : snap.unitCount > 0
-            ? '그동안 유닛 자리를 바꿔보세요'
-            : '';
+          : snap.junkCount > 0
+            ? // 「정리」(일괄)는 칸이 꽉 차야 뜨지만, 유닛 하나를 골라 파는
+              // 버튼은 언제나 있다. 돈이 급한 사람에게는 이게 실제 답이다.
+              '그동안 안 쓰는 유닛을 팔아보세요'
+            : snap.unitCount > 0
+              ? '그동안 유닛 자리를 바꿔보세요'
+              : '';
   return { text: alt ? `${short}원 더 · ${alt}` : `${short}원 더`, progress, blocked: false };
 }

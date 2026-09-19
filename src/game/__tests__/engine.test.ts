@@ -1021,12 +1021,14 @@ describe('막혔을 때 다음 수 안내', () => {
     expect(m.progress).toBeCloseTo(300 / 800, 5);
   });
 
-  it('빈 칸이 있을 때는 정리를 권하지 않는다 (그 버튼은 칸이 꽉 차야 나온다)', () => {
+  it('빈 칸이 있으면 일괄 「정리」가 아니라 개별 판매를 권한다', () => {
     const m = nextMove(snapOf({
       canDraw: false, emptySlots: 4, coins: 300, drawCost: 800, junkCount: 5, junkValue: 200,
       groups: [], mergeBuy: [], tierMerge: null, unitCount: 5, enemyCount: 0, skillReady: { shutter: false, dump: false },
     }))!;
-    expect(m.text, '화면에 없는 버튼을 가리키면 안 된다').not.toContain('정리');
+    // 일괄 정리 버튼은 칸이 꽉 차야 뜬다. 개별 판매 버튼은 언제나 있다.
+    expect(m.text, '화면에 없는 버튼을 가리키면 안 된다').not.toContain('정리하세요');
+    expect(m.text).toContain('팔아보세요');
   });
 
   it('할 수 있는 다른 수가 정말 없으면 금액만 말한다 (없는 수를 권하지 않는다)', () => {
