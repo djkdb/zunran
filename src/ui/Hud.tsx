@@ -5,6 +5,7 @@ import { THEME_INFO, THEME_WANTS } from '../game/data/waves';
 
 interface Props {
   snap: UISnapshot;
+  baseHp: number;
   bestWave: number;
   muted: boolean;
   onTogglePause: () => void;
@@ -20,8 +21,11 @@ interface Props {
 // 시계도 체력도 결국 '지금 매장이 어떤가'라서, 매장 위에 얹으면 될 일이었다.
 //
 // 매장 맨 윗줄은 벽이라 아무것도 지나가지 않는다. 거기에 얹는다.
-export function Hud({ snap, bestWave, muted, onTogglePause, onToggleSpeed, onToggleMute, onSkipPrep }: Props) {
-  const hpPct = Math.round((snap.hp / snap.maxHp) * 100);
+export function Hud({ snap, baseHp, bestWave, muted, onTogglePause, onToggleSpeed, onToggleMute, onSkipPrep }: Props) {
+  const normalMaxHp = Math.max(baseHp, snap.maxHp);
+  const hpPct = Math.round((snap.hp / normalMaxHp) * 100);
+  const capPct = Math.round((snap.maxHp / normalMaxHp) * 100);
+  const capped = snap.maxHp < normalMaxHp;
   const hpClass = hpPct <= 25 ? 'danger' : hpPct <= 50 ? 'warn' : '';
   const waveProgress = snap.prep > 0 ? 1 : 1 - snap.waveTimer / snap.waveDuration;
   const showThemes = snap.waveTheme !== 'mixed' || snap.nextIsBoss || snap.nextWaveTheme !== 'mixed';
@@ -152,13 +156,15 @@ export function Hud({ snap, bestWave, muted, onTogglePause, onToggleSpeed, onTog
           정보가 아니라서 그 옆에 작게 둔다. */}
       <div className="fhud-hp">
         <span className="hp-label">매장</span>
-        <div className={`bar bar-hp ${hpClass}`} role="progressbar" aria-label="매장 체력" aria-valuenow={snap.hp} aria-valuemin={0} aria-valuemax={snap.maxHp}>
+        <div className={`bar bar-hp ${hpClass}`} role="progressbar" aria-label="매장 체력" aria-valuenow={snap.hp} aria-valuemin={0} aria-valuemax={normalMaxHp}>
           <div className="bar-fill" style={{ width: `${hpPct}%` }} />
         </div>
-        <b className={`fhud-hp-num px ${hpClass}`}>{hpPct}%</b>
-        <span className="fhud-run px">
-          {formatTime(snap.survivedSec)} · 최고 W{Math.max(bestWave, snap.wave)}
-        </span>
+        <b className={`fhud-hp-num px ${hpClass}`}>{Math.ceil(snap.hp)}/{Math.ceil(snap.maxHp)}</b>
+        {capped ? <span className="fhud-cap px">최대 {capPct}%</span> : (
+          <span className="fhud-run px">
+            {formatTime(snap.survivedSec)} · 최고 W{Math.max(bestWave, snap.wave)}
+          </span>
+        )}
       </div>
     </div>
     </>

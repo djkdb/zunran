@@ -4279,6 +4279,7 @@ button:disabled {
 /* ───────────── 홈 히어로: 새벽 3시 편의점 앞 ───────────── */
 .hero {
   position: relative;
+  flex: none;
   margin: 0 0 12px;
   border-radius: 4px;
   overflow: hidden;
@@ -4608,7 +4609,7 @@ button:disabled {
   flex: none;
   font-size: 13px;
   color: var(--green);
-  min-width: 24px;
+  min-width: 38px;
   text-align: right;
   text-shadow: 0 1px 0 #0b0818;
 }
@@ -4622,6 +4623,12 @@ button:disabled {
   flex: none;
   font-size: 9px;
   color: var(--off);
+  white-space: nowrap;
+}
+.fhud-cap {
+  flex: none;
+  font-size: 10px;
+  color: var(--pink);
   white-space: nowrap;
 }
 @media (max-width: 360px) {
@@ -5270,3 +5277,8 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 .study-settings textarea { width: 100%; min-height: 100px; color: var(--text); background: var(--bg); font-size: 16px; }
 .sheet { max-height: 85dvh; overflow-y: auto; }
 #storage-warning { position: fixed; top: env(safe-area-inset-top, 0); left: 0; right: 0; z-index: 9999; padding: 10px; background: #672136; color: white; font-size: 13px; }
+
+.title-settings { width: 56px; color: var(--text); font-family: var(--font-display); font-size: 15px; background: #171026e8; border: 1px solid var(--mint); }
+.go-head { display: flex; align-items: center; justify-content: space-between; min-height: 34px; padding: 0 2px; color: #b9aed5; font-size: 11px; }
+.settings-entry { min-height: 34px; border: 1px solid var(--mint); padding: 4px 10px; background: #172a31; color: var(--mint); font-family: var(--font-display); font-size: 14px; cursor: pointer; }
+.settings-entry:focus-visible, .title-settings:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }

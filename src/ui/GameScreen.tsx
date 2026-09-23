@@ -73,6 +73,7 @@ export function GameScreen({ resumeRaw, meta, bestWave, muted, autoMerge, autoSe
           {snap && (
             <Hud
               snap={snap}
+              baseHp={meta.startHp}
               bestWave={bestWave}
               muted={muted}
               onTogglePause={() => act({ type: 'TOGGLE_PAUSE' })}
