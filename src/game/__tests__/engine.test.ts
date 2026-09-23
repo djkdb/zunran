@@ -1039,6 +1039,19 @@ describe('막혔을 때 다음 수 안내', () => {
     expect(m.text).toBe('90원 더');
   });
 
+  it.each([
+    [{ shutter: true, dump: false }, '셔터'],
+    [{ shutter: false, dump: true }, '폐기 처리'],
+    [{ shutter: true, dump: true }, '셔터'],
+  ] as const)('준비된 긴급 스킬만 권한다: %j', (skillReady, label) => {
+    const m = nextMove(snapOf({
+      canDraw: false, emptySlots: 4, coins: 0, drawCost: 100,
+      groups: [], mergeBuy: [], tierMerge: null, enemyCount: 10, skillReady,
+    }))!;
+    expect(m.text).toContain(label);
+    if (!skillReady.shutter) expect(m.text).not.toContain('셔터');
+  });
+
   it('진행도는 0~1 을 벗어나지 않는다', () => {
     const rich = nextMove(snapOf({ canDraw: false, emptySlots: 4, coins: 9999, drawCost: 100 }))!;
     expect(rich.progress).toBeLessThanOrEqual(1);

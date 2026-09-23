@@ -46,7 +46,7 @@ export function Hud({ snap, bestWave, muted, onTogglePause, onToggleSpeed, onTog
         <span className="fhud-wave px">W{snap.wave}</span>
         <span className="fhud-timer px">{Math.ceil(snap.waveTimer)}s</span>
         <span className="fhud-gap" />
-        <span className="fhud-coin px">{formatCoins(snap.coins)}</span>
+        <span className="fhud-coin px" aria-label={`보유 자금 ${snap.coins}원`}><i aria-hidden="true" />{formatCoins(snap.coins)}</span>
         {/* 일시정지·배속·음소거. 예전에는 필드 오른쪽에 세로로 쌓여서
             매장 3분의 1을 가리고 있었다. */}
         <span className="fhud-ctrls">
@@ -151,10 +151,11 @@ export function Hud({ snap, bestWave, muted, onTogglePause, onToggleSpeed, onTog
           지켜야 할 선 위에 있는 게 맞다. 생존 시간과 최고 기록은 판을 굴리는
           정보가 아니라서 그 옆에 작게 둔다. */}
       <div className="fhud-hp">
-        <div className={`bar bar-hp ${hpClass}`}>
+        <span className="hp-label">매장</span>
+        <div className={`bar bar-hp ${hpClass}`} role="progressbar" aria-label="매장 체력" aria-valuenow={snap.hp} aria-valuemin={0} aria-valuemax={snap.maxHp}>
           <div className="bar-fill" style={{ width: `${hpPct}%` }} />
         </div>
-        <b className={`fhud-hp-num px ${hpClass}`}>{hpPct}</b>
+        <b className={`fhud-hp-num px ${hpClass}`}>{hpPct}%</b>
         <span className="fhud-run px">
           {formatTime(snap.survivedSec)} · 최고 W{Math.max(bestWave, snap.wave)}
         </span>

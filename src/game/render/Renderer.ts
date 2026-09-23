@@ -193,7 +193,7 @@ export class Renderer {
     // 바닥 타일
     ctx.fillStyle = '#1d1836';
     ctx.fillRect(0, 0, FIELD_W, FIELD_H);
-    ctx.fillStyle = '#231c40';
+    ctx.fillStyle = '#211c36';
     for (let y = 0; y < FIELD_H; y += 32) for (let x = (y / 32) % 2 === 0 ? 0 : 32; x < FIELD_W; x += 64) ctx.fillRect(x, y, 32, 32);
 
     // 벽 (상단)
@@ -232,8 +232,8 @@ export class Renderer {
     // 통로 (손님이 걷는 길): 밝은 바닥
     ctx.strokeStyle = '#332a5c';
     ctx.lineWidth = 46;
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
+    ctx.lineJoin = 'miter';
+    ctx.lineCap = 'square';
     ctx.beginPath();
     ctx.moveTo(geo.path[1].x, 44);
     for (let i = 1; i < geo.path.length; i++) ctx.lineTo(geo.path[i].x, geo.path[i].y);
@@ -246,28 +246,27 @@ export class Renderer {
     ctx.stroke();
     // 통로 화살표
     ctx.fillStyle = '#574a8f';
-    const arrows: [number, number, number][] = [
-      [200, 118, 0],
-      [400, 118, 0],
-      [588, 200, 90],
-      [400, 276, 180],
-      [200, 276, 180],
-      [52, 356, 90],
-      [200, 434, 0],
-      [400, 434, 0],
-      [588, 510, 90],
-      [470, 582, 180],
-    ];
+    const arrows: [number, number, number][] = [];
+    // 지점마다 길이 다르다. 실제 통로의 긴 구간에만 진행 방향을 표시한다.
+    for (let i = 2; i < geo.path.length; i++) {
+      const a = geo.path[i - 1];
+      const b = geo.path[i];
+      const length = Math.hypot(b.x - a.x, b.y - a.y);
+      const count = Math.floor(length / 140);
+      for (let j = 1; j <= count; j++) {
+        const t = j / (count + 1);
+        arrows.push([a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI]);
+      }
+    }
     for (const [x, y, rot] of arrows) {
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate((rot * Math.PI) / 180);
-      ctx.beginPath();
-      ctx.moveTo(-6, -7);
-      ctx.lineTo(6, 0);
-      ctx.lineTo(-6, 7);
-      ctx.closePath();
-      ctx.fill();
+      // 계단형 도트 화살표.
+      ctx.fillRect(-5, -7, 3, 14);
+      ctx.fillRect(-2, -5, 3, 10);
+      ctx.fillRect(1, -3, 3, 6);
+      ctx.fillRect(4, -1, 3, 2);
       ctx.restore();
     }
 
@@ -289,36 +288,51 @@ export class Renderer {
       ctx.fillRect(84, top + h - 6, FIELD_W - 168, 6);
       ctx.fillStyle = '#4b4080';
       ctx.fillRect(84, top, FIELD_W - 168, 3);
+      ctx.fillStyle = '#19132e';
+      ctx.fillRect(84, top + h, FIELD_W - 168, 5);
+      ctx.fillStyle = '#78679d';
+      ctx.fillRect(84, top + h - 10, FIELD_W - 168, 2);
+      for (const x of geo.cols) {
+        ctx.fillStyle = '#d4cbb9';
+        ctx.fillRect(x - 8, top + h - 8, 16, 5);
+        ctx.fillStyle = '#61546e';
+        ctx.fillRect(x - 5, top + h - 7, 7, 2);
+      }
       // 상품 (작은 색 블록) — 슬롯 사이 빈 공간에만
       const cols = shelfColors[row % shelfColors.length];
       for (let x = 92; x < FIELD_W - 92; x += 12) {
         const nearSlot = geo.cols.some((sx) => Math.abs(sx - x) < 30);
         if (nearSlot) continue;
         ctx.fillStyle = cols[Math.floor(x / 12) % cols.length];
-        ctx.fillRect(x, top + 8, 8, 10);
+        ctx.fillRect(x, top + 10, 8, 12);
+        ctx.fillStyle = '#d6e6db';
+        ctx.fillRect(x + 2, top + 7, 4, 3);
+        ctx.fillRect(x + 1, top + 15, 6, 3);
         ctx.fillStyle = cols[(Math.floor(x / 12) + 1) % cols.length];
-        ctx.fillRect(x, top + 24, 8, 10);
+        ctx.fillRect(x, top + 28, 8, 12);
+        ctx.fillStyle = '#e6d2bf';
+        ctx.fillRect(x + 2, top + 31, 4, 3);
       }
       // 코너 이름표 + 배치 보너스 (어느 줄에 둘지가 전략이 되도록 항상 보이게)
       const name = geo.aisleNames[row];
       const bonus = geo.aisleBonus[row].label;
-      ctx.font = 'bold 10px sans-serif';
+      ctx.font = 'bold 14px sans-serif';
       const nameW = ctx.measureText(name).width + 14;
-      ctx.font = 'bold 9px sans-serif';
+      ctx.font = 'bold 13px sans-serif';
       const bonusW = ctx.measureText(bonus).width + 12;
       const totalW = nameW + bonusW;
       const tagX = FIELD_W / 2 - totalW / 2;
       ctx.fillStyle = '#120e24';
-      ctx.fillRect(tagX, top - 16, nameW, 15);
+      ctx.fillRect(tagX, top - 23, nameW, 21);
       ctx.fillStyle = '#ffd84d';
-      ctx.fillRect(tagX + nameW, top - 16, bonusW, 15);
+      ctx.fillRect(tagX + nameW, top - 23, bonusW, 21);
       ctx.textAlign = 'center';
       ctx.fillStyle = '#efeaff';
-      ctx.font = 'bold 10px sans-serif';
-      ctx.fillText(name, tagX + nameW / 2, top - 5);
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText(name, tagX + nameW / 2, top - 8);
       ctx.fillStyle = '#120e24';
-      ctx.font = 'bold 9px sans-serif';
-      ctx.fillText(bonus, tagX + nameW + bonusW / 2, top - 5);
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText(bonus, tagX + nameW + bonusW / 2, top - 8);
     });
 
     // 계산대
