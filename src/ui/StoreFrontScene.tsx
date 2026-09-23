@@ -148,6 +148,13 @@ export function StoreFrontScene({ muted = false, variant = 'alley', height = 260
       const sw = 236;
       ctx.fillStyle = '#241c45';
       ctx.fillRect(sx, STORE_TOP, sw, 76);
+      // 민트/크림 띠 간판과 계단형 처마.
+      ctx.fillStyle = '#4b4167';
+      ctx.fillRect(sx - 4, STORE_TOP - 3, sw + 8, 7);
+      ctx.fillStyle = '#4fe3d0';
+      ctx.fillRect(sx, STORE_TOP + 4, sw, 3);
+      ctx.fillStyle = '#e6d9b5';
+      ctx.fillRect(sx, STORE_TOP + 7, sw, 3);
       // 유리창 (안쪽 조명)
       const glow = ctx.createLinearGradient(0, STORE_TOP + 12, 0, STORE_TOP + 74);
       glow.addColorStop(0, 'rgba(180,255,245,0.20)');
@@ -163,6 +170,35 @@ export function StoreFrontScene({ muted = false, variant = 'alley', height = 260
       ctx.fillRect(sx + 18, STORE_TOP + 44, 52, 12);
       ctx.fillRect(sx + 96, STORE_TOP + 44, 52, 12);
       ctx.fillRect(sx + 174, STORE_TOP + 44, 44, 12);
+      // 유리 너머 색별 상품과 가격표. 작은 크기에서도 편의점으로 읽힌다.
+      const products = ['#73b8c2', '#cbb16e', '#ab779b', '#8fa86f'];
+      for (const left of [sx + 18, sx + 174]) {
+        for (let col = 0; col < 5; col++) {
+          ctx.fillStyle = products[col % products.length];
+          ctx.fillRect(left + col * 8, STORE_TOP + 38, 5, 9);
+          ctx.fillRect(left + col * 8, STORE_TOP + 53, 5, 7);
+          ctx.fillStyle = '#ddd3bd';
+          ctx.fillRect(left + col * 8, STORE_TOP + 48, 4, 2);
+        }
+      }
+      // 가게 밖 음료 자판기와 작은 입간판.
+      ctx.fillStyle = '#332a50';
+      ctx.fillRect(sx + sw + 7, STORE_TOP + 33, 22, 43);
+      ctx.fillStyle = '#76b7b5';
+      ctx.fillRect(sx + sw + 10, STORE_TOP + 37, 16, 22);
+      for (let row = 0; row < 3; row++) {
+        ctx.fillStyle = products[row];
+        for (let col = 0; col < 3; col++) ctx.fillRect(sx + sw + 12 + col * 4, STORE_TOP + 40 + row * 6, 2, 4);
+      }
+      ctx.fillStyle = '#151024';
+      ctx.fillRect(sx + sw + 12, STORE_TOP + 65, 12, 5);
+      ctx.fillStyle = '#cbb16e';
+      ctx.fillRect(sx - 23, STORE_TOP + 52, 16, 24);
+      ctx.fillStyle = '#261b38';
+      ctx.fillRect(sx - 21, STORE_TOP + 54, 12, 17);
+      ctx.fillStyle = '#efe1b7';
+      ctx.fillRect(sx - 19, STORE_TOP + 58, 8, 2);
+      ctx.fillRect(sx - 19, STORE_TOP + 63, 5, 2);
       // 카운터 안의 알바 (이 게임의 주인공)
       const alba = rasterize('alba') ?? rasterize('e_basic');
       if (alba) ctx.drawImage(alba, sx + 150, STORE_TOP + 30, 24, 24);

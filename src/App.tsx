@@ -1,3 +1,7 @@
+import { clearRun, loadRun } from './game/save/run';
+import { DAILY_CHALLENGES } from './game/data/dailyChallenges';
+import { setStudyEnabled, recordStudy } from './platform/study';
+import { CONDITION_BY_ID } from './game/data/shiftConditions';
 import { useCallback, useState } from 'react';
 import type { Engine } from './game/engine/Engine';
 import { setHaptics, vibe } from './haptics';
@@ -61,6 +65,8 @@ export function App() {
     setHaptics(loaded.haptics);
     return loaded;
   });
+  const [pendingResume, setPendingResume] = useState(loadRun);
+  const [resumeRaw, setResumeRaw] = useState<string | undefined>();
   const [screen, setScreen] = useState<'start' | 'intro' | 'stage' | 'condition' | 'game'>('start');
   // 오늘의 근무 조건 (판 시작 직전 3택 1)
   const [condition, setCondition] = useState<ShiftCondition | null>(null);
@@ -77,11 +83,12 @@ export function App() {
 
   const persist = useCallback((next: SaveData) => {
     setSave(next);
-    writeSave(next);
+    return writeSave(next);
   }, []);
 
   // 조건 선택 화면으로. 판마다 새 시드를 뽑아 3택이 매번 달라지게 한다.
   const beginRun = useCallback((daily: boolean) => {
+    setResumeRaw(undefined);
     setResult(null);
     setRank(null);
     setPendingRun(null);
@@ -97,6 +104,9 @@ export function App() {
   // 판에 들어가는 유일한 길목. 쿠폰으로 받아 둔 무료 뽑기를 여기서 한 번만 싣는다.
   // (저장에서 바로 빼면 meta 가 이미 렌더된 뒤라 이번 판에 안 실린다.)
   const enterGame = useCallback(() => {
+    clearRun();
+    setPendingResume(null);
+    setResumeRaw(undefined);
     if (save.couponFreeDraws > 0) {
       setRunFreeDraws(save.couponFreeDraws);
       persist({ ...save, couponFreeDraws: 0 });
@@ -141,6 +151,7 @@ export function App() {
 
   const startGame = useCallback(
     (daily: boolean) => {
+      if (pendingResume && !confirm('새 근무를 시작하면 이전 근무를 이어할 수 없습니다. 새로 시작할까요?')) return;
       audio.unlock();
       // 첫 판이면 오프닝부터. 여기서 점장 이름(랭킹 표시 이름)도 받는다.
       if (!save.introSeen) {
@@ -150,7 +161,7 @@ export function App() {
       }
       beginRun(daily);
     },
-    [save.introSeen, beginRun],
+    [save.introSeen, beginRun, pendingResume],
   );
 
   // 오프닝이 끝나면(또는 건너뛰면) 본 것으로 기록하고 판을 연다.
@@ -168,11 +179,14 @@ export function App() {
   }, []);
 
   const onGameOver = useCallback(
-    (engine: Engine) => {
+    async (engine: Engine) => {
+      if (save.lastSettledRunId === engine.runId) {
+        clearRun(); setPendingResume(null); setScreen('start'); return;
+      }
       const s = engine.state;
       const mvp = engine.mvpUnit();
       const mvpId = mvp?.defId ?? null;
-      const today = getDaily();
+      const today = getDaily(new Date(engine.startedAt));
       const at = Date.now();
       const eventCount = (id: string) => s.stats.eventIds.filter((x) => x === id).length;
 
@@ -298,7 +312,11 @@ export function App() {
         lastRun: { wave: s.wave, time: s.realTime, kills: s.stats.kills, coins: s.stats.coinsEarned, mvp: mvpId, at },
         hintsSeen: true,
       };
-      persist(next);
+      next.lastSettledRunId = engine.runId;
+      const saved = await persist(next);
+      if (saved) clearRun();
+      setPendingResume(null);
+      recordStudy('finish', engine.runId);
       setResult(res);
       if (newRecord) audio.play('record');
 
@@ -431,6 +449,20 @@ export function App() {
         save={save}
         daily={today}
         todayRecord={todayRecord}
+        resumeLabel={pendingResume ? `${pendingResume.engine.state.stage.name} · W${pendingResume.engine.state.wave}` : undefined}
+        onResume={() => {
+          if (!pendingResume) return;
+          audio.unlock();
+          const e = pendingResume.engine;
+          void persist({ ...save, stageId: e.state.stage.id });
+          setResumeRaw(pendingResume.raw);
+          setCondition(e.state.condition ? CONDITION_BY_ID[e.state.condition.id] ?? null : null);
+          setDailyMode(DAILY_CHALLENGES.some((d) => e.state.challenge?.id === d.id || e.state.challenge?.id.startsWith(`${d.id}+`)));
+          setResult(null);
+          setRunKey((k) => k + 1);
+          recordStudy('resume', e.runId);
+          setScreen('game');
+        }}
         onStart={startGame}
         onBuy={buy}
         onToggleMute={toggleMute}
@@ -442,7 +474,7 @@ export function App() {
         onRedeemCoupon={redeemCouponReward}
         onClaimAchievements={claimAchievements}
         onReplayIntro={replayIntro}
-        onReset={() => setSave(resetSave())}
+        onReset={() => { setStudyEnabled(false); clearRun(); setPendingResume(null); setResumeRaw(undefined); setSave(resetSave()); }}
       />
     );
   }
@@ -476,6 +508,7 @@ export function App() {
     <div className="app">
       <GameScreen
         key={runKey}
+        resumeRaw={resumeRaw}
         meta={meta}
         bestWave={save.bestWave}
         muted={save.muted}

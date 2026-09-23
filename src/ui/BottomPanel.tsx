@@ -68,6 +68,13 @@ export function BottomPanel({ snap, act, denied }: Props) {
   const next = nextMove(snap);
   return (
     <section className="panel" ref={panelRef}>
+      <div className="operation-head">
+        <span><i /> 야간 운영</span>
+        <span className="capacity" aria-label={`진열대 ${snap.totalSlots - snap.emptySlots}/${snap.totalSlots}칸 사용 중`}>
+          진열대 <b>{snap.totalSlots - snap.emptySlots}/{snap.totalSlots}</b>
+          <span className="capacity-dots" aria-hidden="true">{Array.from({ length: snap.totalSlots }, (_, i) => <i key={i} className={i < snap.totalSlots - snap.emptySlots ? 'filled' : ''} />)}</span>
+        </span>
+      </div>
       <div className="panel-top">
         <button
           className={`draw-btn ${snap.canDraw ? '' : 'disabled'} ${free ? 'free' : ''} ${shake ? 'denied' : ''}`}
@@ -82,7 +89,7 @@ export function BottomPanel({ snap, act, denied }: Props) {
             {/* 눌러도 아무 일이 없으면 사람은 계속 누른다. 베타에서 누른 것의
                 47% 가 그런 탭이었다. 그 자리에서 할 수 있는 다른 수를 말해준다. */}
             <span className={`draw-slots ${next ? (next.blocked ? 'full' : 'short') : ''}`}>
-              {next ? next.text : `SLOT ${snap.emptySlots}/${snap.totalSlots} FREE`}
+              {next ? next.text : `빈 자리 ${snap.emptySlots}칸 · 같은 유닛을 모아 합성`}
             </span>
           </span>
           <span className="draw-cost">{free ? `무료 ×${snap.freeDraws}` : snap.drawCost}</span>
@@ -122,7 +129,7 @@ export function BottomPanel({ snap, act, denied }: Props) {
               <span className="order-fill" style={{ width: `${Math.min(100, (snap.coins / Math.max(1, cost)) * 100)}%` }} />
               <span className="order-rank">{RARITY_LABEL[r]}</span>
               <span className="order-cost">
-                {ok ? (cost >= 10000 ? `${Math.round(cost / 1000)}k` : cost) : `−${short >= 10000 ? `${Math.round(short / 1000)}k` : short}`}
+                {snap.emptySlots === 0 ? '자리 없음' : ok ? `${cost.toLocaleString()}원` : `${Math.max(0, short).toLocaleString()}원 부족`}
               </span>
             </button>
           );
@@ -139,7 +146,8 @@ export function BottomPanel({ snap, act, denied }: Props) {
           <Icon name="store" size={18} strokeWidth={2.4} />
           <span className="skill-text">
             <b>셔터 내려</b>
-            <i>{snap.skillReady.shutter ? 'READY' : `${Math.ceil(snap.shutterCd)} SEC`}</i>
+            <small>손님 정지 · 뒤로 밀기</small>
+            <i>{snap.skillReady.shutter ? '사용 가능' : `${Math.ceil(snap.shutterCd)}초 후`}</i>
           </span>
         </button>
         <button
@@ -151,7 +159,8 @@ export function BottomPanel({ snap, act, denied }: Props) {
           <Icon name="boss" size={18} strokeWidth={2.4} />
           <span className="skill-text">
             <b>폐기 처리</b>
-            <i>{snap.skillReady.dump ? 'READY' : `${Math.ceil(snap.dumpCd)} SEC`}</i>
+            <small>화면 전체 피해</small>
+            <i>{snap.skillReady.dump ? '사용 가능' : `${Math.ceil(snap.dumpCd)}초 후`}</i>
           </span>
         </button>
       </div>

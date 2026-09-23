@@ -15,7 +15,7 @@ class AudioEngine {
 
   unlock(): void {
     if (this.ctx) {
-      if (this.ctx.state === 'suspended') void this.ctx.resume();
+      if (this.ctx.state === 'suspended' || String(this.ctx.state) === 'interrupted') void this.ctx.resume().catch(() => {});
       return;
     }
     try {
@@ -30,6 +30,11 @@ class AudioEngine {
     } catch {
       this.ctx = null;
     }
+  }
+
+  suspend(): void {
+    this.stopBgm();
+    if (this.ctx && this.ctx.state !== 'closed') void this.ctx.suspend().catch(() => {});
   }
 
   isUnlocked(): boolean {

@@ -13,6 +13,7 @@ import { EventChoiceOverlay } from './EventChoiceOverlay';
 import { Icon } from './Icon';
 
 interface Props {
+  resumeRaw?: string;
   meta: MetaEffects;
   bestWave: number;
   muted: boolean;
@@ -42,8 +43,8 @@ function hintFor(snap: UISnapshot): string | null {
   return null;
 }
 
-export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHints, coach, order, condition, stageId, challenge, onToggleMute, onToggleAutoMerge, onToggleAutoSell, onGameOver }: Props) {
-  const { canvasRef, snap, banners, act, toast, denied, onPointerDown, onPointerMove, endDrag } = useGame({ meta, bestWave, muted, autoMerge, autoSell, order, condition, stageId, challenge, onGameOver });
+export function GameScreen({ resumeRaw, meta, bestWave, muted, autoMerge, autoSell, showHints, coach, order, condition, stageId, challenge, onToggleMute, onToggleAutoMerge, onToggleAutoSell, onGameOver }: Props) {
+  const { canvasRef, snap, banners, act, toast, denied, onPointerDown, onPointerMove, endDrag, cancelDrag } = useGame({ resumeRaw, meta, bestWave, muted, autoMerge, autoSell, order, condition, stageId, challenge, onGameOver });
   // 퇴근은 되돌릴 수 없으니 두 번 눌러야 한다. 일시정지를 풀면 초기화한다.
   const [confirmExit, setConfirmExit] = useState(false);
   // 첫 판 안내. 다 하거나 닫으면 그 판 동안 다시 안 뜬다.
@@ -66,11 +67,13 @@ export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHin
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={endDrag}
-            onPointerCancel={endDrag}
+            onPointerCancel={cancelDrag}
+            onLostPointerCapture={cancelDrag}
           />
           {snap && (
             <Hud
               snap={snap}
+              baseHp={meta.startHp}
               bestWave={bestWave}
               muted={muted}
               onTogglePause={() => act({ type: 'TOGGLE_PAUSE' })}

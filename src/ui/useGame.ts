@@ -1,3 +1,6 @@
+import { saveRun } from '../game/save/run';
+import { observeAppState } from '../platform/lifecycle';
+import { recordStudy } from '../platform/study';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import { Engine } from '../game/engine/Engine';
@@ -11,6 +14,7 @@ import { SLOT_HIT_RADIUS, THREE_AM_WAVE, SELL_REFUND } from '../game/config';
 import type { BannerItem } from './Banner';
 
 export interface UseGameOptions {
+  resumeRaw?: string;
   meta: MetaEffects;
   bestWave: number;
   muted: boolean;
@@ -85,6 +89,7 @@ export function useGame(opts: UseGameOptions) {
         setDenied((n) => n + 1);
         audio.play('deny');
       }
+      if (r.ok) saveRun(engine);
       setSnap(engine.snapshot());
     },
     [showToast],
@@ -93,7 +98,8 @@ export function useGame(opts: UseGameOptions) {
 
   useEffect(() => {
     const canvas = canvasRef.current!;
-    const engine = new Engine({ meta: opts.meta, bestWave: opts.bestWave, order: opts.order, condition: opts.condition, challenge: opts.challenge ?? null, stageId: opts.stageId });
+    const engine = (opts.resumeRaw ? Engine.restore(opts.resumeRaw) : null) ?? new Engine({ meta: opts.meta, bestWave: opts.bestWave, order: opts.order, condition: opts.condition, challenge: opts.challenge ?? null, stageId: opts.stageId });
+    if (opts.resumeRaw && engine.state.phase === 'playing') engine.state.paused = true;
     const renderer = new Renderer(canvas);
     engineRef.current = engine;
     rendererRef.current = renderer;
@@ -112,7 +118,7 @@ export function useGame(opts: UseGameOptions) {
         timers.current.add(t);
       }
     };
-    pushBanners([{ id: bannerId.current++, text: 'WAVE 1', sub: '유닛을 뽑아 배치하세요', style: 'info', dur: 2.5 }]);
+    if (!opts.resumeRaw) pushBanners([{ id: bannerId.current++, text: 'WAVE 1', sub: '유닛을 뽑아 배치하세요', style: 'info', dur: 2.5 }]);
 
     // 캔버스 크기: 부모 컨테이너의 정사각형에 맞춤
     const parent = canvas.parentElement!;
@@ -129,10 +135,20 @@ export function useGame(opts: UseGameOptions) {
     let last = performance.now();
     let lastSnap = 0;
     let gameOverSent = false;
+    let lastSave = 0;
+    let activePlay = 0;
+    let recordedStart = !!opts.resumeRaw;
     const loop = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
+      const wasPlaying = engine.state.phase === 'playing' && !engine.state.paused;
       engine.tick(dt);
+      if (wasPlaying) {
+        if (!recordedStart) { recordStudy('start', engine.runId); recordedStart = true; }
+        activePlay += Math.min(dt, 0.25);
+        if (activePlay >= 10) { recordStudy('play', engine.runId); activePlay = 0; }
+      }
+      if (now - lastSave >= 5000 && !gameOverSent) { saveRun(engine); lastSave = now; }
       const fx = engine.drainFx();
       if (fx.length) {
         renderer.handleFx(fx, engine.state);
@@ -153,7 +169,7 @@ export function useGame(opts: UseGameOptions) {
       }
       renderer.render(engine.state, now);
       // 자동 합성: 0.45초에 하나씩 (연출이 겹치지 않게)
-      if (autoMergeRef.current && engine.state.phase === 'playing' && now - lastAutoMerge.current > 450) {
+      if (autoMergeRef.current && engine.state.phase === 'playing' && !engine.state.paused && now - lastAutoMerge.current > 450) {
         const g = engine.snapshot().groups.find((x) => x.mergeable);
         if (g) {
           engine.dispatch({ type: 'MERGE', defId: g.defId, tier: g.tier });
@@ -163,7 +179,7 @@ export function useGame(opts: UseGameOptions) {
       // 자동 정리: 칸이 다 찼고 합성할 것도 없을 때, 짝이 없는 1티어 유닛을 하나만 판다.
       // 칸이 남아 있으면 나중에 짝이 생길 수 있으므로 건드리지 않는다.
       // 한 번에 하나씩만 파는 이유: 몰아서 팔면 그 순간 화력이 꺼진다.
-      if (autoSellRef.current && engine.state.phase === 'playing' && now - lastAutoSell.current > 900) {
+      if (autoSellRef.current && engine.state.phase === 'playing' && !engine.state.paused && now - lastAutoSell.current > 900) {
         const sn = engine.snapshot();
         // 합성 가능한 묶음이 있어도 판다. 파는 대상은 항상 짝이 없는(count === 1) 유닛이라
         // 합성 재료를 없앨 일이 없고, 자동 합성이 꺼져 있으면 여기서 막혀 칸이 영영 안 빈다.
@@ -181,9 +197,14 @@ export function useGame(opts: UseGameOptions) {
         audio.setBgmMode(engine.state.bossAlive || engine.state.wave >= THREE_AM_WAVE ? 'tense' : 'normal');
       }
       if (engine.state.phase === 'gameover' && !gameOverSent) {
+        saveRun(engine); // Recover pending settlement if the OS kills the app during the result delay.
         gameOverSent = true;
         audio.stopBgm();
-        window.setTimeout(() => onGameOverRef.current(engine), 900);
+        const t = window.setTimeout(() => {
+          timers.current.delete(t);
+          onGameOverRef.current(engine);
+        }, 900);
+        timers.current.add(t);
       }
       raf = requestAnimationFrame(loop);
     };
@@ -194,15 +215,26 @@ export function useGame(opts: UseGameOptions) {
       audio.unlock();
       audio.startBgm();
     };
-    window.addEventListener('pointerdown', unlock, { once: true });
-    window.addEventListener('keydown', unlock, { once: true });
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
 
     // 탭이 숨겨지면 자동 일시정지
-    const onVis = () => {
-      if (document.hidden && engine.state.phase === 'playing' && !engine.state.paused) engine.dispatch({ type: 'TOGGLE_PAUSE' });
-    };
-    document.addEventListener('visibilitychange', onVis);
+    const stopObserving = observeAppState((active) => {
+      if (!active) {
+        cancelDrag();
+        if (engine.state.phase === 'playing' && !engine.state.paused) engine.dispatch({ type: 'TOGGLE_PAUSE' });
+        if (!gameOverSent) saveRun(engine);
+        setSnap(engine.snapshot());
+        audio.suspend();
+      } else {
+        recordStudy('open');
+      }
+      last = performance.now();
+    });
     const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.repeat || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select, button, a[href], [role="button"]'))) return;
       if (e.code === 'Space') {
         e.preventDefault();
         actRef.current({ type: 'TOGGLE_PAUSE' });
@@ -214,7 +246,7 @@ export function useGame(opts: UseGameOptions) {
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
-      document.removeEventListener('visibilitychange', onVis);
+      stopObserving();
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
@@ -222,7 +254,9 @@ export function useGame(opts: UseGameOptions) {
       for (const t of timers.current) clearTimeout(t);
       timers.current.clear();
       if (toastTimer.current) clearTimeout(toastTimer.current);
+      cancelDrag();
       engineRef.current = null;
+      rendererRef.current = null;
     };
     // 한 판 = 한 번 마운트. opts 변경으로 재생성하지 않는다 (App 이 key 로 리마운트).
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -251,24 +285,29 @@ export function useGame(opts: UseGameOptions) {
   // 탭과 드래그를 함께 지원한다.
   // - 짧게 누르면(움직임 < 10px) 기존 탭 동작: 선택 / 이동 / 교환
   // - 유닛을 끌면 손가락을 따라오고, 놓은 자리로 이동하거나 교환한다
-  const drag = useRef<{ unitId: number; fromSlot: number; moved: boolean; pointerId: number } | null>(null);
+  const drag = useRef<{ unitId: number | null; fromSlot: number; moved: boolean; pointerId: number; startX: number; startY: number } | null>(null);
+
+  const cancelDrag = useCallback(() => {
+    const pointerId = drag.current?.pointerId;
+    drag.current = null;
+    const canvas = canvasRef.current;
+    if (pointerId !== undefined && canvas?.hasPointerCapture(pointerId)) canvas.releasePointerCapture(pointerId);
+    if (rendererRef.current) rendererRef.current.interaction = { dragUnitId: null, dragX: 0, dragY: 0, hoverSlot: null };
+  }, []);
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (!e.isPrimary || e.button !== 0 || drag.current) return;
       e.preventDefault();
       const engine = engineRef.current;
       const renderer = rendererRef.current;
       if (!engine || !renderer || engine.state.phase !== 'playing') return;
       const slot = slotAt(e.clientX, e.clientY);
       const unitId = slot >= 0 ? engine.state.slots[slot].unitId : null;
-      if (slot >= 0 && unitId !== null) {
-        drag.current = { unitId, fromSlot: slot, moved: false, pointerId: e.pointerId };
-        e.currentTarget.setPointerCapture(e.pointerId);
-        const p = renderer.toLogical(e.clientX, e.clientY);
-        renderer.interaction = { dragUnitId: null, dragX: p.x, dragY: p.y, hoverSlot: null };
-      } else {
-        drag.current = null;
-      }
+      drag.current = { unitId, fromSlot: slot, moved: false, pointerId: e.pointerId, startX: e.clientX, startY: e.clientY };
+      e.currentTarget.setPointerCapture(e.pointerId);
+      const p = renderer.toLogical(e.clientX, e.clientY);
+      renderer.interaction = { dragUnitId: null, dragX: p.x, dragY: p.y, hoverSlot: null };
     },
     [slotAt],
   );
@@ -277,11 +316,10 @@ export function useGame(opts: UseGameOptions) {
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       const d = drag.current;
       const renderer = rendererRef.current;
-      if (!d || !renderer || d.pointerId !== e.pointerId) return;
+      if (!d || d.unitId === null || !renderer || d.pointerId !== e.pointerId) return;
       const p = renderer.toLogical(e.clientX, e.clientY);
       if (!d.moved) {
-        const from = engineRef.current?.state.slots[d.fromSlot];
-        if (from && Math.hypot(from.x - p.x, from.y - 16 - p.y) < 10) return; // 아직 탭일 수 있다
+        if (Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < 10) return; // 화면 픽셀 기준 탭/드래그 구분
         d.moved = true;
         engineRef.current?.dispatch({ type: 'SELECT', unitId: d.unitId });
       }
@@ -294,13 +332,12 @@ export function useGame(opts: UseGameOptions) {
   const endDrag = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       const d = drag.current;
-      const renderer = rendererRef.current;
-      drag.current = null;
-      if (renderer) renderer.interaction = { dragUnitId: null, dragX: 0, dragY: 0, hoverSlot: null };
+      if (!d || d.pointerId !== e.pointerId) return;
+      cancelDrag();
       const engine = engineRef.current;
-      if (!engine) return;
+      if (!engine || engine.state.phase !== 'playing') return;
       const slot = slotAt(e.clientX, e.clientY);
-      if (d && d.moved) {
+      if (d.unitId !== null && d.moved) {
         if (slot >= 0 && slot !== d.fromSlot) act({ type: 'MOVE', unitId: d.unitId, slot });
         else act({ type: 'SELECT', unitId: d.unitId });
         return;
@@ -309,8 +346,8 @@ export function useGame(opts: UseGameOptions) {
       if (slot >= 0) act({ type: 'TAP_SLOT', slot });
       else if (engine.state.selectedUnitId !== null) act({ type: 'SELECT', unitId: null });
     },
-    [act, slotAt],
+    [act, slotAt, cancelDrag],
   );
 
-  return { canvasRef, snap, banners, act, toast, denied, onPointerDown, onPointerMove, endDrag, engineRef };
+  return { canvasRef, snap, banners, act, toast, denied, onPointerDown, onPointerMove, endDrag, cancelDrag, engineRef };
 }

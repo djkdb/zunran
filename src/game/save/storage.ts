@@ -1,3 +1,4 @@
+import { readStored, writeStored } from '../../platform/storage';
 import type { MetaUpgradeId } from '../types';
 import { DEFAULT_META_LEVELS } from './meta';
 
@@ -66,6 +67,7 @@ export interface DailyRecord {
 
 export interface SaveData {
   version: number;
+  lastSettledRunId?: string;
   bestWave: number;
   bestTime: number;
   bestKills: number;
@@ -221,7 +223,7 @@ export const MAX_DAILY_KEPT = 14;
 // localStorage 는 사파리 프라이빗 모드 등에서 예외를 던질 수 있어 항상 try/catch.
 export function loadSave(): SaveData {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const raw = readStored(SAVE_KEY);
     if (!raw) return defaultSave();
     const parsed = JSON.parse(raw) as Partial<SaveData>;
     const data = migrate(parsed);
@@ -241,11 +243,11 @@ function prune(data: SaveData): SaveData {
   return { ...data, runHistory: data.runHistory.slice(0, MAX_RUN_HISTORY), daily };
 }
 
-export function writeSave(data: SaveData): void {
+export function writeSave(data: SaveData): Promise<boolean> {
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(prune(data)));
+    return writeStored(SAVE_KEY, JSON.stringify(prune(data)));
   } catch {
-    // 저장 불가 환경: 조용히 무시 (게임은 계속 동작)
+    return Promise.resolve(false);
   }
 }
 

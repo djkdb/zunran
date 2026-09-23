@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import type { RankBoard, RankEntry, ScorePayload } from './types';
 
 // 서버(Cloudflare Pages Functions + KV)가 붙어 있지 않아도 게임은 그대로 돌아가야 한다.
@@ -32,6 +33,7 @@ function isJson(res: Response): boolean {
 }
 
 async function req(path: string, init?: RequestInit): Promise<Response | null> {
+  if (Capacitor.isNativePlatform() && !API_BASE) return new Response('{}', { status: 503, headers: { 'content-type': 'application/json' } });
   if (typeof fetch !== 'function') return null;
   const ctl = typeof AbortController === 'function' ? new AbortController() : null;
   const timer = ctl ? setTimeout(() => ctl.abort(), TIMEOUT_MS) : null;

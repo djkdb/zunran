@@ -4,6 +4,7 @@ export type Rarity = 'common' | 'rare' | 'epic' | 'legendary' | 'special';
 export type Tier = 1 | 2 | 3 | 4 | 5;
 
 export interface RNG {
+  getState(): number;
   next(): number; // [0,1)
   range(min: number, max: number): number;
   int(min: number, max: number): number; // inclusive
