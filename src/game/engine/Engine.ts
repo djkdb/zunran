@@ -38,6 +38,8 @@ const MAX_STEPS = 8;
 // 게임 엔진. React/DOM 을 모른다. tick(dt) 로 진행하고 dispatch 로 조작한다.
 export class Engine {
   state: GameState;
+  runId = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+  startedAt = Date.now();
   private accumulator = 0;
   private snapshotVersion = 0;
   private cachedSnapshot: UISnapshot | null = null;
@@ -92,6 +94,47 @@ export class Engine {
     this.state.themeSchedule = buildThemeSchedule(this.state.rng);
     startWave(this.state, 1);
     this.state.fx.length = 0; // 첫 웨이브 배너는 UI 가 별도로 처리
+  }
+
+  // Bump the format when gameplay state becomes incompatible. RNG and accumulator
+  // must survive reloads; reseeding here changes the next draw and combat outcome.
+  checkpoint(): string {
+    const { rng, waveEnemyIds, fx: _fx, floaters: _floaters, ...state } = this.state;
+    const payload = JSON.stringify({
+      version: 1, runId: this.runId, startedAt: this.startedAt,
+      accumulator: this.accumulator, rng: rng.getState(),
+      state: { ...state, waveEnemyIds: [...waveEnemyIds], fx: [], floaters: [] },
+    });
+    return JSON.stringify({ payload, checksum: checkpointHash(payload) });
+  }
+
+  static restore(raw: string): Engine | null {
+    try {
+      if (raw.length > 4_000_000) return null;
+      const envelope = JSON.parse(raw);
+      if (typeof envelope.payload !== 'string' || checkpointHash(envelope.payload) !== envelope.checksum) return null;
+      const data = JSON.parse(envelope.payload);
+      const s = data.state as GameState & { waveEnemyIds: number[] };
+      if (data.version !== 1 || typeof data.runId !== 'string' || !Number.isFinite(data.startedAt) ||
+          !Number.isInteger(data.rng) || data.rng < 0 || data.rng > 0xffffffff ||
+          !Number.isFinite(data.accumulator) || data.accumulator < 0 || data.accumulator > 1 ||
+          !s || !STAGE_BY_ID[s.stage?.id] || !['playing', 'reward', 'promote', 'eventChoice', 'gameover'].includes(s.phase) ||
+          !Number.isFinite(s.time) || !Number.isFinite(s.hp) || !Number.isFinite(s.coins) ||
+          !Array.isArray(s.units) || !Array.isArray(s.enemies) || !Array.isArray(s.waveEnemyIds)) return null;
+      const stage = STAGE_BY_ID[s.stage.id];
+      const geo = buildGeometry(stage);
+      if (s.slots.length !== geo.totalSlots || s.units.some((u) => !UNIT_BY_ID[u.defId] || !s.slots[u.slot] || s.slots[u.slot].unitId !== u.id) ||
+          s.enemies.some((e) => !ENEMY_BY_ID[e.defId])) return null;
+      const engine = new Engine({ seed: s.seed, stageId: stage.id });
+      engine.state = { ...s, stage, geo, rng: createRng(data.rng), waveEnemyIds: new Set(s.waveEnemyIds), fx: [], floaters: [] };
+      engine.accumulator = data.accumulator;
+      engine.runId = data.runId;
+      engine.startedAt = data.startedAt;
+      // Snapshot exercises the data needed to render before offering Resume.
+      engine.snapshot();
+      engine.snapshotDirty = true;
+      return engine;
+    } catch { return null; }
   }
 
   // dtReal: 실제 경과 초. 고정 스텝으로 잘라서 진행 (프레임 드랍 시에도 결정론 유지).
@@ -847,3 +890,10 @@ function createInitialState(seed: number, meta: MetaEffects, bestWave: number, s
 }
 
 export { recomputeModifiers };
+
+// Detect accidental truncation/corruption, not an anti-cheat signature.
+function checkpointHash(raw: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < raw.length; i++) hash = Math.imul(hash ^ raw.charCodeAt(i), 16777619);
+  return hash >>> 0;
+}

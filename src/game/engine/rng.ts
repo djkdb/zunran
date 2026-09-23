@@ -11,6 +11,7 @@ export function createRng(seed: number): RNG {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
   return {
+    getState: () => a,
     next,
     range: (min, max) => min + next() * (max - min),
     int: (min, max) => Math.floor(min + next() * (max - min + 1)),

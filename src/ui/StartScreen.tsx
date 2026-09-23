@@ -1,3 +1,4 @@
+import { StudySettings } from './StudySettings';
 import { useState } from 'react';
 import type { DailyRecord, SaveData } from '../game/save/storage';
 import { STAGES, STAGE_BY_ID, stageUnlocked, maxSlotsOf } from '../game/data/stages';
@@ -36,6 +37,8 @@ interface Props {
   onRedeemCoupon: (coupon: Coupon) => void;
   onClaimAchievements: (ids: string[]) => void;
   onReset: () => void;
+  resumeLabel?: string;
+  onResume?: () => void;
 }
 
 type Tab = 'main' | 'shop' | 'rank' | 'codex' | 'ach' | 'history';
@@ -51,7 +54,7 @@ const TABS: { id: Tab; label: string; aria: string; icon: IconName }[] = [
 ];
 
 export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggleMute,
-  onToggleHaptics, onSetNickname, onToggleRankOptIn, order, onSetOrder, onReplayIntro, onRedeemCoupon, onClaimAchievements, onReset }: Props) {
+  onToggleHaptics, onSetNickname, onToggleRankOptIn, order, onSetOrder, onReplayIntro, onRedeemCoupon, onClaimAchievements, onReset, resumeLabel, onResume }: Props) {
   const [tab, setTab] = useState<Tab>('main');
   const [deckOpen, setDeckOpen] = useState(false);
   const [dailyOpen, setDailyOpen] = useState(false);
@@ -140,6 +143,7 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
                 예전에는 발주·해금·지점·데일리가 모두 같은 크기의 상자라
                 무엇을 눌러야 하는지가 안 보였다. */}
             <div className="go-block">
+              {resumeLabel && <button className="resume-btn" onClick={onResume}><b>이전 근무 이어하기</b><span>{resumeLabel} · 멈춘 상태로 복구</span></button>}
               <button className="start-btn" onClick={() => onStart(false)}>
                 <span className="start-btn-main">
                   <Icon name="store" size={26} strokeWidth={2.2} />
@@ -379,6 +383,7 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
           <div className="sheet" role="dialog" aria-label="설정" onClick={(e) => e.stopPropagation()}>
             <div className="sheet-grip" />
             <div className="sheet-title">설정</div>
+            <StudySettings />
             <button className="sheet-row" onClick={onReplayIntro}>
               <Icon name="play" size={16} strokeWidth={2.3} />
               오프닝 다시 보기

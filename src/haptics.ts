@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 // 진동 피드백. 모바일에서 "지금 뭔가 일어났다"를 눈 말고 손으로도 알려준다.
 // navigator.vibrate 는 iOS 사파리에 없다 — 있으면 쓰고, 없으면 조용히 넘어간다.
 let enabled = true;
@@ -18,6 +20,10 @@ const PATTERNS: Record<Pattern, number | number[]> = {
 
 export function vibe(p: Pattern): void {
   if (!enabled) return;
+  if (Capacitor.isNativePlatform()) {
+    void Haptics.impact({ style: p === 'big' || p === 'gameover' ? ImpactStyle.Heavy : ImpactStyle.Light }).catch(() => {});
+    return;
+  }
   try {
     navigator.vibrate?.(PATTERNS[p]);
   } catch {

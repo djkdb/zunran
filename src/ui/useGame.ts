@@ -1,3 +1,6 @@
+import { saveRun } from '../game/save/run';
+import { observeAppState } from '../platform/lifecycle';
+import { recordStudy } from '../platform/study';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import { Engine } from '../game/engine/Engine';
@@ -11,6 +14,7 @@ import { SLOT_HIT_RADIUS, THREE_AM_WAVE, SELL_REFUND } from '../game/config';
 import type { BannerItem } from './Banner';
 
 export interface UseGameOptions {
+  resumeRaw?: string;
   meta: MetaEffects;
   bestWave: number;
   muted: boolean;
@@ -85,6 +89,7 @@ export function useGame(opts: UseGameOptions) {
         setDenied((n) => n + 1);
         audio.play('deny');
       }
+      if (r.ok) saveRun(engine);
       setSnap(engine.snapshot());
     },
     [showToast],
@@ -93,7 +98,8 @@ export function useGame(opts: UseGameOptions) {
 
   useEffect(() => {
     const canvas = canvasRef.current!;
-    const engine = new Engine({ meta: opts.meta, bestWave: opts.bestWave, order: opts.order, condition: opts.condition, challenge: opts.challenge ?? null, stageId: opts.stageId });
+    const engine = (opts.resumeRaw ? Engine.restore(opts.resumeRaw) : null) ?? new Engine({ meta: opts.meta, bestWave: opts.bestWave, order: opts.order, condition: opts.condition, challenge: opts.challenge ?? null, stageId: opts.stageId });
+    if (opts.resumeRaw && engine.state.phase === 'playing') engine.state.paused = true;
     const renderer = new Renderer(canvas);
     engineRef.current = engine;
     rendererRef.current = renderer;
@@ -112,7 +118,7 @@ export function useGame(opts: UseGameOptions) {
         timers.current.add(t);
       }
     };
-    pushBanners([{ id: bannerId.current++, text: 'WAVE 1', sub: '유닛을 뽑아 배치하세요', style: 'info', dur: 2.5 }]);
+    if (!opts.resumeRaw) pushBanners([{ id: bannerId.current++, text: 'WAVE 1', sub: '유닛을 뽑아 배치하세요', style: 'info', dur: 2.5 }]);
 
     // 캔버스 크기: 부모 컨테이너의 정사각형에 맞춤
     const parent = canvas.parentElement!;
@@ -129,10 +135,20 @@ export function useGame(opts: UseGameOptions) {
     let last = performance.now();
     let lastSnap = 0;
     let gameOverSent = false;
+    let lastSave = 0;
+    let activePlay = 0;
+    let recordedStart = !!opts.resumeRaw;
     const loop = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
+      const wasPlaying = engine.state.phase === 'playing' && !engine.state.paused;
       engine.tick(dt);
+      if (wasPlaying) {
+        if (!recordedStart) { recordStudy('start', engine.runId); recordedStart = true; }
+        activePlay += Math.min(dt, 0.25);
+        if (activePlay >= 10) { recordStudy('play', engine.runId); activePlay = 0; }
+      }
+      if (now - lastSave >= 5000 && !gameOverSent) { saveRun(engine); lastSave = now; }
       const fx = engine.drainFx();
       if (fx.length) {
         renderer.handleFx(fx, engine.state);
@@ -181,6 +197,7 @@ export function useGame(opts: UseGameOptions) {
         audio.setBgmMode(engine.state.bossAlive || engine.state.wave >= THREE_AM_WAVE ? 'tense' : 'normal');
       }
       if (engine.state.phase === 'gameover' && !gameOverSent) {
+        saveRun(engine); // Recover pending settlement if the OS kills the app during the result delay.
         gameOverSent = true;
         audio.stopBgm();
         const t = window.setTimeout(() => {
@@ -198,21 +215,22 @@ export function useGame(opts: UseGameOptions) {
       audio.unlock();
       audio.startBgm();
     };
-    window.addEventListener('pointerdown', unlock, { once: true });
-    window.addEventListener('keydown', unlock, { once: true });
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
 
     // 탭이 숨겨지면 자동 일시정지
-    const onVis = () => {
-      if (document.hidden) {
+    const stopObserving = observeAppState((active) => {
+      if (!active) {
         cancelDrag();
-        if (engine.state.phase === 'playing' && !engine.state.paused) {
-          engine.dispatch({ type: 'TOGGLE_PAUSE' });
-          setSnap(engine.snapshot());
-        }
+        if (engine.state.phase === 'playing' && !engine.state.paused) engine.dispatch({ type: 'TOGGLE_PAUSE' });
+        if (!gameOverSent) saveRun(engine);
+        setSnap(engine.snapshot());
+        audio.suspend();
+      } else {
+        recordStudy('open');
       }
       last = performance.now();
-    };
-    document.addEventListener('visibilitychange', onVis);
+    });
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.repeat || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
       const target = e.target;
@@ -228,7 +246,7 @@ export function useGame(opts: UseGameOptions) {
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
-      document.removeEventListener('visibilitychange', onVis);
+      stopObserving();
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
