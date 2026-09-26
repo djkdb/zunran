@@ -9,6 +9,7 @@ import type { ShiftCondition } from '../game/data/shiftConditions';
 import type { ChallengeSpec, GameAction, MetaEffects, UISnapshot, UnitGroup } from '../game/types';
 import { SLOT_HIT_RADIUS, THREE_AM_WAVE, SELL_REFUND } from '../game/config';
 import type { BannerItem } from './Banner';
+import { keepScreenAwake, releaseScreen } from '../wakeLock';
 
 export interface UseGameOptions {
   meta: MetaEffects;
@@ -197,6 +198,9 @@ export function useGame(opts: UseGameOptions) {
     window.addEventListener('pointerdown', unlock, { once: true });
     window.addEventListener('keydown', unlock, { once: true });
 
+    // 판이 도는 동안 화면이 꺼지지 않게. 지원 안 하는 브라우저에서는 아무 일도 안 한다.
+    keepScreenAwake();
+
     // 탭이 숨겨지면 자동 일시정지
     const onVis = () => {
       if (document.hidden && engine.state.phase === 'playing' && !engine.state.paused) engine.dispatch({ type: 'TOGGLE_PAUSE' });
@@ -212,6 +216,7 @@ export function useGame(opts: UseGameOptions) {
     window.addEventListener('keydown', onKey);
 
     return () => {
+      releaseScreen();
       cancelAnimationFrame(raf);
       ro.disconnect();
       document.removeEventListener('visibilitychange', onVis);

@@ -3,6 +3,7 @@ import type { DailyRecord, SaveData } from '../game/save/storage';
 import { STAGES, STAGE_BY_ID, stageUnlocked, maxSlotsOf } from '../game/data/stages';
 import { START_SLOTS } from '../game/config';
 import { CouponModal } from './CouponModal';
+import { InstallRow } from './InstallRow';
 import type { Coupon } from '../game/data/coupons';
 import { StoreFrontScene } from './StoreFrontScene';
 import type { DailySet } from '../game/daily';
@@ -382,6 +383,9 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
           <div className="sheet" role="dialog" aria-label="설정" onClick={(e) => e.stopPropagation()}>
             <div className="sheet-grip" />
             <div className="sheet-title">설정</div>
+            {/* 매니페스트와 서비스워커는 있는데 설치를 권하는 자리가 없었다.
+                브라우저 메뉴를 아는 사람만 앱으로 쓸 수 있었던 셈이다. */}
+            <InstallRow />
             <button className="sheet-row" onClick={onReplayIntro}>
               <Icon name="play" size={16} strokeWidth={2.3} />
               오프닝 다시 보기

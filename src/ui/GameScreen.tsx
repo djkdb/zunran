@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Engine } from '../game/engine/Engine';
 import type { ShiftCondition } from '../game/data/shiftConditions';
 import type { ChallengeSpec, MetaEffects, UISnapshot } from '../game/types';
@@ -43,12 +43,39 @@ function hintFor(snap: UISnapshot): string | null {
 }
 
 export function GameScreen({ meta, bestWave, muted, autoMerge, autoSell, showHints, coach, order, condition, stageId, challenge, onToggleMute, onToggleAutoMerge, onToggleAutoSell, onGameOver }: Props) {
-  const { canvasRef, snap, banners, act, toast, denied, onPointerDown, onPointerMove, endDrag } = useGame({ meta, bestWave, muted, autoMerge, autoSell, order, condition, stageId, challenge, onGameOver });
+  const { canvasRef, snap, banners, act, toast, denied, onPointerDown, onPointerMove, endDrag, engineRef } = useGame({ meta, bestWave, muted, autoMerge, autoSell, order, condition, stageId, challenge, onGameOver });
   // 퇴근은 되돌릴 수 없으니 두 번 눌러야 한다. 일시정지를 풀면 초기화한다.
   const [confirmExit, setConfirmExit] = useState(false);
   // 첫 판 안내. 다 하거나 닫으면 그 판 동안 다시 안 뜬다.
   const [coachOff, setCoachOff] = useState(false);
   const paused = snap?.paused ?? false;
+  // popstate 는 한 번만 붙이므로 최신 act 를 ref 로 들고 있는다.
+  const actRef = useRef(act);
+  actRef.current = act;
+
+  // 뒤로가기는 나가는 게 아니라 멈추는 것.
+  //
+  // 홈 화면에 설치해서 쓰면 주소창이 없으니 안드로이드 뒤로가기가 곧장 앱을
+  // 닫는다. 판 도중이면 그대로 한 판이 날아간다. 자리를 하나 만들어 두고,
+  // 뒤로가기가 오면 그 자리를 도로 놓으면서 일시정지 화면을 연다 —
+  // 거기에 「퇴근하기」가 있으니 정말 나가려는 사람도 막히지 않는다.
+  useEffect(() => {
+    const mark = { zunranRun: true };
+    history.pushState(mark, '');
+    const onPop = () => {
+      if (engineRef.current?.state.phase === 'playing' && !engineRef.current.state.paused) {
+        actRef.current({ type: 'TOGGLE_PAUSE' });
+      }
+      history.pushState(mark, '');
+    };
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      // 만들어 둔 자리를 치운다. 안 치우면 판마다 하나씩 쌓여서
+      // 홈 화면에서 뒤로가기를 여러 번 눌러야 나가게 된다.
+      if ((history.state as { zunranRun?: boolean } | null)?.zunranRun) history.back();
+    };
+  }, []);
   useEffect(() => {
     if (!paused) setConfirmExit(false);
   }, [paused]);
