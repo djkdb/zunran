@@ -89,46 +89,6 @@ export function BottomPanel({ snap, act, denied }: Props) {
         </button>
       </div>
 
-      <div className="odds" aria-label="뽑기 확률">
-        <span className="odds-n">N {Math.round(odds.common * 100)}</span>
-        <span className="odds-r">R {Math.round(odds.rare * 100)}</span>
-        <span className="odds-e">E {(odds.epic * 100).toFixed(1)}</span>
-        <span className="odds-l">L {(odds.legendary * 100).toFixed(1)}</span>
-        {/* 보이지 않으면 마법이다. 왜 같은 계열이 계속 들어오는지 여기서 읽힌다. */}
-        {snap.focus.role && snap.focus.weight > 1 && (
-          <span className="odds-focus" title="보드가 한 계열로 모이면 그 계열이 더 자주 들어옵니다">
-            전문점 · {ROLE_LABEL[snap.focus.role]} ×{snap.focus.weight.toFixed(1)}
-          </span>
-        )}
-      </div>
-
-      {/* 본사 발주: 등급을 지정해서 산다. 운이 나쁜 판을 돈으로 되돌리는 유일한 수단이다. */}
-      <div className="order-row" aria-label="본사 발주">
-        <span className="order-label">본사 발주</span>
-        {(['rare', 'epic', 'legendary'] as const).map((r) => {
-          const cost = snap.orderCost[r];
-          const short = cost - snap.coins;
-          const ok = snap.phase === 'playing' && snap.emptySlots > 0 && snap.coins >= cost;
-          return (
-            <button
-              key={r}
-              className={`order-btn ${r} ${ok ? '' : 'disabled'}`}
-              disabled={snap.phase !== 'playing'}
-              onClick={() => act({ type: 'ORDER', rarity: r })}
-              title={`${RARITY_LABEL[r]} 확정 · ${cost}원`}
-            >
-              {/* 모으는 중이라는 걸 보여준다. 얼마 남았는지 모르면 아무도 참지 않는다.
-                  직접 한 판 해 보니 발주를 한 번도 누르지 않고 끝났다. */}
-              <span className="order-fill" style={{ width: `${Math.min(100, (snap.coins / Math.max(1, cost)) * 100)}%` }} />
-              <span className="order-rank">{RARITY_LABEL[r]}</span>
-              <span className="order-cost">
-                {ok ? (cost >= 10000 ? `${Math.round(cost / 1000)}k` : cost) : `−${short >= 10000 ? `${Math.round(short / 1000)}k` : short}`}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
       <div className="skill-row">
         <button
           className={`skill-btn shutter ${snap.skillReady.shutter ? 'ready' : ''}`}
@@ -156,40 +116,11 @@ export function BottomPanel({ snap, act, denied }: Props) {
         </button>
       </div>
 
-      {snap.junkCount > 0 && snap.emptySlots === 0 && (
-        <button
-          className="clean-btn urgent"
-          onClick={() => act({ type: 'SELL_JUNK' })}
-          title="짝이 없는 1티어 유닛(일반·희귀)을 전부 판매"
-        >
-          <Icon name="broom" size={16} strokeWidth={2.4} />
-          칸이 다 찼어요 · 정리하고 뽑기
-          <span className="px">
-            {snap.junkCount}개 +{snap.junkValue}
-          </span>
-        </button>
-      )}
-
-      {recipes.length > 0 && (
-        <div className="recipe-row">
-          {recipes.slice(0, 2).map(({ def, ready, have }) => (
-            <button
-              key={def.id}
-              className={`recipe-btn ${ready ? 'ready' : ''}`}
-              disabled={!ready}
-              onClick={() => act({ type: 'COMBINE', recipeId: def.id })}
-            >
-              <UnitIcon defId={def.result} size={30} />
-              <span className="recipe-label">
-                <span className="recipe-name">{recipeResultName(def)}</span>
-                <span className="recipe-hint">{ready ? def.hint : `${def.hint} · 재료 ${have}/${def.materials.length}`}</span>
-              </span>
-              <span className="recipe-cta px">{ready ? '조합' : `${have}/${def.materials.length}`}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
+      {/* 합성은 이 게임의 핵심이고 베타 10명 중 9명이 썼다(「한 개만 더」는 10명 전원).
+          그런데 인스타 인앱 브라우저(360×600)에서는 조작 패널이 204px 뿐이라
+          MERGE 버튼이 화면 밖으로 밀려 있었다 — 뽑기 버튼은 「그동안 합성하세요」라고
+          하는데 정작 그 버튼이 안 보이는 상태였다. 자주 쓰는 것을 엄지 밑에 둔다.
+          (합성 줄이 생기면 아래가 밀린다. 그 대신 핵심 수단이 늘 보인다.) */}
       {/* 고티어 통합 합성: 3티어부터는 종류가 달라도 합친다.
           같은 유닛만 고집하면 사다리가 3티어에서 끊긴다 (4티어 하나에 같은 유닛 12개). */}
       {snap.tierMerge && (
@@ -337,6 +268,86 @@ export function BottomPanel({ snap, act, denied }: Props) {
           </div>
         </div>
       )}
+
+      {snap.junkCount > 0 && snap.emptySlots === 0 && (
+        <button
+          className="clean-btn urgent"
+          onClick={() => act({ type: 'SELL_JUNK' })}
+          title="짝이 없는 1티어 유닛(일반·희귀)을 전부 판매"
+        >
+          <Icon name="broom" size={16} strokeWidth={2.4} />
+          칸이 다 찼어요 · 정리하고 뽑기
+          <span className="px">
+            {snap.junkCount}개 +{snap.junkValue}
+          </span>
+        </button>
+      )}
+
+      {recipes.length > 0 && (
+        <div className="recipe-row">
+          {recipes.slice(0, 2).map(({ def, ready, have }) => (
+            <button
+              key={def.id}
+              className={`recipe-btn ${ready ? 'ready' : ''}`}
+              disabled={!ready}
+              onClick={() => act({ type: 'COMBINE', recipeId: def.id })}
+            >
+              <UnitIcon defId={def.result} size={30} />
+              <span className="recipe-label">
+                <span className="recipe-name">{recipeResultName(def)}</span>
+                <span className="recipe-hint">{ready ? def.hint : `${def.hint} · 재료 ${have}/${def.materials.length}`}</span>
+              </span>
+              <span className="recipe-cta px">{ready ? '조합' : `${have}/${def.materials.length}`}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* 확률·본사 발주는 '지금 누를 것'이 아니라 참고와 고급 수단이다.
+          인스타 인앱 브라우저(360×600)에서 조작 패널이 204px 밖에 안 되는데
+          이 둘이 위를 차지해서 정작 MERGE 버튼이 화면 밖으로 밀렸다.
+          베타 10명에서 합성은 9명이 썼고 발주는 3명(쓰도록 지정한 사람)뿐이다.
+          자주 쓰는 것을 엄지 밑에 두고, 참고는 아래로 내린다. */}
+      <div className="odds" aria-label="뽑기 확률">
+        <span className="odds-n">N {Math.round(odds.common * 100)}</span>
+        <span className="odds-r">R {Math.round(odds.rare * 100)}</span>
+        <span className="odds-e">E {(odds.epic * 100).toFixed(1)}</span>
+        <span className="odds-l">L {(odds.legendary * 100).toFixed(1)}</span>
+        {/* 보이지 않으면 마법이다. 왜 같은 계열이 계속 들어오는지 여기서 읽힌다. */}
+        {snap.focus.role && snap.focus.weight > 1 && (
+          <span className="odds-focus" title="보드가 한 계열로 모이면 그 계열이 더 자주 들어옵니다">
+            전문점 · {ROLE_LABEL[snap.focus.role]} ×{snap.focus.weight.toFixed(1)}
+          </span>
+        )}
+      </div>
+
+      {/* 본사 발주: 등급을 지정해서 산다. 운이 나쁜 판을 돈으로 되돌리는 유일한 수단이다. */}
+      <div className="order-row" aria-label="본사 발주">
+        <span className="order-label">본사 발주</span>
+        {(['rare', 'epic', 'legendary'] as const).map((r) => {
+          const cost = snap.orderCost[r];
+          const short = cost - snap.coins;
+          const ok = snap.phase === 'playing' && snap.emptySlots > 0 && snap.coins >= cost;
+          return (
+            <button
+              key={r}
+              className={`order-btn ${r} ${ok ? '' : 'disabled'}`}
+              disabled={snap.phase !== 'playing'}
+              onClick={() => act({ type: 'ORDER', rarity: r })}
+              title={`${RARITY_LABEL[r]} 확정 · ${cost}원`}
+            >
+              {/* 모으는 중이라는 걸 보여준다. 얼마 남았는지 모르면 아무도 참지 않는다.
+                  직접 한 판 해 보니 발주를 한 번도 누르지 않고 끝났다. */}
+              <span className="order-fill" style={{ width: `${Math.min(100, (snap.coins / Math.max(1, cost)) * 100)}%` }} />
+              <span className="order-rank">{RARITY_LABEL[r]}</span>
+              <span className="order-cost">
+                {ok ? (cost >= 10000 ? `${Math.round(cost / 1000)}k` : cost) : `−${short >= 10000 ? `${Math.round(short / 1000)}k` : short}`}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
 
       <div className="inventory" ref={invRef}>
         {snap.groups.length === 0 && <div className="inventory-empty">유닛을 뽑아서 편의점을 지키세요. 같은 유닛 3개 = 합성! (2티어부터는 2개)</div>}

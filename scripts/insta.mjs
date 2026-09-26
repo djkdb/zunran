@@ -142,4 +142,59 @@ const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH 
   await ctx.close();
 }
 
+// ───────── 시나리오 2: 인앱 브라우저는 화면이 짧다 ─────────
+{
+  console.log('\n═══ 시나리오 2 · 인앱 브라우저 화면 크기 ═══\n');
+  // 인스타가 위 헤더/아래 툴바를 먹는다. 기기별로 남는 높이가 다르다.
+  const SIZES = [
+    { w: 390, h: 748, name: 'iPhone 14 (844 중 748)' },
+    { w: 390, h: 640, name: '주소창 펼쳐진 상태' },
+    { w: 360, h: 600, name: '작은 안드로이드' },
+    { w: 430, h: 800, name: 'iPhone Pro Max' },
+  ];
+  for (const sz of SIZES) {
+    const ctx = await browser.newContext({ userAgent: IG_UA, viewport: { width: sz.w, height: sz.h }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'ko-KR' });
+    const p = await ctx.newPage();
+    const errs = [];
+    p.on('pageerror', (e) => errs.push(e.message));
+    await p.goto(URL, { waitUntil: 'networkidle' });
+    await p.evaluate(async () => { for (const r of (await navigator.serviceWorker?.getRegistrations?.()) ?? []) await r.unregister(); for (const k of await caches.keys()) await caches.delete(k); localStorage.clear(); });
+    await p.goto(URL, { waitUntil: 'networkidle' });
+    await sleep(900);
+    // 홈: 가로 스크롤 / 탭바가 보이는가
+    const home = await p.evaluate(() => ({
+      hScroll: document.documentElement.scrollWidth > window.innerWidth + 1,
+      tabs: (() => { const t = document.querySelector('.tabs'); if (!t) return null; const r = t.getBoundingClientRect(); return { bottom: Math.round(r.bottom), visible: r.bottom <= window.innerHeight + 1 }; })(),
+      startBtn: (() => { const b = [...document.querySelectorAll('button')].find((x) => /야간 근무 시작/.test(x.textContent)); if (!b) return null; const r = b.getBoundingClientRect(); return { y: Math.round(r.y), onScreen: r.bottom <= window.innerHeight }; })(),
+    }));
+    // 판에 들어가서 매장/조작 패널 비율
+    const click = async (re) => { const bs = await p.$$('button'); for (const b of bs) { const t = ((await b.textContent()) ?? '').trim(); if (re.test(t) && (await b.isVisible())) { await b.click({ timeout: 2000 }).catch(() => {}); await sleep(650); return true; } } return false; };
+    await click(/야간 근무 시작/); await click(/건너뛰기/); await click(/국도변 시골점/); await click(/야간 근무 시작|근무 시작|출근/);
+    const bs2 = await p.$$('button'); if (bs2[0]) { await bs2[0].click().catch(() => {}); await sleep(1100); }
+    const game = await p.evaluate(() => {
+      const f = document.querySelector('.field');
+      const panel = document.querySelector('.panel');
+      if (!f || !panel) return null;
+      const fr = f.getBoundingClientRect(), pr = panel.getBoundingClientRect();
+      const draw = [...document.querySelectorAll('button')].find((b) => /유닛 뽑기/.test(b.textContent));
+      const dr = draw?.getBoundingClientRect();
+      return {
+        field: `${Math.round(fr.width)}×${Math.round(fr.height)}`,
+        fieldPct: Math.round((fr.height / window.innerHeight) * 100),
+        panelH: Math.round(pr.height),
+        panelCut: Math.round(panel.scrollHeight - pr.height),
+        drawVisible: dr ? dr.bottom <= window.innerHeight : null,
+        hScroll: document.documentElement.scrollWidth > window.innerWidth + 1,
+      };
+    });
+    console.log(`${sz.name.padEnd(24)} ${sz.w}×${sz.h}`);
+    console.log(`   홈  탭바 ${home.tabs?.visible ? '보임' : '잘림!'} · 시작버튼 ${home.startBtn?.onScreen ? '보임' : '잘림!'} · 가로스크롤 ${home.hScroll ? '있음!' : '없음'}`);
+    if (game) console.log(`   판  매장 ${game.field} (화면의 ${game.fieldPct}%) · 조작패널 ${game.panelH}px (넘치는 내용 ${game.panelCut}px) · 뽑기버튼 ${game.drawVisible ? '보임' : '잘림!'} · 가로스크롤 ${game.hScroll ? '있음!' : '없음'}`);
+    else console.log('   판  진입 실패');
+    if (errs.length) console.log('   에러:', errs.slice(0, 2));
+    await p.screenshot({ path: `/tmp/ig2_${sz.w}x${sz.h}.png` });
+    await ctx.close();
+  }
+}
+
 await browser.close();
