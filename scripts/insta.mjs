@@ -197,4 +197,84 @@ const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH 
   }
 }
 
+// ───────── 시나리오 3: 릴스만 보고 링크를 눌렀다 · 첫 10초 ─────────
+{
+  console.log('\n═══ 시나리오 3 · 릴스만 보고 들어온 사람의 첫 10초 ═══\n');
+  const { ctx, p, errs } = await openIG(browser);
+  const t0 = Date.now();
+  // 첫 화면에서 읽히는 것
+  const first = await p.evaluate(() => {
+    const vh = window.innerHeight;
+    const texts = [];
+    for (const el of document.querySelectorAll('.app-body *')) {
+      if (el.children.length) continue;
+      const t = (el.textContent ?? '').trim();
+      if (!t) continue;
+      const r = el.getBoundingClientRect();
+      if (r.bottom <= vh && r.width > 0) texts.push({ t: t.slice(0, 30), y: Math.round(r.y), size: Math.round(parseFloat(getComputedStyle(el).fontSize)) });
+    }
+    return texts.sort((a, b) => a.y - b.y).slice(0, 14);
+  });
+  console.log('스크롤 없이 읽히는 것 (위에서부터):');
+  for (const x of first) console.log(`   ${String(x.y).padStart(3)}px ${String(x.size).padStart(2)}pt  ${x.t}`);
+
+  // 소리: 인스타에서 온 사람은 무음으로 본다. 첫 탭 전에 오디오가 막히는가?
+  const audio = await p.evaluate(() => ({ state: (window.__game?.audio?.ctx?.state) ?? 'n/a' }));
+  console.log('\n오디오 컨텍스트 :', audio.state);
+
+  // 바로 시작 버튼을 눌렀을 때 판까지 몇 초인가
+  const tapN = async (re) => { const bs = await p.$$('button'); for (const b of bs) { const t = ((await b.textContent()) ?? '').trim(); if (re.test(t) && (await b.isVisible())) { await b.click({ timeout: 2000 }).catch(() => {}); return true; } } return false; };
+  let taps = 0;
+  const marks = [];
+  while (!(await p.$('.field-canvas')) && Date.now() - t0 < 60000) {
+    const before = Date.now();
+    const ok = (await tapN(/야간 근무 시작/)) || (await tapN(/건너뛰기/)) || (await tapN(/국도변|골목점|술집가/)) || (await tapN(/야간수당|신상|재고|포스기|진상|본사/));
+    if (!ok) break;
+    taps++;
+    await sleep(700);
+    const title = await p.$eval('.app-nav-title, .reward-title, .intro-line', (e) => e.textContent.trim()).catch(() => null);
+    marks.push(`${taps}탭(${((Date.now() - t0) / 1000).toFixed(1)}s)${title ? ' · ' + title.slice(0, 14) : ''}`);
+    if (Date.now() - before > 10000) break;
+  }
+  console.log('진입 경로 :', marks.join(' → '));
+  console.log(`→ 게임 화면까지 ${taps}탭 · ${((Date.now() - t0) / 1000).toFixed(1)}초`);
+  await p.screenshot({ path: '/tmp/ig3.png' });
+  console.log('→ 콘솔 에러 :', errs.length ? errs.slice(0, 2) : '없음');
+  await ctx.close();
+}
+
+// ───────── 시나리오 4: 인스타에서 또 들어왔다 (재방문) ─────────
+{
+  console.log('\n═══ 시나리오 4 · 며칠 뒤 인스타에서 또 눌렀다 ═══\n');
+  const ctx = await browser.newContext({ userAgent: IG_UA, viewport: IG_VIEWPORT, deviceScaleFactor: 3, isMobile: true, hasTouch: true, locale: 'ko-KR' });
+  const p = await ctx.newPage();
+  await p.goto(URL, { waitUntil: 'networkidle' });
+  await p.evaluate(async () => { for (const r of (await navigator.serviceWorker?.getRegistrations?.()) ?? []) await r.unregister(); for (const k of await caches.keys()) await caches.delete(k); localStorage.clear(); });
+  await p.goto(URL, { waitUntil: 'networkidle' });
+  await sleep(800);
+  // 첫 방문에서 쿠폰 하나 쓰고 판 기록을 남긴다
+  await p.goto(URL + '?c=NIGHT', { waitUntil: 'networkidle' });
+  await sleep(700);
+  await p.click('.coupon-btn').catch(() => {});
+  await sleep(500);
+  const saved = await p.evaluate(() => { const k = Object.keys(localStorage).find((x) => x.includes('cvs')); return k ? { key: k, bytes: localStorage.getItem(k).length } : null; });
+  console.log('첫 방문 후 저장 :', saved ? `${saved.key} (${saved.bytes}바이트)` : '없음!');
+  // 탭을 닫았다 다시 열었다고 치고 새 페이지로 같은 컨텍스트 재방문
+  const p2 = await ctx.newPage();
+  await p2.goto(URL, { waitUntil: 'networkidle' });
+  await sleep(900);
+  const again = await p2.evaluate(() => {
+    const k = Object.keys(localStorage).find((x) => x.includes('cvs'));
+    const s = k ? JSON.parse(localStorage.getItem(k)) : null;
+    return s ? { pts: s.metaPoints, used: s.usedCoupons, plays: s.totalPlays, intro: s.introSeen } : null;
+  });
+  console.log('재방문 시 남아 있는 것 :', JSON.stringify(again));
+  const introShown = await p2.$('.intro-line, .intro-scene');
+  console.log('오프닝을 또 보여주는가 :', introShown ? '예' : '아니오');
+  const couponReopen = await p2.$('.coupon-panel');
+  console.log('쿠폰함이 또 열리는가 :', couponReopen ? '예 (문제)' : '아니오 (정상)');
+  await p2.screenshot({ path: '/tmp/ig4.png' });
+  await ctx.close();
+}
+
 await browser.close();

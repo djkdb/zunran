@@ -1046,3 +1046,14 @@ describe('막혔을 때 다음 수 안내', () => {
     expect(broke.progress).toBe(0);
   });
 });
+
+describe('막혔을 때 다음 수 안내 · 판이 끝난 뒤', () => {
+  it('게임오버 화면에서는 아무 말도 하지 않는다', () => {
+    const e = fullEngine(901);
+    const base = e.snapshot();
+    for (const phase of ['gameover', 'reward', 'promote', 'eventChoice'] as const) {
+      const m = nextMove({ ...base, phase, canDraw: false, coins: 0, drawCost: 100 } as UISnapshot);
+      expect(m, `${phase} 에서는 조용해야 한다`).toBeNull();
+    }
+  });
+});

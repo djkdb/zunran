@@ -7,6 +7,9 @@ import { Icon } from './Icon';
 
 // 근무 인증서를 Canvas 로 직접 그린다.
 // DOM 캡처 라이브러리를 새로 넣지 않고, 외부 서버도 쓰지 않는다.
+// 인증서에 박히는 주소. 인스타에 올라간 이미지가 스스로 길을 알려줘야 한다.
+export const SITE = 'zunran.pages.dev';
+
 const W = 540;
 const H = 648;
 
@@ -120,10 +123,16 @@ function drawCertificate(ctx: CanvasRenderingContext2D, r: RunResult): void {
   ctx.textAlign = 'center';
   ctx.fillStyle = C.dim;
   ctx.font = 'bold 16px "Do Hyeon", system-ui, sans-serif';
-  ctx.fillText('나는 새벽을 버텼다.', W / 2, H - pad - 44);
+  ctx.fillText('나는 새벽을 버텼다.', W / 2, H - pad - 48);
   ctx.fillStyle = C.off;
   ctx.font = '11px ui-monospace, monospace';
-  ctx.fillText(new Date().toLocaleDateString('ko-KR'), W / 2, H - pad - 22);
+  ctx.fillText(new Date().toLocaleDateString('ko-KR'), W / 2, H - pad - 28);
+
+  // 주소. 인스타에 올라간 인증서를 본 사람이 어디로 가야 할지 알 수 있어야 한다.
+  // 유입은 링크로 들어오는데 나가는 이미지에는 주소가 없었다 — 고리가 한쪽만 있었다.
+  ctx.font = 'bold 13px ui-monospace, monospace';
+  ctx.fillStyle = 'rgba(239, 234, 255, 0.45)';
+  ctx.fillText(SITE, W / 2, H - pad - 9); // 테두리 안쪽. 밖으로 내면 캔버스 끝에 잘린다
 }
 
 export function Certificate({ result, onClose }: { result: RunResult; onClose: () => void }) {
@@ -152,9 +161,9 @@ export function Certificate({ result, onClose }: { result: RunResult; onClose: (
     [],
   );
 
-  const flash = (t: string) => {
+  const flash = (t: string, ms = 1800) => {
     setMsg(t);
-    window.setTimeout(() => setMsg(null), 1800);
+    window.setTimeout(() => setMsg(null), ms);
   };
 
   const share = useCallback(async () => {
@@ -194,7 +203,10 @@ export function Certificate({ result, onClose }: { result: RunResult; onClose: (
     a.download = `zunran-w${result.wave}-${Date.now()}.png`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    flash('이미지를 저장했어요');
+    // 인앱 브라우저(인스타·카톡)에서는 a[download] 가 대개 아무 일도 안 한다.
+    // 그런데도 「저장했어요」라고 단정하고 있었다 — 성공 여부를 알 방법이 없으면
+    // 단정하지 않고, 어느 쪽이든 통하는 길을 같이 알려준다.
+    flash('저장했어요 · 안 되면 이미지를 길게 눌러 저장하세요', 3200);
   }, [result, toBlob]);
 
   return (

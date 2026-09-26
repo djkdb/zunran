@@ -22,6 +22,9 @@ export interface NextMove {
 }
 
 export function nextMove(snap: UISnapshot): NextMove | null {
+  // 판이 끝났으면 할 말이 없다. (결과 화면에서 「0원 더」가 떴다 — 뽑을 수 없는
+  // 이유가 돈이 아닌데 돈 이야기를 하고 있었다.)
+  if (snap.phase !== 'playing') return null;
   if (snap.canDraw) return null;
 
   // 1) 칸이 없다. 돈 문제가 아니므로 기다려도 안 풀린다 — 이게 제일 급하다.
