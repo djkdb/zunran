@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { COUPONS, redeemCoupon, normalizeCode, rewardText, COUPON_BY_CODE } from '../data/coupons';
+import { COUPONS, redeemCoupon, normalizeCode, rewardText, COUPON_BY_CODE, couponFromUrl } from '../data/coupons';
 import { migrate, defaultSave, SAVE_VERSION } from '../save/storage';
 
 describe('쿠폰', () => {
@@ -105,5 +105,52 @@ describe('업적 보상 수령 (v6 → v7)', () => {
     const s = defaultSave();
     expect(s.achievements).toEqual([]);
     expect(s.claimedAchievements).toEqual([]);
+  });
+});
+
+// 링크에 실려 온 쿠폰 코드 (?c=NIGHT).
+//
+// 쿠폰은 인스타 릴스용인데, 코드를 들고 온 사람이 입력창을 찾아 「강화」 탭까지
+// 가야 했다. 첫 화면에 '쿠폰'이라는 글자가 없어서 그 탭에 있다는 걸 알 방법이 없다.
+describe('링크로 들어온 쿠폰 코드', () => {
+  it('?c= 와 ?coupon= 을 모두 읽는다', () => {
+    expect(couponFromUrl('?c=NIGHT')).toBe('NIGHT');
+    expect(couponFromUrl('?coupon=NIGHT')).toBe('NIGHT');
+  });
+
+  it('소문자·하이픈·공백을 입력창과 같은 규칙으로 정리한다', () => {
+    expect(couponFromUrl('?c=night')).toBe('NIGHT');
+    expect(couponFromUrl('?c=1-plus-1')).toBe('1PLUS1');
+    expect(couponFromUrl('?c=%20cat%20')).toBe('CAT');
+  });
+
+  it('다른 쿼리가 섞여 있어도 찾는다', () => {
+    expect(couponFromUrl('?utm_source=instagram&c=ZUNRAN&utm_medium=reels')).toBe('ZUNRAN');
+  });
+
+  it('코드가 없으면 null', () => {
+    expect(couponFromUrl('')).toBeNull();
+    expect(couponFromUrl('?utm_source=instagram')).toBeNull();
+    expect(couponFromUrl('?c=')).toBeNull();
+  });
+
+  it('남이 만들어 보낼 수 있는 링크다 — 이상한 값은 입력창에 넣지 않는다', () => {
+    expect(couponFromUrl('?c=<script>alert(1)</script>')).toBeNull();
+    expect(couponFromUrl('?c=' + 'A'.repeat(25))).toBeNull();
+    expect(couponFromUrl('?c=한글코드')).toBeNull();
+    expect(couponFromUrl('?c=NIGHT!')).toBeNull();
+  });
+
+  it('링크로 온 코드도 결국 같은 검증을 거친다 (없는 코드는 그냥 실패)', () => {
+    const code = couponFromUrl('?c=NOSUCHCODE')!;
+    expect(code).toBe('NOSUCHCODE');
+    expect(redeemCoupon(code, []).ok).toBe(false);
+  });
+
+  it('링크로 온 진짜 코드는 정상 지급되고, 두 번은 안 된다', () => {
+    const code = couponFromUrl('?c=night')!;
+    const first = redeemCoupon(code, []);
+    expect(first.ok).toBe(true);
+    expect(redeemCoupon(code, [code]).ok).toBe(false);
   });
 });

@@ -34,6 +34,8 @@ interface Props {
   onSetOrder: (order: Order) => void;
   onReplayIntro: () => void;
   onRedeemCoupon: (coupon: Coupon) => void;
+  /** 링크에 실려 온 쿠폰 코드. 있으면 쿠폰함이 열린 채로 시작한다. */
+  linkCoupon: string | null;
   onClaimAchievements: (ids: string[]) => void;
   onReset: () => void;
 }
@@ -51,11 +53,12 @@ const TABS: { id: Tab; label: string; aria: string; icon: IconName }[] = [
 ];
 
 export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggleMute,
-  onToggleHaptics, onSetNickname, onToggleRankOptIn, order, onSetOrder, onReplayIntro, onRedeemCoupon, onClaimAchievements, onReset }: Props) {
+  onToggleHaptics, onSetNickname, onToggleRankOptIn, order, onSetOrder, onReplayIntro, onRedeemCoupon, linkCoupon, onClaimAchievements, onReset }: Props) {
   const [tab, setTab] = useState<Tab>('main');
   const [deckOpen, setDeckOpen] = useState(false);
   const [dailyOpen, setDailyOpen] = useState(false);
-  const [couponOpen, setCouponOpen] = useState(false);
+  // 링크로 들어왔으면 찾아다닐 필요 없이 바로 열어 준다.
+  const [couponOpen, setCouponOpen] = useState(!!linkCoupon);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const upcoming = nextUnlock(save.bestWave);
   const tip = TIPS[save.totalPlays % TIPS.length];
@@ -370,7 +373,7 @@ export function StartScreen({ save, daily, todayRecord, onStart, onBuy, onToggle
         ))}
       </nav>
 
-      {couponOpen && <CouponModal used={save.usedCoupons} onRedeem={onRedeemCoupon} onClose={() => setCouponOpen(false)} />}
+      {couponOpen && <CouponModal used={save.usedCoupons} initialCode={linkCoupon ?? undefined} onRedeem={onRedeemCoupon} onClose={() => setCouponOpen(false)} />}
 
       {/* 설정 — 예전에는 화면 맨 아래에 밑줄 친 텍스트 링크 두 개였다.
           그건 웹사이트 푸터지 앱이 아니다. 아래에서 올라오는 시트로 옮긴다. */}

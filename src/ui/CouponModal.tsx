@@ -4,6 +4,9 @@ import { Icon } from './Icon';
 
 interface Props {
   used: string[];
+  /** 링크(?c=…)로 실려 온 코드. 채워만 두고 누르는 건 사람이 한다 —
+      「쿠폰 사용 완료」와 점장 한마디가 이 기능의 값어치라서다. */
+  initialCode?: string;
   onRedeem: (coupon: Coupon) => void;
   onClose: () => void;
 }
@@ -12,8 +15,8 @@ interface Props {
 //
 // 치트창이 아니라, ZUN 이 SNS 로 흘린 코드를 들고 오는 자리다.
 // 그래서 성공하면 보상보다 점장의 한마디가 먼저 나온다.
-export function CouponModal({ used, onRedeem, onClose }: Props) {
-  const [code, setCode] = useState('');
+export function CouponModal({ used, initialCode, onRedeem, onClose }: Props) {
+  const [code, setCode] = useState(initialCode ?? '');
   const [done, setDone] = useState<Coupon | null>(null);
   const [error, setError] = useState<string | null>(null);
 

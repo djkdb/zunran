@@ -95,6 +95,32 @@ export function redeemCoupon(input: string, used: string[], now = new Date()): C
   return { ok: true, coupon };
 }
 
+/**
+ * 링크에 실려 온 쿠폰 코드를 읽는다 — `?c=NIGHT` 또는 `?coupon=NIGHT`.
+ *
+ * 쿠폰은 인스타 릴스에 코드를 흘리려고 만든 기능인데, 정작 코드를 들고 온
+ * 사람이 입력창을 찾아 「강화」탭까지 가야 했다. 첫 화면에 '쿠폰'이라는
+ * 글자가 없으니 그 탭에 있다는 걸 알 방법이 없다 (docs/AUDIT.md 10차).
+ * 링크가 코드를 싣고 오면 그 단계가 통째로 사라진다.
+ *
+ * 코드 모양만 보고 거른다. 진짜 있는 코드인지는 redeemCoupon 이 판단한다.
+ */
+export function couponFromUrl(search: string): string | null {
+  let q: URLSearchParams;
+  try {
+    q = new URLSearchParams(search);
+  } catch {
+    return null;
+  }
+  const raw = q.get('c') ?? q.get('coupon');
+  if (!raw) return null;
+  const code = normalizeCode(raw);
+  // 링크는 남이 만들어 보낼 수 있다. 길이와 글자를 제한해 이상한 값이
+  // 입력창에 그대로 박히지 않게 한다.
+  if (!code || code.length > 24 || !/^[A-Z0-9]+$/.test(code)) return null;
+  return code;
+}
+
 export function rewardText(r: CouponReward): string {
   switch (r.type) {
     case 'metaPoints':

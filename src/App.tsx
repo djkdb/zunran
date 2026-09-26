@@ -4,7 +4,7 @@ import { setHaptics, vibe } from './haptics';
 import type { MetaUpgradeId } from './game/types';
 import { loadSave, writeSave, resetSave, type DailyRecord, type RunRecord, type SaveData } from './game/save/storage';
 import { META_UPGRADES, metaEffects, metaPointsForRun } from './game/save/meta';
-import { normalizeCode, type Coupon } from './game/data/coupons';
+import { couponFromUrl, normalizeCode, type Coupon } from './game/data/coupons';
 import { mergeRunStats, analyzeDefeat, type DefeatAnalysis } from './game/save/stats';
 import { evaluateAchievements, achievementReward, ACHIEVEMENT_BY_ID, type AchievementContext } from './game/data/achievements';
 import { pickRunTitle } from './game/data/runTitles';
@@ -74,6 +74,14 @@ export function App() {
   // 오늘의 규칙으로 플레이할지 (시작 화면에서 고른다)
   const [dailyMode, setDailyMode] = useState(false);
   const [runFreeDraws, setRunFreeDraws] = useState(0); // 쿠폰으로 받은 무료 뽑기 (이번 판 한정)
+  // 인스타 링크가 코드를 싣고 오는 경우 (?c=NIGHT). 한 번만 읽고 주소에서 지운다 —
+  // 남겨 두면 새로고침할 때마다 「이미 사용한 쿠폰입니다」가 뜬다.
+  const [linkCoupon] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const code = couponFromUrl(window.location.search);
+    if (code) window.history.replaceState(null, '', window.location.pathname);
+    return code;
+  });
 
   const persist = useCallback((next: SaveData) => {
     setSave(next);
@@ -440,6 +448,7 @@ export function App() {
         order={order}
         onSetOrder={setOrder}
         onRedeemCoupon={redeemCouponReward}
+        linkCoupon={linkCoupon}
         onClaimAchievements={claimAchievements}
         onReplayIntro={replayIntro}
         onReset={() => setSave(resetSave())}
